@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Табель {{ timesheet.date }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Табель учета времени</h4>
+                    {% if timesheet.status == 'approved' %}
+                    <span class="badge bg-success">Утвержден</span>
+                    {% else %}
+                    <span class="badge bg-warning">Черновик</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="30%">Дата</th>
+                        <td>{{ timesheet.date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Сотрудник</th>
+                        <td>{{ timesheet.employee.full_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Табельный номер</th>
+                        <td>{{ timesheet.employee.employee_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Должность</th>
+                        <td>{{ timesheet.employee.position|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Отдел</th>
+                        <td>{{ timesheet.employee.department.name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Мастер</th>
+                        <td>{{ timesheet.master.get_full_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Значение</th>
+                        <td>
+                            {{ timesheet.display_value }}
+                            {% if timesheet.value.isdigit %}
+                            <small class="text-muted">(часов)</small>
+                            {% else %}
+                            <small class="text-muted">({{ timesheet.get_value_display }})</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Статус</th>
+                        <td>{{ timesheet.get_status_display }}</td>
+                    </tr>
+                    {% if timesheet.is_approved %}
+                    <tr>
+                        <th>Утверждено</th>
+                        <td>
+                            {{ timesheet.approved_by.get_full_name }}
+                            <small class="text-muted">({{ timesheet.approved_at|date:"d.m.Y H:i" }})</small>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Создано</th>
+                        <td>{{ timesheet.created_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Обновлено</th>
+                        <td>{{ timesheet.updated_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                </table>
+                
+                <div class="mt-4">
+                    <a href="{% url 'timesheet:list' %}" class="btn btn-secondary">Назад к списку</a>
+                    
+                    {% if timesheet.can_edit and user.is_master and timesheet.master == user or user.is_planner or user.is_administrator %}
+                    <a href="{% url 'timesheet:edit' timesheet.id %}" class="btn btn-warning">Редактировать</a>
+                    {% endif %}
+                    
+                    {% if not timesheet.is_approved and user.is_planner or user.is_administrator %}
+                    <a href="{% url 'timesheet:approve' timesheet.id %}" class="btn btn-success" 
+                       onclick="return confirm('Утвердить этот табель?')">Утвердить</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Боковая панель с информацией -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Информация</h5>
+            </div>
+            <div class="card-body">
+                {% if timesheet.can_edit %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Этот табель можно редактировать до утверждения.
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    Этот табель утвержден и заблокирован для редактирования.
+                </div>
+                {% endif %}
+                
+                <!-- Сводка по сотруднику -->
+                <h6>Последние записи сотрудника:</h6>
+                <ul class="list-group list-group-flush">
+                    {% for ts in timesheet.employee.timesheets.all|slice:":5" %}
+                    {% if ts.id != timesheet.id %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ ts.date|date:"d.m.Y" }}
+                        <span class="badge bg-{% if ts.status == 'approved' %}success{% else %}warning{% endif %} rounded-pill">
+                            {{ ts.display_value }}
+                        </span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                        <div class="text-danger">
+                            {% for error in form.date.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.employee.id_for_label }}" class="form-label">{{ form.employee.label }}</label>
+                        {{ form.employee }}
+                        {% if form.employee.errors %}
+                        <div class="text-danger">
+                            {% for error in form.employee.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.value.id_for_label }}" class="form-label">{{ form.value.label }}</label>
+                        {{ form.value }}
+                        <div class="form-text">{{ form.value.help_text }}</div>
+                        {% if form.value.errors %}
+                        <div class="text-danger">
+                            {% for error in form.value.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Справка по условным обозначениям -->
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="collapse" data-bs-target="#codesHelp">
+                                Справка по условным обозначениям
+                            </button>
+                            <div class="collapse mt-2" id="codesHelp">
+                                <div class="card card-body">
+                                    <small>
+                                        <strong>Допустимые обозначения:</strong><br>
+                                        В - Выходной<br>
+                                        К - Командировка<br>
+                                        О - Основной отпуск<br>
+                                        Б - Больничный<br>
+                                        Р - Отпуск по уходу за ребенком<br>
+                                        ОЖ - Отпуск по уходу за ребенком (неоплачиваемый)<br>
+                                        М - Учебный отпуск<br>
+                                        Т - Неявка по невыясненной причине<br>
+                                        Н - Ночные часы<br>
+                                        ОС - Отпуск без содержания<br>
+                                        П - Прогул<br>
+                                        ЦП - Целосменный прогул<br>
+                                        Ч - Часы работы (1-24)<br>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'timesheet:list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

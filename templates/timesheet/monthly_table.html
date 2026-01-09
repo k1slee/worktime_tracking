@@ -1,0 +1,1317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timesheet-table {
+        font-size: 0.85rem;
+    }
+    
+    .timesheet-table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .timesheet-table .employee-col {
+        position: sticky;
+        left: 0;
+        background-color: white;
+        z-index: 5;
+        min-width: 200px;
+        box-shadow: 2px 0 2px rgba(0,0,0,0.1);
+    }
+    
+    .timesheet-table .day-cell {
+        width: 40px;
+        min-width: 40px;
+        max-width: 40px;
+        text-align: center;
+        padding: 2px !important;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .timesheet-table .day-cell:hover {
+        background-color: #f0f8ff !important;
+    }
+    
+    .timesheet-table .day-header {
+        width: 40px;
+        min-width: 40px;
+        max-width: 40px;
+        text-align: center;
+        padding: 4px !important;
+        font-weight: normal;
+    }
+    
+    .timesheet-table .day-weekend {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .timesheet-table .cell-draft {
+        background-color: #fff3cd !important;
+        color: #856404;
+    }
+    
+    .timesheet-table .cell-submitted {
+        background-color: #cff4fc !important;
+        color: #055160;
+    }
+    
+    .timesheet-table .cell-approved {
+        background-color: #d1e7dd !important;
+        color: #0f5132;
+    }
+    
+    .timesheet-table .cell-empty {
+        background-color: #f8f9fa !important;
+    }
+    
+    .timesheet-table .cell-weekend {
+        background-color: #e9ecef !important;
+        color: #6c757d;
+    }
+    
+    .timesheet-table .cell-value {
+        font-weight: 500;
+        font-size: 0.8rem;
+    }
+    
+    .timesheet-table .cell-tooltip {
+        position: absolute;
+        background: white;
+        border: 1px solid #dee2e6;
+        padding: 5px;
+        border-radius: 3px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: none;
+        font-size: 0.75rem;
+        min-width: 150px;
+    }
+    
+    .employee-info {
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    
+    .employee-id {
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    .employee-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .employee-position {
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+    
+    .stats-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        margin-right: 3px;
+    }
+    
+    /* Фиксированная высота строки */
+    .timesheet-table tbody tr {
+        height: 45px;
+    }
+    
+    /* Скролл для таблицы */
+    .table-container {
+        max-height: calc(100vh - 300px);
+        overflow: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+    
+    /* Стили для навигации */
+    .month-nav {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .month-nav-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Фильтры */
+    .filters-card {
+        margin-bottom: 15px;
+    }
+    
+    /* Выбранные ячейки */
+    .timesheet-table .day-cell.selected {
+        box-shadow: inset 0 0 0 2px #0d6efd !important;
+        z-index: 2;
+        position: relative;
+    }
+    
+    .timesheet-table .day-cell.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #0d6efd;
+        color: white;
+        font-size: 0.6rem;
+        width: 12px;
+        height: 12px;
+        line-height: 12px;
+        text-align: center;
+        border-radius: 0 0 0 4px;
+    }
+    
+    /* Индикатор статуса */
+    .cell-status-indicator {
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        font-size: 0;
+    }
+    
+    .cell-status-draft {
+        background-color: #ffc107;
+    }
+    
+    .cell-status-submitted {
+        background-color: #0dcaf0;
+    }
+    
+    .cell-status-approved {
+        background-color: #198754;
+    }
+    
+    /* Бейджи статусов */
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        margin-left: 3px;
+    }
+    
+    .status-draft {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-submitted {
+        background-color: #cff4fc;
+        color: #055160;
+    }
+    
+    .status-approved {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+    
+    /* Контекстное меню */
+    .context-menu {
+        min-width: 150px;
+        border-radius: 4px;
+    }
+    
+    .context-menu .list-group-item {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        border: none;
+    }
+    
+    .context-menu .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .context-menu i {
+        margin-right: 6px;
+        width: 16px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Заголовок и навигация -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2 class="mb-1">{{ month_name }}</h2>
+            <nav aria-label="Навигация по месяцам">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item">
+                        <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
+                            &laquo; {{ prev_month|stringformat:"02d" }}.{{ prev_year }}
+                        </a>
+                    </li>
+                    <li class="page-item active">
+                        <span class="page-link">{{ month|stringformat:"02d" }}.{{ year }}</span>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
+                            {{ next_month|stringformat:"02d" }}.{{ next_year }} &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <a href="{% url 'timesheet:list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-list"></i> Список
+                </a>
+                {% if is_master %}
+                <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Создать месяц
+                </a>
+                {% endif %}
+                {% if is_planner or is_admin %}
+                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
+                    <i class="bi bi-download"></i> Экспорт
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Панель управления сдачей (только для мастера) -->
+    {% if is_master %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Управление табелями за {{ month_name }}</h6>
+                            <small class="text-muted" id="selectionCounter">
+                                Выбрано: 0 ячеек
+                            </small>
+                        </div>
+                        <div class="btn-group">
+                            <!-- Сдача выбранных -->
+                            <button type="button" class="btn btn-primary btn-sm" 
+                                    onclick="showSubmitSelectedModal()" 
+                                    id="submitSelectedBtn" disabled>
+                                <i class="bi bi-send-check"></i> Сдать выбранные
+                            </button>
+                            
+                            <!-- Быстрая сдача всего месяца -->
+                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                    onclick="submitEntireMonth()">
+                                <i class="bi bi-send-check-fill"></i> Сдать весь месяц
+                            </button>
+                            
+                            <!-- Массовое редактирование -->
+                            <button type="button" class="btn btn-warning btn-sm" 
+                                    onclick="bulkEditSelected()" 
+                                    id="bulkEditBtn" disabled>
+                                <i class="bi bi-pencil-square"></i> Редактировать выбранные
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Статистика -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge bg-primary stats-badge">
+                                Сотрудников: {{ total_employees }}
+                            </span>
+                            <span class="badge bg-secondary stats-badge">
+                                Дней: {{ total_days }}
+                            </span>
+                            <span class="badge bg-light text-dark stats-badge">
+                                Ячеек: {{ total_cells }}
+                            </span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-warning text-dark stats-badge">
+                                Черновики <i class="bi bi-pencil-square"></i>
+                            </span>
+                            <span class="badge bg-info stats-badge">
+                                Сдано <i class="bi bi-send-check"></i>
+                            </span>
+                            <span class="badge bg-success stats-badge">
+                                Утверждено <i class="bi bi-check-circle"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Фильтры (для плановиков и администраторов) -->
+    {% if is_planner or is_admin %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card filters-card">
+                <div class="card-body py-2">
+                    <form method="get" class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label">Отдел:</label>
+                            <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">Все отделы</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Год:</label>
+                            <input type="number" name="year" value="{{ year }}" min="2023" max="2030" 
+                                   class="form-control form-control-sm" onchange="this.form.submit()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Месяц:</label>
+                            <select name="month" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="1" {% if month == 1 %}selected{% endif %}>Январь</option>
+                                <option value="2" {% if month == 2 %}selected{% endif %}>Февраль</option>
+                                <option value="3" {% if month == 3 %}selected{% endif %}>Март</option>
+                                <option value="4" {% if month == 4 %}selected{% endif %}>Апрель</option>
+                                <option value="5" {% if month == 5 %}selected{% endif %}>Май</option>
+                                <option value="6" {% if month == 6 %}selected{% endif %}>Июнь</option>
+                                <option value="7" {% if month == 7 %}selected{% endif %}>Июль</option>
+                                <option value="8" {% if month == 8 %}selected{% endif %}>Август</option>
+                                <option value="9" {% if month == 9 %}selected{% endif %}>Сентябрь</option>
+                                <option value="10" {% if month == 10 %}selected{% endif %}>Октябрь</option>
+                                <option value="11" {% if month == 11 %}selected{% endif %}>Ноябрь</option>
+                                <option value="12" {% if month == 12 %}selected{% endif %}>Декабрь</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <a href="?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary btn-sm">
+                                Сбросить
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Основная таблица -->
+    <div class="row">
+        <div class="col-12">
+            <div class="table-container">
+                <table class="table table-bordered table-sm timesheet-table">
+                    <thead>
+                        <tr>
+                            <th class="employee-col">Сотрудник</th>
+                            {% for day in days %}
+                            {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
+                            <th class="day-header {% if day_date|slice:"-2:"|add:0 >= 5 %}day-weekend{% endif %}">
+                                <div>{{ day }}</div>
+                                <small class="text-muted">
+                                    {{ day_date|date:"D"|slice:":2" }}
+                                </small>
+                            </th>
+                            {% endwith %}
+                            {% endfor %}
+                            <th class="text-center" style="width: 100px;">Статистика</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table_data %}
+                        <tr>
+                            <!-- Колонка с информацией о сотруднике -->
+                            <td class="employee-col">
+                                <div class="employee-info">
+                                    <div class="employee-id">{{ row.employee.employee_id }}</div>
+                                    <div class="employee-name">{{ row.employee.full_name }}</div>
+                                    <div class="employee-position">{{ row.employee.position }}</div>
+                                </div>
+                            </td>
+                            
+                            <!-- Ячейки с днями -->
+                            {% for day_data in row.days %}
+                            <td class="day-cell cell-{{ day_data.css_class }}" 
+                                data-day="{{ forloop.counter }}"
+                                data-employee-id="{{ row.employee.id }}"
+                                data-employee-name="{{ row.employee.full_name }}"
+                                {% if day_data.id %}data-timesheet-id="{{ day_data.id }}"{% endif %}
+                                data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ forloop.counter|stringformat:'02d' }}"
+                                data-value="{{ day_data.value }}"
+                                data-status="{{ day_data.status }}"
+                                onclick="editCell(this)">
+                                
+                                {% if day_data.display_value %}
+                                <span class="cell-value">{{ day_data.display_value }}</span>
+                                
+                                <!-- Иконки статуса -->
+                                {% if day_data.status == 'submitted' %}
+                                <i class="bi bi-send-check text-info" style="font-size: 0.7rem;" 
+                                   title="Сдан мастером"></i>
+                                {% elif day_data.status == 'approved' %}
+                                <i class="bi bi-check-circle text-success" style="font-size: 0.7rem;"
+                                   title="Утвержден"></i>
+                                {% endif %}
+                                
+                                {% endif %}
+                                
+                                <!-- Индикатор точки статуса -->
+                                {% if day_data.status %}
+                                <div class="cell-status-indicator cell-status-{{ day_data.status }}"></div>
+                                {% endif %}
+                                
+                                <!-- Всплывающая подсказка -->
+                                <div class="cell-tooltip">
+                                    <strong>{{ row.employee.full_name }}</strong><br>
+                                    {{ year }}-{{ month|stringformat:'02d' }}-{{ forloop.counter|stringformat:'02d' }}<br>
+                                    {% if day_data.value %}
+                                    Значение: {{ day_data.display_value }}<br>
+                                    Статус: 
+                                    {% if day_data.status == 'draft' %}
+                                    Черновик
+                                    {% elif day_data.status == 'submitted' %}
+                                    Сдан мастером
+                                    {% elif day_data.status == 'approved' %}
+                                    Утвержден
+                                    {% endif %}
+                                    {% else %}
+                                    Нет данных
+                                    {% endif %}
+                                </div>
+                            </td>
+                            {% endfor %}
+                            
+                            <!-- Колонка статистики -->
+                            <td class="text-center">
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="badge bg-primary stats-badge">
+                                        Р: {{ row.stats.work_days }}
+                                    </span>
+                                    <span class="badge bg-secondary stats-badge">
+                                        В: {{ row.stats.weekend_days }}
+                                    </span>
+                                    <span class="badge bg-warning text-dark stats-badge">
+                                        Пр: {{ row.stats.other_days }}
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{{ days|length|add:2 }}" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Нет данных за этот период</h5>
+                                    {% if is_master %}
+                                    <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success mt-2">
+                                        Создать табели на месяц
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Легенда -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <strong>Легенда:</strong>
+                                <span class="badge bg-warning text-dark ms-2">Черновик</span>
+                                <span class="badge bg-info ms-1">Сдан</span>
+                                <span class="badge bg-success ms-1">Утвержден</span>
+                                <span class="badge bg-light text-dark ms-1">Выходной</span>
+                                <span class="badge bg-secondary ms-1">Нет данных</span>
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">
+                                <strong>Обозначения:</strong>
+                                В - Выходной, К - Командировка, О - Отпуск, Б - Больничный, Ч - Часы работы
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактирование табеля</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="mb-3">
+                        <label class="form-label">Сотрудник:</label>
+                        <input type="text" id="modalEmployee" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дата:</label>
+                        <input type="text" id="modalDate" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalValue" class="form-label">Значение:</label>
+                        <input type="text" id="modalValue" class="form-control" 
+                               placeholder="Часы или код" maxlength="10">
+                        <div class="form-text">
+                            Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Статус:</label>
+                        <input type="text" id="modalStatus" class="form-control" readonly>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;">
+                    Удалить
+                </button>
+                <button type="button" class="btn btn-primary" id="saveBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно массового редактирования -->
+<div class="modal fade" id="bulkEditModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Массовое редактирование</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Установить значение для всех выбранных:</label>
+                    <input type="text" id="bulkValue" class="form-control" 
+                           placeholder="Часы или код" maxlength="10">
+                    <div class="form-text">
+                        Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" id="bulkIncludeEmpty" class="form-check-input" checked>
+                        <label class="form-check-label" for="bulkIncludeEmpty">
+                            Применять к пустым ячейкам
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="bulkIncludeDraft" class="form-check-input" checked>
+                        <label class="form-check-label" for="bulkIncludeDraft">
+                            Применять к черновикам
+                        </label>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Будет обновлено: <span id="bulkCount">0</span> ячеек
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="applyBulkEdit()">Применить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для сдачи выбранных -->
+<div class="modal fade" id="submitSelectedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сдача выбранных табелей</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите сдать <span id="submitCount">0</span> выбранных табелей?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    После сдачи редактирование табелей будет невозможно!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="submitSelected()">Сдать табели</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для экспорта -->
+{% if is_planner or is_admin %}
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Экспорт табеля</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'timesheet:export' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Формат:</label>
+                        <select name="format" class="form-select">
+                            <option value="csv">CSV (Excel)</option>
+                            <option value="pdf">PDF</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Период:</label>
+                        <div class="input-group">
+                            <input type="date" name="start_date" class="form-control" 
+                                   value="{{ month_date|date:'Y-m-d' }}">
+                            <span class="input-group-text">по</span>
+                            <input type="date" name="end_date" class="form-control"
+                                   value="{{ month_date|date:'Y-m-t' }}">
+                        </div>
+                    </div>
+                    {% if is_planner or is_admin %}
+                    <div class="mb-3">
+                        <label class="form-label">Отдел:</label>
+                        <select name="department" class="form-select">
+                            <option value="">Все отделы</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"i" %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Экспортировать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Текущая редактируемая ячейка
+    let currentCell = null;
+    
+    // Массив выбранных ячеек
+    let selectedCells = [];
+    
+    // Функция для редактирования ячейки
+    function editCell(cell) {
+        currentCell = cell;
+        
+        // Заполняем модальное окно данными
+        const employeeName = cell.getAttribute('data-employee-name');
+        const date = cell.getAttribute('data-date');
+        const value = cell.getAttribute('data-value');
+        const status = cell.getAttribute('data-status');
+        const timesheetId = cell.getAttribute('data-timesheet-id');
+        
+        document.getElementById('modalEmployee').value = employeeName;
+        document.getElementById('modalDate').value = date;
+        document.getElementById('modalValue').value = value;
+        
+        // Статус
+        let statusText = 'Нет данных';
+        if (status === 'draft') statusText = 'Черновик';
+        else if (status === 'submitted') statusText = 'Сдан мастером';
+        else if (status === 'approved') statusText = 'Утвержден';
+        
+        document.getElementById('modalStatus').value = statusText;
+        
+        // Показываем/скрываем кнопку удаления
+        const deleteBtn = document.getElementById('deleteBtn');
+        if (timesheetId && status === 'draft') {
+            deleteBtn.style.display = 'block';
+        } else {
+            deleteBtn.style.display = 'none';
+        }
+        
+        // Фокус на поле ввода
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
+        
+        setTimeout(() => {
+            document.getElementById('modalValue').focus();
+            document.getElementById('modalValue').select();
+        }, 500);
+    }
+    
+    // Сохранение изменений
+    document.getElementById('saveBtn').addEventListener('click', function() {
+        const value = document.getElementById('modalValue').value.trim();
+        const cell = currentCell;
+        
+        if (!cell) return;
+        
+        // Валидация значения
+        if (value && !validateTimesheetValue(value)) {
+            return;
+        }
+        
+        // Отправляем данные на сервер
+        const formData = new FormData();
+        formData.append('timesheet_id', cell.getAttribute('data-timesheet-id') || '');
+        formData.append('date', cell.getAttribute('data-date'));
+        formData.append('employee_id', cell.getAttribute('data-employee-id'));
+        formData.append('value', value);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch('{% url "timesheet:quick_edit" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем ячейку
+                updateCellAfterSave(cell, value, data);
+                
+                // Закрываем модальное окно
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                
+                // Показываем уведомление
+                showNotification('Табель успешно сохранен', 'success');
+                
+            } else {
+                alert('Ошибка: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при сохранении');
+        });
+    });
+    
+    // Удаление табеля
+    document.getElementById('deleteBtn').addEventListener('click', function() {
+        if (!confirm('Удалить эту запись табеля?')) return;
+        
+        const cell = currentCell;
+        const timesheetId = cell.getAttribute('data-timesheet-id');
+        
+        if (!timesheetId) return;
+        
+        // Отправляем запрос на удаление
+        const formData = new FormData();
+        formData.append('timesheet_id', timesheetId);
+        formData.append('action', 'delete');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch('{% url "timesheet:quick_edit" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Очищаем ячейку
+                clearCell(cell);
+                
+                // Закрываем модальное окно
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                
+                // Показываем уведомление
+                showNotification('Табель успешно удален', 'success');
+            } else {
+                alert('Ошибка: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при удалении');
+        });
+    });
+    
+    // Выбор ячеек для массовых операций
+    function toggleCellSelection(cell) {
+        const status = cell.getAttribute('data-status');
+        
+        // Можно выбирать только черновики или пустые ячейки
+        if (status !== 'draft' && status !== '') {
+            alert('Можно выбирать только черновики или пустые ячейки');
+            return;
+        }
+        
+        if (cell.classList.contains('selected')) {
+            cell.classList.remove('selected');
+            selectedCells = selectedCells.filter(c => c !== cell);
+        } else {
+            cell.classList.add('selected');
+            selectedCells.push(cell);
+        }
+        
+        updateSelectionCounter();
+    }
+    
+    // Обновление счетчика выбранных ячеек
+    function updateSelectionCounter() {
+        const counter = document.getElementById('selectionCounter');
+        const submitBtn = document.getElementById('submitSelectedBtn');
+        const bulkEditBtn = document.getElementById('bulkEditBtn');
+        
+        if (counter) {
+            counter.textContent = `Выбрано: ${selectedCells.length}`;
+        }
+        
+        // Включаем/выключаем кнопки
+        if (submitBtn) {
+            submitBtn.disabled = selectedCells.length === 0;
+        }
+        if (bulkEditBtn) {
+            bulkEditBtn.disabled = selectedCells.length === 0;
+        }
+    }
+    
+    // Показ модального окна сдачи выбранных
+    function showSubmitSelectedModal() {
+        if (selectedCells.length === 0) {
+            alert('Выберите табели для сдачи');
+            return;
+        }
+        
+        // Считаем только табели (не пустые ячейки)
+        const timesheetIds = selectedCells
+            .map(cell => cell.getAttribute('data-timesheet-id'))
+            .filter(id => id);
+        
+        document.getElementById('submitCount').textContent = timesheetIds.length;
+        
+        const modal = new bootstrap.Modal(document.getElementById('submitSelectedModal'));
+        modal.show();
+    }
+    
+    // Сдача выбранных табелей
+    function submitSelected() {
+        const timesheetIds = selectedCells
+            .map(cell => cell.getAttribute('data-timesheet-id'))
+            .filter(id => id);
+        
+        if (timesheetIds.length === 0) {
+            alert('Выбранные ячейки не содержат табелей');
+            return;
+        }
+        
+        // Закрываем модальное окно
+        bootstrap.Modal.getInstance(document.getElementById('submitSelectedModal')).hide();
+        
+        // Отправляем каждый табель отдельно
+        let submittedCount = 0;
+        let errors = [];
+        
+        timesheetIds.forEach(timesheetId => {
+            submitSingleTimesheet(timesheetId)
+                .then(() => submittedCount++)
+                .catch(error => errors.push(error));
+        });
+        
+        // Обновляем интерфейс после всех запросов
+        setTimeout(() => {
+            if (submittedCount > 0) {
+                showNotification(`Сдано ${submittedCount} табелей`, 'success');
+                selectedCells = [];
+                updateSelectionCounter();
+                
+                // Перезагружаем страницу через 2 секунды
+                setTimeout(() => location.reload(), 2000);
+            }
+            
+            if (errors.length > 0) {
+                showNotification(`Ошибок: ${errors.length}`, 'danger');
+            }
+        }, 1000);
+    }
+    
+    // Сдача одного табеля
+    function submitSingleTimesheet(timesheetId) {
+        return new Promise((resolve, reject) => {
+            const url = `{% url 'timesheet:submit' 0 %}`.replace('/0/', `/${timesheetId}/`);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resolve();
+                } else {
+                    reject(data.error);
+                }
+            })
+            .catch(error => reject(error));
+        });
+    }
+    
+    // Сдача всего месяца
+    function submitEntireMonth() {
+        if (!confirm(`Сдать все табели за {{ month_name }}? После сдачи редактирование будет невозможно.`)) {
+            return;
+        }
+        
+        const url = `{% url 'timesheet:submit_month' %}?year={{ year }}&month={{ month }}`;
+        
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                showNotification('Табели успешно сданы', 'success');
+                // Перезагружаем страницу через 1 секунду
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification('Ошибка при сдаче табелей', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Ошибка при сдаче табелей', 'danger');
+        });
+    }
+    
+    // Массовое редактирование выбранных
+    function bulkEditSelected() {
+        if (selectedCells.length === 0) {
+            alert('Выберите ячейки для массового редактирования');
+            return;
+        }
+        
+        // Обновляем счетчик
+        document.getElementById('bulkCount').textContent = selectedCells.length;
+        
+        // Показываем модальное окно
+        const modal = new bootstrap.Modal(document.getElementById('bulkEditModal'));
+        modal.show();
+    }
+    
+    // Применение массового редактирования
+    function applyBulkEdit() {
+        const value = document.getElementById('bulkValue').value.trim();
+        const includeEmpty = document.getElementById('bulkIncludeEmpty').checked;
+        const includeDraft = document.getElementById('bulkIncludeDraft').checked;
+        
+        if (!value) {
+            alert('Введите значение');
+            return;
+        }
+        
+        if (!validateTimesheetValue(value)) {
+            return;
+        }
+        
+        // Фильтруем ячейки по условиям
+        const cellsToUpdate = selectedCells.filter(cell => {
+            const status = cell.getAttribute('data-status');
+            const hasTimesheet = cell.getAttribute('data-timesheet-id');
+            
+            if (status === '' && !includeEmpty) return false;
+            if (status === 'draft' && !includeDraft) return false;
+            if (status === 'submitted' || status === 'approved') return false;
+            
+            return true;
+        });
+        
+        if (cellsToUpdate.length === 0) {
+            alert('Нет ячеек, удовлетворяющих условиям');
+            return;
+        }
+        
+        // Закрываем модальное окно
+        bootstrap.Modal.getInstance(document.getElementById('bulkEditModal')).hide();
+        
+        // Обновляем каждую ячейку
+        let updatedCount = 0;
+        let errors = [];
+        
+        cellsToUpdate.forEach(cell => {
+            const formData = new FormData();
+            formData.append('timesheet_id', cell.getAttribute('data-timesheet-id') || '');
+            formData.append('date', cell.getAttribute('data-date'));
+            formData.append('employee_id', cell.getAttribute('data-employee-id'));
+            formData.append('value', value);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            fetch('{% url "timesheet:quick_edit" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateCellAfterSave(cell, value, data);
+                    updatedCount++;
+                } else {
+                    errors.push(data.error);
+                }
+            })
+            .catch(error => {
+                errors.push(error.message);
+            });
+        });
+        
+        // Показываем результат
+        setTimeout(() => {
+            if (updatedCount > 0) {
+                showNotification(`Обновлено ${updatedCount} ячеек`, 'success');
+            }
+            if (errors.length > 0) {
+                showNotification(`Ошибок: ${errors.length}`, 'warning');
+            }
+        }, 1000);
+    }
+    
+    // Вспомогательные функции
+    function validateTimesheetValue(value) {
+        if (value) {
+            // Проверка на часы (1-24)
+            if (/^\d+$/.test(value)) {
+                const hours = parseInt(value);
+                if (hours < 1 || hours > 24) {
+                    alert('Количество часов должно быть от 1 до 24');
+                    return false;
+                }
+            } else {
+                // Проверка на допустимые коды
+                const allowedCodes = ['В', 'К', 'О', 'Б', 'Р', 'ОЖ', 'М', 'Т', 'Н', 'ОС', 'П', 'ЦП', 'Ч'];
+                if (!allowedCodes.includes(value)) {
+                    alert('Недопустимое условное обозначение. Допустимые: ' + allowedCodes.join(', '));
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    function updateCellAfterSave(cell, value, data) {
+        cell.setAttribute('data-value', value);
+        cell.setAttribute('data-status', data.is_approved ? 'approved' : 'draft');
+        
+        if (value) {
+            // Определяем отображаемое значение
+            let displayValue = value;
+            if (/^\d+$/.test(value)) {
+                displayValue = value + 'ч';
+            }
+            
+            // Обновляем содержимое ячейки
+            let html = `<span class="cell-value">${displayValue}</span>`;
+            
+            if (data.is_approved) {
+                html += '<i class="bi bi-check-circle text-success" style="font-size: 0.7rem;" title="Утвержден"></i>';
+            }
+            
+            html += `<div class="cell-tooltip">
+                <strong>${cell.getAttribute('data-employee-name')}</strong><br>
+                ${cell.getAttribute('data-date')}<br>
+                Значение: ${displayValue}<br>
+                Статус: ${data.is_approved ? 'Утвержден' : 'Черновик'}
+            </div>`;
+            
+            cell.innerHTML = html;
+            
+            // Обновляем классы
+            updateCellClasses(cell, data.is_approved ? 'approved' : 'draft');
+            
+        } else {
+            clearCell(cell);
+        }
+    }
+    
+    function clearCell(cell) {
+        cell.setAttribute('data-timesheet-id', '');
+        cell.setAttribute('data-value', '');
+        cell.setAttribute('data-status', '');
+        
+        // Возвращаем к исходному виду (выходной или пустая)
+        const date = new Date(cell.getAttribute('data-date'));
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        
+        updateCellClasses(cell, isWeekend ? 'weekend' : 'empty');
+        
+        cell.innerHTML = `
+            <div class="cell-tooltip">
+                <strong>${cell.getAttribute('data-employee-name')}</strong><br>
+                ${cell.getAttribute('data-date')}<br>
+                Нет данных
+            </div>
+        `;
+    }
+    
+    function updateCellClasses(cell, statusClass) {
+        // Удаляем все классы статусов
+        cell.className = cell.className.replace(/cell-\w+/g, '');
+        cell.classList.add('day-cell', `cell-${statusClass}`);
+    }
+    
+    function showNotification(message, type = 'info') {
+        // Создаем уведомление
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.style.minWidth = '300px';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alert);
+        
+        // Автоматически скрываем через 3 секунды
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 3000);
+    }
+    
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Показываем подсказки при наведении
+        const cells = document.querySelectorAll('.day-cell');
+        cells.forEach(cell => {
+            cell.addEventListener('mouseenter', function(e) {
+                const tooltip = this.querySelector('.cell-tooltip');
+                if (tooltip) {
+                    const rect = this.getBoundingClientRect();
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (rect.left + window.scrollX + 40) + 'px';
+                    tooltip.style.top = (rect.top + window.scrollY) + 'px';
+                }
+            });
+            
+            cell.addEventListener('mouseleave', function() {
+                const tooltip = this.querySelector('.cell-tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
+            });
+            
+            // Двойной клик для выбора
+            cell.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                toggleCellSelection(this);
+            });
+            
+            // Правый клик для контекстного меню
+            cell.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                showContextMenu(this, e.clientX, e.clientY);
+            });
+        });
+        
+        // Быстрое редактирование по клавишам
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('editModal');
+            if (modal.classList.contains('show')) {
+                // Enter - сохранить
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    document.getElementById('saveBtn').click();
+                }
+                // Escape - отмена
+                if (e.key === 'Escape') {
+                    bootstrap.Modal.getInstance(modal).hide();
+                }
+            }
+        });
+    });
+    
+    // Контекстное меню
+    function showContextMenu(cell, x, y) {
+        const status = cell.getAttribute('data-status');
+        const timesheetId = cell.getAttribute('data-timesheet-id');
+        
+        // Создаем меню
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.style.position = 'fixed';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+        menu.style.zIndex = '10000';
+        
+        let menuHtml = `
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action" onclick="editCell(this.parentElement.parentElement.parentElement); return false;">
+                    <i class="bi bi-pencil"></i> Редактировать
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" onclick="toggleCellSelection(this.parentElement.parentElement.parentElement); return false;">
+                    <i class="bi bi-check-square"></i> Выбрать
+                </a>
+        `;
+        
+        // Добавляем опцию сдачи, если это черновик
+        if (status === 'draft' && timesheetId) {
+            menuHtml += `
+                <a href="#" class="list-group-item list-group-item-action" onclick="submitSingleTimesheet('${timesheetId}').then(() => location.reload()); return false;">
+                    <i class="bi bi-send-check"></i> Сдать
+                </a>
+            `;
+        }
+        
+        menuHtml += `</div>`;
+        menu.innerHTML = menuHtml;
+        
+        document.body.appendChild(menu);
+        
+        // Закрываем меню при клике вне его
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu() {
+                if (menu.parentNode) {
+                    menu.parentNode.removeChild(menu);
+                }
+                document.removeEventListener('click', closeMenu);
+            });
+        }, 10);
+    }
+</script>
+{% endblock %}

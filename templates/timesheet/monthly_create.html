@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Эта функция создаст табели на весь месяц для всех ваших активных сотрудников.
+                    Для дней, когда табели уже существуют, новые создаваться не будут.
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.month.id_for_label }}" class="form-label">{{ form.month.label }}</label>
+                        {{ form.month }}
+                        <div class="form-text">{{ form.month.help_text }}</div>
+                        {% if form.month.errors %}
+                        <div class="text-danger">
+                            {% for error in form.month.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.default_value.id_for_label }}" class="form-label">{{ form.default_value.label }}</label>
+                        {{ form.default_value }}
+                        <div class="form-text">{{ form.default_value.help_text }}</div>
+                        {% if form.default_value.errors %}
+                        <div class="text-danger">
+                            {% for error in form.default_value.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        {{ form.include_weekends }}
+                        <label for="{{ form.include_weekends.id_for_label }}" class="form-check-label">
+                            {{ form.include_weekends.label }}
+                        </label>
+                        <div class="form-text">{{ form.include_weekends.help_text }}</div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Внимание:</strong> Эта операция создаст множество записей. 
+                        Проверьте правильность введенных данных перед подтверждением.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'timesheet:list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary" 
+                                onclick="return confirm('Создать табели на весь месяц?')">
+                            Создать табели
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Автоматически устанавливаем текущий месяц
+    document.addEventListener('DOMContentLoaded', function() {
+        const monthInput = document.getElementById('{{ form.month.id_for_label }}');
+        if (monthInput && !monthInput.value) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            monthInput.value = `${year}-${month}`;
+        }
+    });
+</script>
+{% endblock %}

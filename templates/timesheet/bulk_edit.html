@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                {% if employee_info %}
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-people"></i>
+                    <strong>Выбранные сотрудники:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for emp in employee_info %}
+                        <li>{{ emp.employee_id }} - {{ emp.name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                        <div class="text-danger">
+                            {% for error in form.date.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.value.id_for_label }}" class="form-label">{{ form.value.label }}</label>
+                        {{ form.value }}
+                        <div class="form-text">{{ form.value.help_text }}</div>
+                        {% if form.value.errors %}
+                        <div class="text-danger">
+                            {% for error in form.value.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if form.employee_ids %}
+                    {{ form.employee_ids }}
+                    {% endif %}
+                    
+                    <!-- Справка по условным обозначениям -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="collapse" data-bs-target="#codesHelp">
+                            Справка по условным обозначениям
+                        </button>
+                        <div class="collapse mt-2" id="codesHelp">
+                            <div class="card card-body">
+                                <small>
+                                    <strong>Допустимые обозначения:</strong><br>
+                                    В - Выходной<br>
+                                    К - Командировка<br>
+                                    О - Основной отпуск<br>
+                                    Б - Больничный<br>
+                                    Р - Отпуск по уходу за ребенком<br>
+                                    ОЖ - Отпуск по уходу за ребенком (неоплачиваемый)<br>
+                                    М - Учебный отпуск<br>
+                                    Т - Неявка по невыясненной причине<br>
+                                    Н - Ночные часы<br>
+                                    ОС - Отпуск без содержания<br>
+                                    П - Прогул<br>
+                                    ЦП - Целосменный прогул<br>
+                                    Ч - Часы работы (1-24)<br>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'timesheet:list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">
+                            Обновить табели
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

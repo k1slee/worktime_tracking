@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Список табелей{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Табели учета времени</h1>
+    <div>
+        {% if is_master %}
+        <div class="btn-group">
+            <a href="{% url 'timesheet:create' %}" class="btn btn-primary">Добавить табель</a>
+            <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success">Месячный табель</a>
+            <button type="button" class="btn btn-warning" id="bulkEditBtn" disabled>
+                Массовое редактирование
+            </button>
+        </div>
+        {% endif %}
+        {% if is_planner or is_admin %}
+        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#filterModal">
+            Фильтры
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+
+<!-- Форма массовых действий -->
+{% if is_planner or is_admin %}
+<form method="post" action="{% url 'timesheet:bulk_approve' %}" id="bulkForm">
+    {% csrf_token %}
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col">
+                {% if is_planner or is_admin %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="selectAll">
+                    <label class="form-check-label" for="selectAll">
+                        Выбрать все
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+            {% if is_planner or is_admin %}
+            <div class="col-auto">
+                <select name="action" class="form-select form-select-sm" style="width: auto;">
+                    <option value="">Действие</option>
+                    <option value="approve">Утвердить выбранные</option>
+                    <option value="unapprove">Снять утверждение</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">Применить</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        {% if is_planner or is_admin %}
+                        <th width="50"></th>
+                        {% endif %}
+                        <th>Дата</th>
+                        <th>Сотрудник</th>
+                        <th>Табельный номер</th>
+                        {% if is_planner or is_admin %}
+                        <th>Мастер</th>
+                        <th>Отдел</th>
+                        {% endif %}
+                        <th>Значение</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for timesheet in timesheets %}
+                    <tr>
+                        {% if is_planner or is_admin %}
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input timesheet-checkbox" type="checkbox" 
+                                       name="timesheet_ids" value="{{ timesheet.id }}">
+                            </div>
+                        </td>
+                        {% endif %}
+                        <td>{{ timesheet.date|date:"d.m.Y" }}</td>
+                        <td>{{ timesheet.employee.full_name }}</td>
+                        <td>{{ timesheet.employee.employee_id }}</td>
+                        {% if is_planner or is_admin %}
+                        <td>{{ timesheet.master.get_full_name }}</td>
+                        <td>{{ timesheet.employee.department.name|default:"-" }}</td>
+                        {% endif %}
+                        <td>{{ timesheet.display_value }}</td>
+                        <td>
+                            {% if timesheet.status == 'approved' %}
+                            <span class="badge bg-success">Утвержден</span>
+                            {% else %}
+                            <span class="badge bg-warning">Черновик</span>
+                            {% endif %}
+                        </td>
+                        <td class="table-actions">
+                            <a href="{% url 'timesheet:detail' timesheet.id %}" class="btn btn-sm btn-info" title="Просмотр">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if timesheet.can_edit and is_master and timesheet.master == user or is_planner or is_admin %}
+                            <a href="{% url 'timesheet:edit' timesheet.id %}" class="btn btn-sm btn-warning" title="Редактировать">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if not timesheet.is_approved and is_planner or is_admin %}
+                            <a href="{% url 'timesheet:approve' timesheet.id %}" class="btn btn-sm btn-success" title="Утвердить">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if is_planner or is_admin %}9{% else %}6{% endif %}" class="text-center">
+                            Нет данных для отображения
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% if is_planner or is_admin %}
+</form>
+{% endif %}
+
+<!-- Пагинация -->
+{% if page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Назад</a>
+        </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Вперед</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Модальное окно фильтров -->
+{% if is_planner or is_admin %}
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="get">
+                <div class="modal-header">
+                    <h5 class="modal-title">Фильтры</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="date_from" class="form-label">Дата с</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" 
+                               value="{{ request.GET.date_from }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="date_to" class="form-label">Дата по</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" 
+                               value="{{ request.GET.date_to }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Статус</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="all">Все</option>
+                            <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Черновик</option>
+                            <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Утвержден</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="master" class="form-label">Мастер</label>
+                        <select class="form-control" id="master" name="master">
+                            <option value="">Все мастера</option>
+                            {% for master in masters %}
+                            <option value="{{ master.id }}" {% if request.GET.master == master.id|stringformat:"i" %}selected{% endif %}>
+                                {{ master.get_full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">Отдел</label>
+                        <select class="form-control" id="department" name="department">
+                            <option value="">Все отделы</option>
+                            {% for department in departments %}
+                            <option value="{{ department.id }}" {% if request.GET.department == department.id|stringformat:"i" %}selected{% endif %}>
+                                {{ department.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{% url 'timesheet:list' %}" class="btn btn-secondary">Сбросить</a>
+                    <button type="submit" class="btn btn-primary">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+    // Выбор всех чекбоксов
+    document.getElementById('selectAll').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('.timesheet-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = this.checked;
+        }.bind(this));
+    });
+    
+    // Проверка выбранных чекбоксов перед отправкой
+    document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
+        var checkboxes = document.querySelectorAll('.timesheet-checkbox:checked');
+        var action = this.querySelector('[name="action"]').value;
+        
+        if (checkboxes.length === 0) {
+            e.preventDefault();
+            alert('Выберите хотя бы один табель');
+            return false;
+        }
+        
+        if (!action) {
+            e.preventDefault();
+            alert('Выберите действие');
+            return false;
+        }
+        
+        return confirm('Вы уверены, что хотите выполнить это действие?');
+    });
+
+
+    document.addEventListener('DOMContentEnabled', function() {
+        const bulkEditBtn = document.getElementById('bulkEditBtn');
+        const employeeCheckboxes = document.querySelectorAll('.employee-checkbox');
+        
+        // Обновляем состояние кнопки массового редактирования
+        function updateBulkEditButton() {
+            const checkedBoxes = document.querySelectorAll('.employee-checkbox:checked');
+            const timesheetCheckboxes = document.querySelectorAll('.timesheet-checkbox:checked');
+            
+            // Для массового редактирования нужны только сотрудники
+            if (checkedBoxes.length > 0) {
+                bulkEditBtn.disabled = false;
+                
+                // Собираем ID сотрудников
+                const employeeIds = Array.from(checkedBoxes).map(cb => cb.value).join(',');
+                
+                // Обновляем URL кнопки
+                const today = new Date().toISOString().split('T')[0];
+                bulkEditBtn.onclick = function() {
+                    window.location.href = `{% url 'timesheet:bulk_edit' %}?employee_ids=${employeeIds}&date=${today}`;
+                };
+            } else {
+                bulkEditBtn.disabled = true;
+            }
+        }
+        
+        // Добавляем чекбоксы для сотрудников
+        const tableRows = document.querySelectorAll('tbody tr');
+        tableRows.forEach(row => {
+            const employeeId = row.querySelector('[data-employee-id]')?.dataset.employeeId;
+            if (employeeId) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'form-check-input employee-checkbox';
+                checkbox.value = employeeId;
+                checkbox.style.marginRight = '5px';
+                
+                const td = row.querySelector('td:first-child');
+                if (td) {
+                    td.insertBefore(checkbox, td.firstChild);
+                }
+            }
+        });
+        
+        // Слушаем изменения чекбоксов
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('employee-checkbox') || 
+                e.target.classList.contains('timesheet-checkbox')) {
+                updateBulkEditButton();
+            }
+        });
+        
+        // Кнопка выбора всех сотрудников
+        const selectAllEmployees = document.createElement('button');
+        selectAllEmployees.type = 'button';
+        selectAllEmployees.className = 'btn btn-sm btn-outline-secondary';
+        selectAllEmployees.textContent = 'Выбрать всех сотрудников';
+        selectAllEmployees.onclick = function() {
+            document.querySelectorAll('.employee-checkbox').forEach(cb => {
+                cb.checked = true;
+            });
+            updateBulkEditButton();
+        };
+        
+        // Добавляем кнопку в заголовок
+        const headerActions = document.querySelector('.card-header .col');
+        if (headerActions) {
+            headerActions.appendChild(selectAllEmployees);
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

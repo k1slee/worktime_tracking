@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Экспорт табелей{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Экспорт табелей в CSV</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_date" class="form-label">Дата с</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="end_date" class="form-label">Дата по</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="master" class="form-label">Мастер (необязательно)</label>
+                            <select class="form-control" id="master" name="master">
+                                <option value="">Все мастера</option>
+                                {% for master in masters %}
+                                <option value="{{ master.id }}">{{ master.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="department" class="form-label">Отдел (необязательно)</label>
+                            <select class="form-control" id="department" name="department">
+                                <option value="">Все отделы</option>
+                                {% for department in departments %}
+                                <option value="{{ department.id }}">{{ department.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Статус</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="all">Все</option>
+                            <option value="draft">Черновик</option>
+                            <option value="approved">Утвержден</option>
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Экспортированные данные будут содержать все поля табеля и информацию о сотрудниках.
+                        Файл будет в формате CSV с разделителем "точка с запятой".
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'timesheet:list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-download"></i> Экспортировать
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
