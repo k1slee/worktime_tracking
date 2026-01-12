@@ -360,9 +360,10 @@ def monthly_table_view(request):
     days_in_month = calendar.monthrange(year, month)[1]
     days = list(range(1, days_in_month + 1))
     
-    # Создаем словарь для быстрого доступа к табелям по сотруднику и дню
+    
     timesheet_dict = {}
-    attendance_counts = {}  # Словарь для подсчета дней явок по сотрудникам
+    attendance_counts = {}  #для подсчета дней явок по сотрудникам
+    downtime_counts = {} # подсчет целосменных простоев
     
     for ts in timesheets:
         day = ts.date.day
@@ -385,12 +386,20 @@ def monthly_table_view(request):
             if ts.employee_id not in attendance_counts:
                 attendance_counts[ts.employee_id] = 0
             attendance_counts[ts.employee_id] += 1
+
+        if ts.value == 'ЦП':
+            if ts.employee_id not in downtime_counts:
+                downtime_counts[ts.employee_id] = 0
+            downtime_counts[ts.employee_id] += 1
     
     for employee in employees:
         employee_timesheets = timesheet_dict.get(employee.id, {})
         
         # Получаем количество дней явок для этого сотрудника
         attendance_days = attendance_counts.get(employee.id, 0)
+
+        # Получаем количество целосменных простоев
+        downtime_days = downtime_counts.get(employee.id, 0)
         
         day_cells = []
         for day in days:
@@ -423,6 +432,7 @@ def monthly_table_view(request):
             'employee': employee,
             'days': day_cells,
             'attendance_days': attendance_days,  # Добавляем количество дней явок
+            'downtime_days': downtime_days,  # Добавляем целосменные простои
             'row_status': row_status,
             'employee_id': employee.id
         })
