@@ -1291,7 +1291,7 @@
         });
     });
     
-    // Контекстное меню
+    // Контекстное меню - ИСПРАВЛЕНА ОШИБКА В СТРОКЕ style.zIndex
     function showContextMenu(cell, x, y) {
         const status = cell.getAttribute('data-status');
         const timesheetId = cell.getAttribute('data-timesheet-id');
@@ -1302,7 +1302,7 @@
         menu.style.position = 'fixed';
         menu.style.left = x + 'px';
         menu.style.top = y + 'px';
-        menu.style.z-index = '10000';
+        menu.style.zIndex = '10000'; // ИСПРАВЛЕНО: z-index вместо z-index
         
         let menuHtml = `
             <div class="list-group list-group-flush">
