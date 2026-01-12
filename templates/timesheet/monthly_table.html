@@ -242,6 +242,25 @@
         width: 16px;
         text-align: center;
     }
+
+    /* Стиль для столбца дней явок */
+    .attendance-col {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+        min-width: 80px;
+        position: sticky;
+        right: 0;
+        z-index: 4;
+        box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+    }
+    
+    .attendance-count {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
 </style>
 {% endblock %}
 
@@ -329,40 +348,6 @@
     </div>
     {% endif %}
     
-    <!-- Статистика -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge bg-primary stats-badge">
-                                Сотрудников: {{ total_employees }}
-                            </span>
-                            <span class="badge bg-secondary stats-badge">
-                                Дней: {{ total_days }}
-                            </span>
-                            <span class="badge bg-light text-dark stats-badge">
-                                Ячеек: {{ total_cells }}
-                            </span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge bg-warning text-dark stats-badge">
-                                Черновики <i class="bi bi-pencil-square"></i>
-                            </span>
-                            <span class="badge bg-info stats-badge">
-                                Сдано <i class="bi bi-send-check"></i>
-                            </span>
-                            <span class="badge bg-success stats-badge">
-                                Утверждено <i class="bi bi-check-circle"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Фильтры (для плановиков и администраторов) -->
     {% if is_planner or is_admin %}
     <div class="row mb-3">
@@ -414,52 +399,54 @@
         </div>
     </div>
     {% endif %}
+    
     <div class="card mb-3">
-    <div class="card-header bg-light">
-        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Условные обозначения</h5>
-    </div>
-    <div class="card-body p-2">
-        <div class="row">
-            <div class="col-md-3">
-                <strong class="d-block mb-1">Основные:</strong>
-                <div class="d-flex flex-wrap gap-1">
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Выходные и праздничные дни">В</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Командировки служебные">К</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Очередные и дополнительные отпуска">О</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Нетрудоспособность">Б</span>
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Условные обозначения</h5>
+        </div>
+        <div class="card-body p-2">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong class="d-block mb-1">Основные:</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Выходные и праздничные дни">В</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Командировки служебные">К</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Очередные и дополнительные отпуска">О</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Нетрудоспособность">Б</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <strong class="d-block mb-1">Льготные:</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Кормящих матерей">М</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Подростков до 18 лет">Л</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="С вредными условиями">Д</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <strong class="d-block mb-1">Простои:</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Отсутствие по справке">ОС</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Простои целосменные">ЦП</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Простои внутрисменные">Ч</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <strong class="d-block mb-1">Неявки:</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Прогулы">П</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="Опоздания">Н</span>
+                        <span class="badge bg-white text-dark border me-1 mb-1" title="День матери (отца)">ДМ</span>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <strong class="d-block mb-1">Льготные:</strong>
-                <div class="d-flex flex-wrap gap-1">
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Кормящих матерей">М</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Подростков до 18 лет">Л</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="С вредными условиями">Д</span>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <strong class="d-block mb-1">Простои:</strong>
-                <div class="d-flex flex-wrap gap-1">
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Отсутствие по справке">ОС</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Простои целосменные">ЦП</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Простои внутрисменные">Ч</span>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <strong class="d-block mb-1">Неявки:</strong>
-                <div class="d-flex flex-wrap gap-1">
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Прогулы">П</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="Опоздания">Н</span>
-                    <span class="badge bg-white text-dark border me-1 mb-1" title="День матери (отца)">ДМ</span>
-                </div>
+            
+            <div class="mt-2 text-muted small">
+                <i class="bi bi-lightbulb"></i> Подсказка: для ввода часов работы введите число от 1 до 24
             </div>
         </div>
-        
-        <div class="mt-2 text-muted small">
-            <i class="bi bi-lightbulb"></i> Подсказка: для ввода часов работы введите число от 1 до 24
-        </div>
     </div>
-</div>
+    
     <!-- Основная таблица -->
     <div class="row">
         <div class="col-12">
@@ -478,7 +465,7 @@
                             </th>
                             {% endwith %}
                             {% endfor %}
-                            <th class="text-center" style="width: 100px;">Статистика</th>
+                            <th class="attendance-col">Дни явок</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -545,19 +532,12 @@
                             </td>
                             {% endfor %}
                             
-                            <!-- Колонка статистики -->
-                            <td class="text-center">
-                                <div class="d-flex flex-column gap-1">
-                                    <span class="badge bg-primary stats-badge">
-                                        Р: {{ row.stats.work_days }}
-                                    </span>
-                                    <span class="badge bg-secondary stats-badge">
-                                        В: {{ row.stats.weekend_days }}
-                                    </span>
-                                    <span class="badge bg-warning text-dark stats-badge">
-                                        Пр: {{ row.stats.other_days }}
-                                    </span>
+                            <!-- Колонка дней явок -->
+                            <td class="attendance-col">
+                                <div class="attendance-count">
+                                    {{ row.attendance_days }}
                                 </div>
+                                <small class="text-muted">дней</small>
                             </td>
                         </tr>
                         {% empty %}
@@ -1322,7 +1302,7 @@
         menu.style.position = 'fixed';
         menu.style.left = x + 'px';
         menu.style.top = y + 'px';
-        menu.style.zIndex = '10000';
+        menu.style.z-index = '10000';
         
         let menuHtml = `
             <div class="list-group list-group-flush">

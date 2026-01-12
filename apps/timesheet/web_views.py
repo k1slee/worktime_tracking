@@ -362,10 +362,13 @@ def monthly_table_view(request):
     
     # Создаем словарь для быстрого доступа к табелям по сотруднику и дню
     timesheet_dict = {}
+    attendance_counts = {}  # Словарь для подсчета дней явок по сотрудникам
+    
     for ts in timesheets:
         day = ts.date.day
         if ts.employee_id not in timesheet_dict:
             timesheet_dict[ts.employee_id] = {}
+        
         timesheet_dict[ts.employee_id][day] = {
             'id': ts.id,
             'value': ts.value,
@@ -376,11 +379,18 @@ def monthly_table_view(request):
             'is_approved': ts.is_approved,
             'css_class': 'approved' if ts.is_approved else 'submitted' if ts.is_submitted else 'draft'
         }
-    
+        
+        # Подсчет дней явок (предполагаем, что явка - это когда value не пустое и не равно кодам отсутствия)
+        if ts.value and ts.value not in ['В', 'О', 'Б', 'К']:
+            if ts.employee_id not in attendance_counts:
+                attendance_counts[ts.employee_id] = 0
+            attendance_counts[ts.employee_id] += 1
     
     for employee in employees:
         employee_timesheets = timesheet_dict.get(employee.id, {})
         
+        # Получаем количество дней явок для этого сотрудника
+        attendance_days = attendance_counts.get(employee.id, 0)
         
         day_cells = []
         for day in days:
@@ -406,17 +416,16 @@ def monthly_table_view(request):
                     'css_class': 'empty'
                 })
         
-        
         row_has_timesheets = any(cell['timesheet_id'] for cell in day_cells)
         row_status = 'has_data' if row_has_timesheets else 'empty'
         
         table_data.append({
             'employee': employee,
             'days': day_cells,
+            'attendance_days': attendance_days,  # Добавляем количество дней явок
             'row_status': row_status,
             'employee_id': employee.id
         })
-    
     
     departments = []
     if request.user.is_planner or request.user.is_administrator:
