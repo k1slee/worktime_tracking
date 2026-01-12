@@ -1,19 +1,19 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
+from django.utils import timezone
 import csv
 from datetime import datetime
-from .models import Timesheet
-from .forms import TimesheetForm
+import calendar
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from .models import MonthlyTimesheet, Timesheet
+from .forms import MonthlyTimesheetForm, BulkTimesheetForm, TimesheetForm
+from apps.users.models import Employee, Department
 from apps.users.permissions import IsMaster, IsPlanner
-from .utils import generate_csv_report
-from .forms import MonthlyTimesheetForm, BulkTimesheetForm
-from django.utils import timezone 
 def monthly_create_view(request):
     """Создание табелей на весь месяц"""
     if not request.user.is_master:
@@ -317,32 +317,23 @@ def export_view(request):
         'departments': departments
     })
 
+@login_required
 def monthly_table_view(request):
     """Табличное представление табеля за месяц"""
-    if not request.user.is_authenticated:
-        return redirect('login')
-    
-    # Импорт внутри функции, чтобы избежать циклических импортов
-    from apps.users.models import Department, Employee
-    from .models import Timesheet
-    
     # Получаем параметры месяца
     today = timezone.now().date()
     
     try:
         year = int(request.GET.get('year', today.year))
         month = int(request.GET.get('month', today.month))
-        month_date = datetime(year, month, 1).date()
     except (ValueError, TypeError):
-        month_date = today.replace(day=1)
-        year = month_date.year
-        month = month_date.month
+        year = today.year
+        month = today.month
     
     # Получаем сотрудников
     if request.user.is_master:
         employees = Employee.objects.filter(master=request.user, is_active=True)
     elif request.user.is_planner or request.user.is_administrator:
-        # Плановики и администраторы видят всех сотрудников выбранного отдела
         department_id = request.GET.get('department')
         if department_id:
             employees = Employee.objects.filter(
@@ -354,92 +345,82 @@ def monthly_table_view(request):
     else:
         employees = Employee.objects.none()
     
-    # Получаем количество дней в месяце
-    import calendar
-    _, last_day = calendar.monthrange(year, month)
     
-    # Получаем все табели за месяц для этих сотрудников
     timesheets = Timesheet.objects.filter(
         date__year=year,
         date__month=month,
         employee__in=employees
-    ).select_related('employee', 'employee__user')
+    ).select_related('employee', 'employee__user', 'master')
     
-    # Создаем словарь для быстрого доступа к табелям
+    # Создаем структуру данных для таблицы
+    table_data = []
+    
+    # Количество дней в месяце
+    import calendar
+    days_in_month = calendar.monthrange(year, month)[1]
+    days = list(range(1, days_in_month + 1))
+    
+    # Создаем словарь для быстрого доступа к табелям по сотруднику и дню
     timesheet_dict = {}
     for ts in timesheets:
-        key = (ts.employee.id, ts.date.day)
-        timesheet_dict[key] = {
+        day = ts.date.day
+        if ts.employee_id not in timesheet_dict:
+            timesheet_dict[ts.employee_id] = {}
+        timesheet_dict[ts.employee_id][day] = {
             'id': ts.id,
             'value': ts.value,
             'display_value': ts.display_value,
             'status': ts.status,
             'can_edit': ts.can_edit,
+            'is_submitted': ts.is_submitted,
             'is_approved': ts.is_approved,
-            'css_class': 'approved' if ts.is_approved else 'draft'
+            'css_class': 'approved' if ts.is_approved else 'submitted' if ts.is_submitted else 'draft'
         }
     
-    # Создаем список дней месяца
-    days = list(range(1, last_day + 1))
     
-    # Получаем отделы для фильтра (для плановиков и администраторов)
+    for employee in employees:
+        employee_timesheets = timesheet_dict.get(employee.id, {})
+        
+        
+        day_cells = []
+        for day in days:
+            ts_data = employee_timesheets.get(day)
+            if ts_data:
+                day_cells.append({
+                    'day': day,
+                    'timesheet_id': ts_data['id'],
+                    'value': ts_data['value'],
+                    'display_value': ts_data['display_value'],
+                    'status': ts_data['status'],
+                    'can_edit': ts_data['can_edit'],
+                    'css_class': ts_data['css_class']
+                })
+            else:
+                day_cells.append({
+                    'day': day,
+                    'timesheet_id': None,
+                    'value': '',
+                    'display_value': '',
+                    'status': 'draft',
+                    'can_edit': True,
+                    'css_class': 'empty'
+                })
+        
+        
+        row_has_timesheets = any(cell['timesheet_id'] for cell in day_cells)
+        row_status = 'has_data' if row_has_timesheets else 'empty'
+        
+        table_data.append({
+            'employee': employee,
+            'days': day_cells,
+            'row_status': row_status,
+            'employee_id': employee.id
+        })
+    
+    
     departments = []
     if request.user.is_planner or request.user.is_administrator:
         departments = Department.objects.all()
-    
-    # Рассчитываем статистику
-    total_employees = employees.count()
-    total_days = last_day
-    total_cells = total_employees * total_days
-    
-    # Подготавливаем данные для таблицы
-    table_data = []
-    for employee in employees:
-        row = {
-            'employee': employee,
-            'days': [],
-            'stats': {
-                'work_days': 0,
-                'weekend_days': 0,
-                'other_days': 0
-            }
-        }
-        
-        for day in days:
-            date = datetime(year, month, day).date()
-            key = (employee.id, day)
-            
-            if key in timesheet_dict:
-                timesheet = timesheet_dict[key]
-                row['days'].append(timesheet)
-                
-                # Считаем статистику
-                value = timesheet['value']
-                if value == 'В':
-                    row['stats']['weekend_days'] += 1
-                elif value.isdigit():
-                    row['stats']['work_days'] += 1
-                else:
-                    row['stats']['other_days'] += 1
-            else:
-                # Нет табеля на этот день
-                is_weekend = date.weekday() >= 5
-                row['days'].append({
-                    'id': None,
-                    'value': '',
-                    'display_value': '',
-                    'status': '',
-                    'can_edit': True,
-                    'is_approved': False,
-                    'css_class': 'weekend' if is_weekend else 'empty',
-                    'is_empty': True,
-                    'is_weekend': is_weekend
-                })
-                
-                if is_weekend:
-                    row['stats']['weekend_days'] += 1
-        
-        table_data.append(row)
     
     # Навигация по месяцам
     prev_month = month - 1 if month > 1 else 12
@@ -448,13 +429,13 @@ def monthly_table_view(request):
     next_year = year if month < 12 else year + 1
     
     context = {
-        'title': f'Табель за {month_date.strftime("%B %Y")}',
+        'title': f'Табель за {month:02d}.{year}',
         'year': year,
         'month': month,
-        'month_date': month_date,
-        'month_name': month_date.strftime('%B %Y'),
-        'days': days,
+        'month_name': f'{month:02d}.{year}',
         'table_data': table_data,
+        'days': days,
+        'days_in_month': days_in_month,
         'departments': departments,
         'selected_department': request.GET.get('department'),
         
@@ -470,26 +451,30 @@ def monthly_table_view(request):
         'is_admin': request.user.is_administrator,
         
         # Статистика
-        'total_employees': total_employees,
-        'total_days': total_days,
-        'total_cells': total_cells,
+        'total_employees': employees.count(),
+        'days_range': range(1, days_in_month + 1),
     }
     
     return render(request, 'timesheet/monthly_table.html', context)
 
 
+@login_required
 def quick_edit_timesheet(request):
-    """Быстрое редактирование табеля через AJAX"""
+    """Быстрое редактирование дневного табеля через AJAX"""
     if not request.method == 'POST' or not request.user.is_authenticated:
         return JsonResponse({'error': 'Неверный запрос'}, status=400)
     
-    timesheet_id = request.POST.get('timesheet_id')
-    date_str = request.POST.get('date')
+    timesheet_id = request.POST.get('timesheet_id')  # это daily_id
+    monthly_timesheet_id = request.POST.get('monthly_timesheet_id')
     employee_id = request.POST.get('employee_id')
+    date = request.POST.get('date')  # дата в формате YYYY-MM-DD
     value = request.POST.get('value', '').strip()
     action = request.POST.get('action', 'save')
     
     try:
+        from apps.users.models import Employee
+        from .models import MonthlyTimesheet, Timesheet
+        
         if action == 'delete':
             # Удаление табеля
             if not timesheet_id:
@@ -498,8 +483,8 @@ def quick_edit_timesheet(request):
             timesheet = Timesheet.objects.get(id=timesheet_id)
             
             # Проверка прав
-            if timesheet.is_approved:
-                return JsonResponse({'error': 'Нельзя удалить утвержденный табель'}, status=403)
+            if not timesheet.can_edit:
+                return JsonResponse({'error': 'Нельзя удалить сданный или утвержденный табель'}, status=403)
             
             if request.user.is_master and timesheet.master != request.user:
                 return JsonResponse({'error': 'Нет прав на удаление этого табеля'}, status=403)
@@ -515,12 +500,12 @@ def quick_edit_timesheet(request):
             
             # Проверка прав
             if not timesheet.can_edit:
-                return JsonResponse({'error': 'Табель утвержден и не может быть изменен'}, status=403)
+                return JsonResponse({'error': 'Табель сдан или утвержден и не может быть изменен'}, status=403)
             
             if request.user.is_master and timesheet.master != request.user:
                 return JsonResponse({'error': 'Нет прав на редактирование этого табеля'}, status=403)
             
-            # Если значение пустое, удаляем табель
+            # Если значение пустое, удаляем запись
             if not value:
                 timesheet.delete()
                 return JsonResponse({'success': True, 'deleted': True})
@@ -529,9 +514,12 @@ def quick_edit_timesheet(request):
             timesheet.save()
             
         else:
-            # Создание нового табеля
+            # Создание новой записи
+            if not date or not employee_id:
+                return JsonResponse({'error': 'Не указаны обязательные параметры'}, status=400)
+            
             from datetime import datetime
-            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            date_obj = datetime.strptime(date, '%Y-%m-%d').date()
             employee = Employee.objects.get(id=employee_id)
             
             # Проверка прав для мастера
@@ -542,9 +530,9 @@ def quick_edit_timesheet(request):
             if not value:
                 return JsonResponse({'success': True})
             
-            # Проверяем, не существует ли уже табель
+            # Проверяем, не существует ли уже запись на эту дату
             timesheet, created = Timesheet.objects.get_or_create(
-                date=date,
+                date=date_obj,
                 employee=employee,
                 defaults={
                     'master': employee.master,
@@ -554,7 +542,7 @@ def quick_edit_timesheet(request):
             )
             
             if not created and not timesheet.can_edit:
-                return JsonResponse({'error': 'Табель уже существует и утвержден'}, status=403)
+                return JsonResponse({'error': 'Запись уже существует и табель сдан или утвержден'}, status=403)
             
             if not created:
                 timesheet.value = value
@@ -563,9 +551,10 @@ def quick_edit_timesheet(request):
         return JsonResponse({
             'success': True,
             'display_value': timesheet.display_value,
+            'value': timesheet.value,
+            'id': timesheet.id,
             'status': timesheet.status,
-            'can_edit': timesheet.can_edit,
-            'is_approved': timesheet.is_approved
+            'can_edit': timesheet.can_edit
         })
         
     except Timesheet.DoesNotExist:
@@ -573,7 +562,8 @@ def quick_edit_timesheet(request):
     except Employee.DoesNotExist:
         return JsonResponse({'error': 'Сотрудник не найден'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback
+        return JsonResponse({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 def submit_timesheet(request, pk):
     """Сдать табель мастером"""
