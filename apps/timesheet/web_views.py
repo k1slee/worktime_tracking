@@ -364,6 +364,8 @@ def monthly_table_view(request):
     timesheet_dict = {}
     attendance_counts = {}  #для подсчета дней явок по сотрудникам
     downtime_counts = {} # подсчет целосменных простоев
+    vacation_counts = {}       # Очередной отпуск (О)
+    illness_counts = {} # Болезнь
     
     for ts in timesheets:
         day = ts.date.day
@@ -391,6 +393,17 @@ def monthly_table_view(request):
             if ts.employee_id not in downtime_counts:
                 downtime_counts[ts.employee_id] = 0
             downtime_counts[ts.employee_id] += 1
+
+         # Подсчет очередного отпуска (О)
+        if ts.value == 'О':
+            if ts.employee_id not in vacation_counts:
+                vacation_counts[ts.employee_id] = 0
+            vacation_counts[ts.employee_id] += 1
+        #Подсчет болезней
+        if ts.value in ['Б', 'Р']:
+            if ts.employee_id not in illness_counts:
+                illness_counts[ts.employee_id] = 0
+            illness_counts[ts.employee_id] += 1
     
     for employee in employees:
         employee_timesheets = timesheet_dict.get(employee.id, {})
@@ -400,6 +413,10 @@ def monthly_table_view(request):
 
         # Получаем количество целосменных простоев
         downtime_days = downtime_counts.get(employee.id, 0)
+
+        vacation_days = vacation_counts.get(employee.id, 0)
+
+        illness_days = illness_counts.get(employee.id, 0)
         
         day_cells = []
         for day in days:
@@ -433,6 +450,8 @@ def monthly_table_view(request):
             'days': day_cells,
             'attendance_days': attendance_days,  # Добавляем количество дней явок
             'downtime_days': downtime_days,  # Добавляем целосменные простои
+            'vacation_days': vacation_days,
+            'illness_days': illness_days,
             'row_status': row_status,
             'employee_id': employee.id
         })
