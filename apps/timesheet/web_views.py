@@ -367,6 +367,8 @@ def monthly_table_view(request):
     vacation_counts = {}       # Очередной отпуск (О)
     illness_counts = {} # Болезнь
     other_absence_counts = {}  # Прочие неявки (Г, ДМ, ОЖ, ОС)
+    admin_permission_counts = {}  #с разрешения администрации
+    absence_counts = {} #Progul
     
     for ts in timesheets:
         day = ts.date.day
@@ -385,7 +387,7 @@ def monthly_table_view(request):
         }
         
         # Подсчет дней явок (предполагаем, что явка - это когда value не пустое и не равно кодам отсутствия)
-        if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ']:
+        if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ', 'А', 'П']:
             if ts.employee_id not in attendance_counts:
                 attendance_counts[ts.employee_id] = 0
             attendance_counts[ts.employee_id] += 1
@@ -410,6 +412,16 @@ def monthly_table_view(request):
             if ts.employee_id not in other_absence_counts:
                 other_absence_counts[ts.employee_id] = 0
             other_absence_counts[ts.employee_id] += 1
+        # Подсчет разрешений администрации (А) 
+        if ts.value == 'А':
+            if ts.employee_id not in admin_permission_counts:
+                admin_permission_counts[ts.employee_id] = 0
+            admin_permission_counts[ts.employee_id] += 1
+        #Прогулы
+        if ts.value == 'П':
+            if ts.employee_id not in absence_counts:
+                absence_counts[ts.employee_id] = 0
+            absence_counts[ts.employee_id] += 1
 
     
     for employee in employees:
@@ -426,7 +438,11 @@ def monthly_table_view(request):
         illness_days = illness_counts.get(employee.id, 0)
 
         other_absence_days = other_absence_counts.get(employee.id, 0)
+
+        admin_permission_days = admin_permission_counts.get(employee.id, 0)
         
+        absence_days = absence_counts.get(employee.id, 0)
+
         day_cells = []
         for day in days:
             ts_data = employee_timesheets.get(day)
@@ -462,6 +478,8 @@ def monthly_table_view(request):
             'vacation_days': vacation_days,
             'illness_days': illness_days,
             'other_absence_days': other_absence_days,
+            'admin_permission_days': admin_permission_days,
+            'absence_days': absence_counts.get(employee.id, 0),
             'row_status': row_status,
             'employee_id': employee.id
         })
