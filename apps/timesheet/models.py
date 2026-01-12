@@ -74,6 +74,8 @@ class Timesheet(models.Model):
         ('П', 'П - Прогул'),
         ('ЦП', 'ЦП - Целосменный прогул'),
         ('Ч', 'Ч - Часы работы'),
+        ('Г', 'Государственные обязанности'),  # или что означает Г
+        ('ДМ', 'День матери'), 
     ]
     
     STATUS_CHOICES = [
@@ -111,6 +113,7 @@ class Timesheet(models.Model):
     
     def __str__(self):
         return f"{self.date} - {self.employee} - {self.value}"
+    
     
     def clean(self):
         from django.core.exceptions import ValidationError

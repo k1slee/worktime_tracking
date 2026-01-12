@@ -366,6 +366,7 @@ def monthly_table_view(request):
     downtime_counts = {} # подсчет целосменных простоев
     vacation_counts = {}       # Очередной отпуск (О)
     illness_counts = {} # Болезнь
+    other_absence_counts = {}  # Прочие неявки (Г, ДМ, ОЖ, ОС)
     
     for ts in timesheets:
         day = ts.date.day
@@ -384,7 +385,7 @@ def monthly_table_view(request):
         }
         
         # Подсчет дней явок (предполагаем, что явка - это когда value не пустое и не равно кодам отсутствия)
-        if ts.value and ts.value not in ['В', 'О', 'Б', 'К']:
+        if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ']:
             if ts.employee_id not in attendance_counts:
                 attendance_counts[ts.employee_id] = 0
             attendance_counts[ts.employee_id] += 1
@@ -404,6 +405,12 @@ def monthly_table_view(request):
             if ts.employee_id not in illness_counts:
                 illness_counts[ts.employee_id] = 0
             illness_counts[ts.employee_id] += 1
+        #Прочие неявки
+        if ts.value in ['Г', 'ДМ', 'ОЖ', 'ОС']:
+            if ts.employee_id not in other_absence_counts:
+                other_absence_counts[ts.employee_id] = 0
+            other_absence_counts[ts.employee_id] += 1
+
     
     for employee in employees:
         employee_timesheets = timesheet_dict.get(employee.id, {})
@@ -417,6 +424,8 @@ def monthly_table_view(request):
         vacation_days = vacation_counts.get(employee.id, 0)
 
         illness_days = illness_counts.get(employee.id, 0)
+
+        other_absence_days = other_absence_counts.get(employee.id, 0)
         
         day_cells = []
         for day in days:
@@ -452,6 +461,7 @@ def monthly_table_view(request):
             'downtime_days': downtime_days,  # Добавляем целосменные простои
             'vacation_days': vacation_days,
             'illness_days': illness_days,
+            'other_absence_days': other_absence_days,
             'row_status': row_status,
             'employee_id': employee.id
         })

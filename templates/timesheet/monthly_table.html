@@ -405,6 +405,80 @@
     font-weight: bold;
     color: #fd7e14;  /* Оранжевый цвет для болезни */
 }
+/* Стиль для столбца дней явок (обновить right) */
+.attendance-col {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 80px;
+    position: sticky;
+    right: 320px;  /* Обновлено: было 240px, стало 320px */
+    z-index: 4;
+    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+}
+
+/* Стиль для столбца целосменных простоев (обновить right) */
+.downtime-col {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 80px;
+    position: sticky;
+    right: 240px;  /* Обновлено: было 160px, стало 240px */
+    z-index: 4;
+    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+    border-left: 1px solid #dee2e6;
+}
+
+/* Стиль для столбца очередного отпуска (обновить right) */
+.vacation-col {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 80px;
+    position: sticky;
+    right: 160px;  /* Обновлено: было 80px, стало 160px */
+    z-index: 4;
+    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+    border-left: 1px solid #dee2e6;
+}
+
+/* Стиль для столбца болезни (обновить right) */
+.illness-col {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 80px;
+    position: sticky;
+    right: 80px;  /* Обновлено: было 0, стало 80px */
+    z-index: 4;
+    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+    border-left: 1px solid #dee2e6;
+}
+
+/* Стиль для столбца прочих неявок - НОВЫЙ */
+.other-absence-col {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 80px;
+    position: sticky;
+    right: 0;  /* Теперь этот столбец крайний справа */
+    z-index: 4;
+    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+    border-left: 1px solid #dee2e6;
+}
+
+.other-absence-count {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #6c757d;  /* Серый цвет для прочих неявок */
+}
 </style>
 {% endblock %}
 
@@ -613,6 +687,7 @@
                             <th class="downtime-col">Целосменные простои</th>
                             <th class="vacation-col">Очередной отпуск</th>
                             <th class="illness-col">Болезнь</th>
+                            <th class="other-absence-col">Прочие неявки</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -707,10 +782,16 @@
                                 </div>
                                 <small class="text-muted">дней</small>
                             </td>
+                            <td class="other-absence-col">
+                                <div class="other-absence-count">
+                                    {{ row.other_absence_days }}
+                                </div>
+                                <small class="text-muted">дней</small>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="{{ days|length|add:5 }}" class="text-center py-4">
+                            <td colspan="{{ days|length|add:6 }}" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
                                     <h5 class="mt-2">Нет данных за этот период</h5>
@@ -781,7 +862,7 @@
                         <input type="text" id="modalValue" class="form-control" 
                                placeholder="Часы или код" maxlength="10">
                         <div class="form-text">
-                            Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч
+                            Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ
                         </div>
                     </div>
                     <div class="mb-3">
@@ -815,7 +896,7 @@
                     <input type="text" id="bulkValue" class="form-control" 
                            placeholder="Часы или код" maxlength="10">
                     <div class="form-text">
-                        Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч
+                        Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ
                     </div>
                 </div>
                 <div class="mb-3">
@@ -1313,7 +1394,7 @@
                 }
             } else {
                 // Проверка на допустимые коды
-                const allowedCodes = ['В', 'К', 'О', 'Б', 'Р', 'ОЖ', 'М', 'Т', 'Н', 'ОС', 'П', 'ЦП', 'Ч'];
+                const allowedCodes = ['В', 'К', 'О', 'Б', 'Р', 'ОЖ', 'М', 'Т', 'Н', 'ОС', 'П', 'ЦП', 'Ч', 'Г', 'ДМ'];
                 if (!allowedCodes.includes(value)) {
                     alert('Недопустимое условное обозначение. Допустимые: ' + allowedCodes.join(', '));
                     return false;
