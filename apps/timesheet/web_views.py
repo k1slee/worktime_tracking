@@ -360,7 +360,19 @@ def monthly_table_view(request):
     days_in_month = calendar.monthrange(year, month)[1]
     days = list(range(1, days_in_month + 1))
     
-    # Словари для подсчета - ВАЖНО: инициализируем ВСЕ словари сразу
+    # Определяем выходные дни (суббота и воскресенье)
+    weekend_days_dict = {}
+    cal = calendar.Calendar()
+    month_days = cal.monthdatescalendar(year, month)
+    
+    for week in month_days:
+        for day_date in week:
+            if day_date.month == month:
+                # 5 = суббота, 6 = воскресенье
+                is_weekend = day_date.weekday() >= 5
+                weekend_days_dict[day_date.day] = is_weekend
+    
+    # Словари для подсчета
     timesheet_dict = {}
     attendance_counts = {}
     downtime_counts = {}
@@ -370,7 +382,8 @@ def monthly_table_view(request):
     admin_permission_counts = {}
     absence_counts = {}
     evening_hours_counts = {}
-    night_hours_counts = {}  # Добавляем инициализацию словаря для ночных часов
+    night_hours_counts = {}
+    weekend_hours_counts = {}  # Добавляем словарь для выходных часов
     total_hours_counts = {}
     
     # Форматы для вечерних часов
@@ -425,6 +438,14 @@ def monthly_table_view(request):
                     if ts.employee_id not in total_hours_counts:
                         total_hours_counts[ts.employee_id] = 0
                     total_hours_counts[ts.employee_id] += hours
+                    
+                    # Подсчет часов в выходные дни
+                    is_weekend = weekend_days_dict.get(day, False)
+                    if is_weekend:
+                        if ts.employee_id not in weekend_hours_counts:
+                            weekend_hours_counts[ts.employee_id] = 0
+                        weekend_hours_counts[ts.employee_id] += hours
+                        
             except (ValueError, TypeError):
                 pass
         
@@ -437,7 +458,7 @@ def monthly_table_view(request):
         
         # Подсчет ночных часов
         if value_str in night_formats:
-            night_hours = 8.67  # или ваше значение для ночной смены
+            night_hours = 8.67
             if ts.employee_id not in night_hours_counts:
                 night_hours_counts[ts.employee_id] = 0
             night_hours_counts[ts.employee_id] += night_hours
@@ -497,7 +518,8 @@ def monthly_table_view(request):
         absence_days = absence_counts.get(employee.id, 0)
         total_hours = round(total_hours_counts.get(employee.id, 0), 1)
         evening_hours = round(evening_hours_counts.get(employee.id, 0), 1)
-        night_hours = round(night_hours_counts.get(employee.id, 0), 1)  # Получаем ночные часы
+        night_hours = round(night_hours_counts.get(employee.id, 0), 1)
+        weekend_hours = round(weekend_hours_counts.get(employee.id, 0), 1)  
         
         day_cells = []
         for day in days:
@@ -538,7 +560,8 @@ def monthly_table_view(request):
             'absence_days': absence_days,
             'total_hours': total_hours,
             'evening_hours': evening_hours,
-            'night_hours': night_hours,  # Добавляем ночные часы в данные
+            'night_hours': night_hours,
+            'weekend_hours': weekend_hours,  
             'row_status': row_status,
             'employee_id': employee.id
         })
@@ -572,6 +595,7 @@ def monthly_table_view(request):
         'is_admin': request.user.is_administrator,
         'total_employees': employees.count(),
         'days_range': range(1, days_in_month + 1),
+        'weekend_days': weekend_days_dict,  
     }
     
     return render(request, 'timesheet/monthly_table.html', context)

@@ -345,6 +345,19 @@
         font-size: 1.1rem;
         color: #343a40;
     }
+    .weekend-hours-col {
+        background-color: #fff3cd;
+        font-weight: bold;
+        text-align: center;
+        min-width: 90px;
+        border-left: 2px solid #ffc107;
+    }
+
+    .weekend-hours-count {
+        font-size: 1.1rem;
+        color: #856404;
+        font-weight: bold;
+    }
 </style>
 {% endblock %}
 
@@ -559,6 +572,7 @@
                             <th class="total-hours-col">Всего часов</th>
                             <th class="evening-hours-col">Вечерние часы</th>
                             <th class="night-hours-col">Ночные часы</th>
+                            <th class="weekend-hours-col">Выходные часы</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -690,6 +704,12 @@
                             <td class="night-hours-col">
                                 <div class="night-hours-count">
                                     {{ row.night_hours }}
+                                </div>
+                                <small class="text-muted">часов</small>
+                            </td>
+                            <td class="weekend-hours-col">
+                                <div class="weekend-hours-count">
+                                    {{ row.weekend_hours }}
                                 </div>
                                 <small class="text-muted">часов</small>
                             </td>
