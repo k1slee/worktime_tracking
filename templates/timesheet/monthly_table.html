@@ -243,432 +243,108 @@
         text-align: center;
     }
 
-    /* Стиль для столбца дней явок */
-    .attendance-col {
+    /* ОБЩИЕ стили для ВСЕХ статистических столбцов */
+    .attendance-col,
+    .downtime-col,
+    .vacation-col,
+    .illness-col,
+    .other-absence-col,
+    .admin-permission-col,
+    .absence-col,
+    .evening-hours-col,
+    .total-hours-col {
         background-color: #f8f9fa;
         font-weight: bold;
         text-align: center;
         vertical-align: middle;
         min-width: 80px;
         position: sticky;
-        right: 0;
         z-index: 4;
         box-shadow: -2px 0 2px rgba(0,0,0,0.1);
+        border-left: 1px solid #dee2e6;
+    }
+
+    /* ПРАВИЛЬНЫЕ ПОЗИЦИИ для каждого столбца (в порядке от левого к правому) */
+    /* Всего 9 статистических столбцов после дней месяца */
+    
+    /* 1. Дни явок (самый левый из sticky) */
+    .attendance-col {
+        right: 640px;  /* 8 столбцов * 80px = 640px */
+        color: #0d6efd;  /* Синий цвет */
     }
     
-    .attendance-count {
+    /* 2. Целосменные простои */
+    .downtime-col {
+        right: 560px;  /* 7 столбцов * 80px = 560px */
+        color: #dc3545;  /* Красный цвет */
+    }
+    
+    /* 3. Очередной отпуск */
+    .vacation-col {
+        right: 480px;  /* 6 столбцов * 80px = 480px */
+        color: #198754;  /* Зеленый цвет */
+    }
+    
+    /* 4. Болезнь */
+    .illness-col {
+        right: 400px;  /* 5 столбцов * 80px = 400px */
+        color: #fd7e14;  /* Оранжевый цвет */
+    }
+    
+    /* 5. Прочие неявки */
+    .other-absence-col {
+        right: 320px;  /* 4 столбца * 80px = 320px */
+        color: #6c757d;  /* Серый цвет */
+    }
+    
+    /* 6. Разрешения администрации */
+    .admin-permission-col {
+        right: 240px;  /* 3 столбца * 80px = 240px */
+        color: #6610f2;  /* Фиолетовый цвет */
+    }
+    
+    /* 7. Прогул */
+    .absence-col {
+        right: 160px;  /* 2 столбца * 80px = 160px */
+        color: #dc3545;  /* Красный цвет */
+    }
+    
+    /* 8. Вечерние часы */
+    .evening-hours-col {
+        right: 80px;   /* 1 столбец * 80px = 80px */
+        color: #6f42c1;  /* Фиолетовый цвет */
+    }
+    
+    /* 9. Всего часов (самый правый sticky) */
+    .total-hours-col {
+        right: 0;      /* 0 столбцов * 80px = 0px */
+        color: #0d6efd;  /* Синий цвет */
+    }
+
+    /* Стили для чисел внутри ячеек */
+    .attendance-count,
+    .downtime-count,
+    .vacation-count,
+    .illness-count,
+    .other-absence-count,
+    .admin-permission-count,
+    .absence-count,
+    .evening-hours-count,
+    .total-hours-count {
         font-size: 1.1rem;
         font-weight: bold;
-        color: #0d6efd;
     }
-    /* Стиль для столбца дней явок */
-.attendance-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 80px;  /* Изменили с 0 на 80px чтобы освободить место для следующего столбца */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-}
+    .night-hours-col {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        text-align: center;
+        min-width: 80px;
+    }
 
-.attendance-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #0d6efd;
-}
-
-/* Стиль для столбца целосменных простоев */
-.downtime-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 0;  /* Теперь этот столбец крайний справа */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-.downtime-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #dc3545;  /* Красный цвет для простоев */
-}
-/* Стиль для столбца дней явок (обновить right) */
-.attendance-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 160px;  /* Обновлено: было 80px, стало 160px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-}
-
-/* Стиль для столбца целосменных простоев (обновить right) */
-.downtime-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 80px;  /* Обновлено: было 0, стало 80px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца очередного отпуска - НОВЫЙ */
-.vacation-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 0;  /* Теперь этот столбец крайний справа */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-.vacation-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #198754;  /* Зеленый цвет для отпуска */
-}
-/* Стиль для столбца дней явок (обновить right) */
-.attendance-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 240px;  /* Обновлено: было 160px, стало 240px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-}
-
-/* Стиль для столбца целосменных простоев (обновить right) */
-.downtime-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 160px;  /* Обновлено: было 80px, стало 160px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца очередного отпуска (обновить right) */
-.vacation-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 80px;  /* Обновлено: было 0, стало 80px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца болезни - НОВЫЙ */
-.illness-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 0;  /* Теперь этот столбец крайний справа */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-.illness-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #fd7e14;  /* Оранжевый цвет для болезни */
-}
-/* Стиль для столбца дней явок (обновить right) */
-.attendance-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 320px;  /* Обновлено: было 240px, стало 320px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-}
-
-/* Стиль для столбца целосменных простоев (обновить right) */
-.downtime-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 240px;  /* Обновлено: было 160px, стало 240px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца очередного отпуска (обновить right) */
-.vacation-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 160px;  /* Обновлено: было 80px, стало 160px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца болезни (обновить right) */
-.illness-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 80px;  /* Обновлено: было 0, стало 80px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца прочих неявок - НОВЫЙ */
-.other-absence-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 0;  /* Теперь этот столбец крайний справа */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-.other-absence-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #6c757d;  /* Серый цвет для прочих неявок */
-}
-/* Стиль для столбца дней явок (обновить right) */
-.attendance-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 400px;  /* Обновлено: было 320px, стало 400px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-}
-
-/* Стиль для столбца целосменных простоев (обновить right) */
-.downtime-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 320px;  /* Обновлено: было 240px, стало 320px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца очередного отпуска (обновить right) */
-.vacation-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 240px;  /* Обновлено: было 160px, стало 240px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца болезни (обновить right) */
-.illness-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 160px;  /* Обновлено: было 80px, стало 160px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца прочих неявок (обновить right) */
-.other-absence-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 80px;  /* Обновлено: было 0, стало 80px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца разрешений администрации - НОВЫЙ */
-.admin-permission-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 0;  /* Теперь этот столбец крайний справа */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-.admin-permission-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #6610f2;  /* Фиолетовый цвет для разрешений */
-}
-/* Стиль для столбца дней явок (обновить right) */
-.attendance-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 480px;  /* Обновлено: было 400px, стало 480px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-}
-
-/* Стиль для столбца целосменных простоев (обновить right) */
-.downtime-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 400px;  /* Обновлено: было 320px, стало 400px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца очередного отпуска (обновить right) */
-.vacation-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 320px;  /* Обновлено: было 240px, стало 320px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца болезни (обновить right) */
-.illness-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 240px;  /* Обновлено: было 160px, стало 240px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца прочих неявок (обновить right) */
-.other-absence-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 160px;  /* Обновлено: было 80px, стало 160px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца разрешений администрации (обновить right) */
-.admin-permission-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 80px;  /* Обновлено: было 0, стало 80px */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-/* Стиль для столбца прогулов - НОВЫЙ */
-.absence-col {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    min-width: 80px;
-    position: sticky;
-    right: 0;  /* Теперь этот столбец крайний справа */
-    z-index: 4;
-    box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-    border-left: 1px solid #dee2e6;
-}
-
-.absence-count {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #dc3545;  /* Красный цвет для прогулов */
-}
+    .night-hours-count {
+        font-size: 1.1rem;
+        color: #343a40;
+    }
 </style>
 {% endblock %}
 
@@ -880,6 +556,9 @@
                             <th class="other-absence-col">Прочие неявки</th>
                             <th class="admin-permission-col">Разрешения адм.</th>
                             <th class="absence-col">Прогул</th>
+                            <th class="total-hours-col">Всего часов</th>
+                            <th class="evening-hours-col">Вечерние часы</th>
+                            <th class="night-hours-col">Ночные часы</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -994,10 +673,30 @@
                                 </div>
                                 <small class="text-muted">дней</small>
                             </td>
+                            <!-- Вcего часов -->
+                            <td class="total-hours-col">
+                                <div class="total-hours-count">
+                                    {{ row.total_hours }}
+                                </div>
+                                <small class="text-muted">часов</small>
+                            </td>
+                            <!-- Вечерние часы -->
+                            <td class="evening-hours-col">
+                                <div class="evening-hours-count">
+                                    {{ row.evening_hours }}
+                                </div>
+                                <small class="text-muted">часов</small>
+                            </td>
+                            <td class="night-hours-col">
+                                <div class="night-hours-count">
+                                    {{ row.night_hours }}
+                                </div>
+                                <small class="text-muted">часов</small>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="{{ days|length|add:8 }}" class="text-center py-4">
+                            <td colspan="{{ days|length|add:11 }}" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
                                     <h5 class="mt-2">Нет данных за этот период</h5>
@@ -1068,7 +767,8 @@
                         <input type="text" id="modalValue" class="form-control" 
                                placeholder="Часы или код" maxlength="10">
                         <div class="form-text">
-                            Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А
+                            Числовые форматы: 7/2, 8, 3,5, 7.5, 8/3<br>
+                            Коды: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А, ОЖ
                         </div>
                     </div>
                     <div class="mb-3">
@@ -1102,7 +802,7 @@
                     <input type="text" id="bulkValue" class="form-control" 
                            placeholder="Часы или код" maxlength="10">
                     <div class="form-text">
-                        Часы (1-24) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А
+                        Часы ( 7/2, 8, 3,5) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А, ОЖ
                     </div>
                 </div>
                 <div class="mb-3">
@@ -1591,25 +1291,32 @@
     // Вспомогательные функции
     function validateTimesheetValue(value) {
         if (value) {
-            // Проверка на часы (1-24)
-            if (/^\d+$/.test(value)) {
-                const hours = parseInt(value);
-                if (hours < 1 || hours > 24) {
-                    alert('Количество часов должно быть от 1 до 24');
-                    return false;
-                }
+            // Проверка на числовые форматы
+            // Допустимые: целые числа, числа с точкой, числа с запятой, форматы с дробью
+            const numericPatterns = [
+                /^\d+$/,                     // 8, 7, 10
+                /^\d+\.\d+$/,                // 7.5, 3.5
+                /^\d+,\d+$/,                 // 7,5, 3,5
+                /^\d+\/\d+$/,                // 7/2, 8/2, 7/3
+            ];
+            
+            // Проверяем все числовые паттерны
+            const isNumeric = numericPatterns.some(pattern => pattern.test(value));
+            
+            if (isNumeric) {
+                return true;
             } else {
                 // Проверка на допустимые коды
                 const allowedCodes = ['В', 'К', 'О', 'Б', 'Р', 'ОЖ', 'М', 'Т', 'Н', 'ОС', 'П', 'ЦП', 'Ч', 'Г', 'ДМ', 'А'];
                 if (!allowedCodes.includes(value)) {
-                    alert('Недопустимое условное обозначение. Допустимые: ' + allowedCodes.join(', '));
+                    alert('Недопустимое условное обозначение. Допустимые: ' + allowedCodes.join(', ') + ' или числовые форматы (7/2, 8, 3,5)');
                     return false;
                 }
             }
         }
         return true;
     }
-    
+        
     function updateCellAfterSave(cell, value, data) {
         cell.setAttribute('data-value', value);
         cell.setAttribute('data-status', data.is_approved ? 'approved' : 'draft');

@@ -77,6 +77,20 @@ class Timesheet(models.Model):
         ('Г', 'Государственные обязанности'),  # или что означает Г
         ('ДМ', 'День матери'), 
         ('А', 'Разрешение администрации'),
+        ('7/2', '7 часов за полдня'),
+        ('7/3', '7 часов за 1/3 дня'),
+        ('8/2', '8 часов за полдня'),
+        ('8/3', '8 часов за 1/3 дня'),
+        ('9/2', '9 часов за полдня'),
+        ('10/2', '10 часов за полдня'),
+        ('6/2', '6 часов за полдня'),
+        ('3,5', '3.5 часа'),
+        ('4', '4 часа'),
+        ('6', '6 часов'),
+        ('7', '7 часов'),
+        ('8', '8 часов'),
+        ('9', '9 часов'),
+        ('10', '10 часов'),
     ]
     
     STATUS_CHOICES = [
@@ -120,17 +134,33 @@ class Timesheet(models.Model):
         from django.core.exceptions import ValidationError
         
         # Проверка, что значение является либо числом от 1 до 24, либо допустимым кодом
-        if self.value.isdigit():
-            hours = int(self.value)
-            if hours < 1 or hours > 24:
+        if self.value:
+            # Проверяем, является ли значение числом или дробным форматом
+            value_str = str(self.value)
+            
+            # Проверка на часы (целые, дробные, с дробью через / или запятую)
+            if '/' in value_str:
+                # Формат типа 7/2, 8/2, 7/3 и т.д.
+                parts = value_str.split('/')
+                if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                    # Допустим формат с дробью
+                    return
+            elif ',' in value_str:
+                # Формат типа 3,5
+                parts = value_str.replace(',', '.').split('.')
+                if len(parts) == 2 and all(part.isdigit() for part in parts):
+                    # Допустим формат с десятичной дробью
+                    return
+            elif value_str.replace('.', '', 1).isdigit():
+                # Простое число или число с точкой
+                return
+            elif value_str in dict(self.CODE_CHOICES).keys():
+                # Допустимый код из CODE_CHOICES
+                return
+            else:
                 raise ValidationError({
-                    'value': 'Количество часов должно быть от 1 до 24'
+                    'value': f'Недопустимое условное обозначение. Допустимые: {", ".join(dict(self.CODE_CHOICES).keys())} или числовые форматы (7/2, 8, 3,5)'
                 })
-        elif self.value not in dict(self.CODE_CHOICES).keys():
-            raise ValidationError({
-                'value': f'Недопустимое условное обозначение. Допустимые: {", ".join(dict(self.CODE_CHOICES).keys())}'
-            })
-    
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)

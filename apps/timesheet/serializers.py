@@ -47,14 +47,37 @@ class TimesheetSerializer(serializers.ModelSerializer):
         # Проверка допустимости значения
         allowed_codes = dict(Timesheet.CODE_CHOICES).keys()
         
-        if value.isdigit():
-            hours = int(value)
-            if hours < 1 or hours > 24:
-                raise ValidationError('Количество часов должно быть от 1 до 24')
-        elif value not in allowed_codes:
-            raise ValidationError(
-                f'Недопустимое условное обозначение. Допустимые: {", ".join(allowed_codes)}'
-            )
+        if value:
+            value_str = str(value)
+            
+            # Проверка на формат с дробью (7/2, 8/3)
+            if '/' in value_str:
+                parts = value_str.split('/')
+                if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                    return value
+            
+            # Проверка на формат с запятой (3,5)
+            elif ',' in value_str:
+                parts = value_str.replace(',', '.').split('.')
+                if len(parts) == 2 and all(part.isdigit() for part in parts):
+                    return value
+            
+            # Проверка на простое число
+            elif value_str.replace('.', '', 1).isdigit():
+                # Можете добавить проверку диапазона, если нужно
+                # hours = float(value_str.replace(',', '.'))
+                # if hours < 0 or hours > 24:
+                #     raise ValidationError('Количество часов должно быть от 0 до 24')
+                return value
+            
+            # Проверка на допустимые коды
+            elif value_str in allowed_codes:
+                return value
+            
+            else:
+                raise ValidationError(
+                    f'Недопустимое условное обозначение. Допустимые: {", ".join(allowed_codes)} или числовые форматы (7/2, 8, 3,5)'
+                )
         
         return value
 
