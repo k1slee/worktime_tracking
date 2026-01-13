@@ -387,15 +387,29 @@ def monthly_table_view(request):
     overtime_hours_counts = {}
     total_hours_counts = {}
     
-    # Форматы для подсчета часов
-    # Вечерние часы остаются как были
+    total_hours_formats = {
+        '7/3': 7.0,      # 7 часов
+        '7/2': 7.0,      # 7 часов
+        '8/2': 8.0,      # 8 часов
+        '8': 8.0,        # 8 часов
+        '7': 7.0,        # 7 часов
+        '4': 4.0,        # 4 часа
+        '10': 10.0,      # 10 часов
+        '10/2': 10.0,    # 10 часов
+        '3,5': 3.5,      # 3.5 часа
+        '9': 9.0,        # 9 часов
+        '9/2': 9.0,      # 9 часов
+        # Можно добавить другие форматы, если они есть
+        '6': 6.0,        # предположительно 6 часов
+        '6/2': 6.0,      # предположительно 6 часов
+        '5': 5.0,        # предположительно 5 часов
+        '5/2': 5.0,      # предположительно 5 часов
+    }
+    
+    # 2. Вечерние часы (оставляем старую логику, если она нужна)
     evening_formats = ['8/2', '7/2', '9/2', '10/2', '6/2']
     
-    # НОВАЯ ЛОГИКА: Ночные часы по вашей формуле
-    # 7/3 = 7 часов ночной смены
-    # 8/2 = 1.5 часа ночной смены
-    # 9/2 = 1.5 часа ночной смены
-    # 10/2 = 1.5 часа ночной смены
+    # 3. Ночные часы по вашей формуле
     night_formats = {
         '7/3': 7.0,     # 7 часов ночной смены
         '8/2': 1.5,     # 1.5 часа ночной смены
@@ -404,7 +418,7 @@ def monthly_table_view(request):
         '6/2': 1.5,     # предположим, что для 6/2 тоже 1.5 часа
     }
     
-    # Сверхурочные часы (остаются как были)
+    # 4. Сверхурочные часы
     overtime_formats = {
         '9': 1,      # "9" = 1 час сверхурочно
         '10': 2,     # "10" = 2 часа сверхурочно
@@ -430,30 +444,28 @@ def monthly_table_view(request):
         
         value_str = str(ts.value) if ts.value else ""
         
-        # Подсчет общего количества часов
-        if ts.value:
+        # ПЕРЕПИСАННАЯ ЛОГИКА: Подсчет общего количества часов по новой формуле
+        if value_str in total_hours_formats:
+            hours = total_hours_formats[value_str]
+            if ts.employee_id not in total_hours_counts:
+                total_hours_counts[ts.employee_id] = 0
+            total_hours_counts[ts.employee_id] += hours
+            
+            # Подсчет часов в выходные дни
+            is_weekend = weekend_days_dict.get(day, False)
+            if is_weekend:
+                if ts.employee_id not in weekend_hours_counts:
+                    weekend_hours_counts[ts.employee_id] = 0
+                weekend_hours_counts[ts.employee_id] += hours
+        
+        # Дополнительно: если значение не в total_hours_formats, но это число
+        elif ts.value and value_str.replace(',', '', 1).replace('.', '', 1).isdigit():
             try:
-                # Для форматов с запятой (3,5)
+                # Пробуем преобразовать в число
                 if ',' in value_str:
                     hours = float(value_str.replace(',', '.'))
-                # Для форматов с дробью (7/2, 8/2, 7/3, 8/3, 9/2, 10/2)
-                elif '/' in value_str:
-                    parts = value_str.split('/')
-                    if len(parts) == 2:
-                        base_hours = float(parts[0])
-                        if parts[1] == '2':
-                            hours = base_hours * 0.5
-                        elif parts[1] == '3':
-                            hours = base_hours * (1/3)
-                        else:
-                            hours = base_hours
-                    else:
-                        hours = float(value_str)
-                # Для простых чисел
-                elif value_str.replace('.', '', 1).isdigit():
-                    hours = float(value_str)
                 else:
-                    hours = 0
+                    hours = float(value_str)
                 
                 if hours > 0:
                     if ts.employee_id not in total_hours_counts:
@@ -470,14 +482,14 @@ def monthly_table_view(request):
             except (ValueError, TypeError):
                 pass
         
-        # Подсчет вечерних часов (оставляем старую логику)
+        # Подсчет вечерних часов (старая логика)
         if value_str in evening_formats:
             evening_hours = 6.5
             if ts.employee_id not in evening_hours_counts:
                 evening_hours_counts[ts.employee_id] = 0
             evening_hours_counts[ts.employee_id] += evening_hours
         
-        # ПЕРЕПИСАННАЯ ЛОГИКА: Подсчет ночных часов по новой формуле
+        # Подсчет ночных часов
         if value_str in night_formats:
             night_hours = night_formats[value_str]
             if ts.employee_id not in night_hours_counts:
