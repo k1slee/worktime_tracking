@@ -377,6 +377,51 @@
         opacity: 0.8;
     }
 </style>
+<style>
+.legend-table {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+.legend-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.legend-table td {
+    padding: 0.4rem 0.5rem;
+    vertical-align: middle;
+}
+
+.legend-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.legend-table strong {
+    font-size: 1.1rem;
+    color: #495057;
+}
+
+.card-header {
+    padding: 0.75rem 1.25rem;
+}
+
+.card-header h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.alert-info {
+    background-color: #e8f4fd;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.alert-info small {
+    color: #0c5460;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -460,6 +505,150 @@
                 </div>
             </div>
         </div>
+        <!-- Секция с условными обозначениями -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Условные обозначения
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Колонка 1 -->
+                        <div class="col-md-6">
+                            <table class="table table-sm legend-table">
+                                <thead>
+                                    <tr>
+                                        <th width="40">Код</th>
+                                        <th>Описание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center"><strong>В</strong></td>
+                                        <td>Выходные и праздничные дни</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>К</strong></td>
+                                        <td>Командировки служебные</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>О</strong></td>
+                                        <td>Очередные и дополнительные отпуска</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Б</strong></td>
+                                        <td>Нетрудоспособность (болезнь, карантин и т.п.)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Р</strong></td>
+                                        <td>Отпуск по беременности и родам</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>ОЖ</strong></td>
+                                        <td>Социальный отпуск по уходу за ребенком до 3 лет</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>М</strong></td>
+                                        <td>Льготные часы кормящих матерей</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Л</strong></td>
+                                        <td>Льготные часы подростков до 18 лет</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Д</strong></td>
+                                        <td>Льготные часы рабочих с вредными условиями</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Колонка 2 -->
+                        <div class="col-md-6">
+                            <table class="table table-sm legend-table">
+                                <thead>
+                                    <tr>
+                                        <th width="40">Код</th>
+                                        <th>Описание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center"><strong>ОС</strong></td>
+                                        <td>Отсутствие по справке</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>ЦП</strong></td>
+                                        <td>Простои целосменные</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Ч</strong></td>
+                                        <td>Простои внутрисменные</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>П</strong></td>
+                                        <td>Прогулы</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Н</strong></td>
+                                        <td>Опоздания и преждевременный уход с работы</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>Г</strong></td>
+                                        <td>Неявки, разрешенные законом (выполнение гос.обязанностей)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>А</strong></td>
+                                        <td>Неявки с разрешения администрации</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center"><strong>ДМ</strong></td>
+                                        <td>Дополнительный свободный от работы день матери (отца)</td>
+                                    </tr>
+                                    <!-- Можно добавить пояснение для числовых значений -->
+                                    <tr class="bg-light">
+                                        <td colspan="2" class="small text-muted">
+                                            <i class="bi bi-info-circle"></i> Числовые значения (8, 7/2, 4 и т.д.) - количество отработанных часов
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Дополнительная информация о специальных форматах -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-info py-2">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small><strong>Форматы часов:</strong></small><br>
+                                        <small><strong>8</strong> - 8 часов работы</small><br>
+                                        <small><strong>7/2</strong> - 7 часов работы (вечерняя смена)</small><br>
+                                        <small><strong>8/3</strong> - 8 часов работы (ночная смена)</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small><strong>Вечерние часы:</strong></small><br>
+                                        <small><strong>8/2, 7/2, 9/2, 10/2, 6/2</strong></small><br>
+                                        <small><i>Учитываются в колонке "Вечерние часы"</i></small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small><strong>Ночные часы:</strong></small><br>
+                                        <small><strong>7/3 (7ч), 8/2 (1.5ч), 9/2 (1.5ч), 10/2 (1.5ч)</strong></small><br>
+                                        <small><i>Учитываются в колонке "Ночные часы"</i></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </div>
     {% endif %}
     
@@ -514,54 +703,6 @@
         </div>
     </div>
     {% endif %}
-    
-    <div class="card mb-3">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Условные обозначения</h5>
-        </div>
-        <div class="card-body p-2">
-            <div class="row">
-                <div class="col-md-3">
-                    <strong class="d-block mb-1">Основные:</strong>
-                    <div class="d-flex flex-wrap gap-1">
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Выходные и праздничные дни">В</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Командировки служебные">К</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Очередные и дополнительные отпуска">О</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Нетрудоспособность">Б</span>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <strong class="d-block mb-1">Льготные:</strong>
-                    <div class="d-flex flex-wrap gap-1">
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Кормящих матерей">М</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Подростков до 18 лет">Л</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="С вредными условиями">Д</span>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <strong class="d-block mb-1">Простои:</strong>
-                    <div class="d-flex flex-wrap gap-1">
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Отсутствие по справке">ОС</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Простои целосменные">ЦП</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Простои внутрисменные">Ч</span>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <strong class="d-block mb-1">Неявки:</strong>
-                    <div class="d-flex flex-wrap gap-1">
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Прогулы">П</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="Опоздания">Н</span>
-                        <span class="badge bg-white text-dark border me-1 mb-1" title="День матери (отца)">ДМ</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-2 text-muted small">
-                <i class="bi bi-lightbulb"></i> Подсказка: для ввода часов работы введите число от 1 до 24
-            </div>
-        </div>
-    </div>
-    
     <!-- Основная таблица -->
     <div class="row">
         <div class="col-12">
