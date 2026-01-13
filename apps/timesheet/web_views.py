@@ -360,15 +360,23 @@ def monthly_table_view(request):
     days_in_month = calendar.monthrange(year, month)[1]
     days = list(range(1, days_in_month + 1))
     
-    
+    # Словари для подсчета - ВАЖНО: инициализируем ВСЕ словари сразу
     timesheet_dict = {}
-    attendance_counts = {}  #для подсчета дней явок по сотрудникам
-    downtime_counts = {} # подсчет целосменных простоев
-    vacation_counts = {}       # Очередной отпуск (О)
-    illness_counts = {} # Болезнь
-    other_absence_counts = {}  # Прочие неявки (Г, ДМ, ОЖ, ОС)
-    admin_permission_counts = {}  #с разрешения администрации
-    absence_counts = {} #Progul
+    attendance_counts = {}
+    downtime_counts = {}
+    vacation_counts = {}
+    illness_counts = {}
+    other_absence_counts = {}
+    admin_permission_counts = {}
+    absence_counts = {}
+    evening_hours_counts = {}
+    night_hours_counts = {}  # Добавляем инициализацию словаря для ночных часов
+    total_hours_counts = {}
+    
+    # Форматы для вечерних часов
+    evening_formats = ['8/2', '7/2', '9/2', '10/2', '6/2']
+    # Форматы для ночных часов
+    night_formats = ['8/3', '7/3', '9/3', '10/3', '6/3']
     
     for ts in timesheets:
         day = ts.date.day
@@ -386,63 +394,111 @@ def monthly_table_view(request):
             'css_class': 'approved' if ts.is_approved else 'submitted' if ts.is_submitted else 'draft'
         }
         
-        # Подсчет дней явок (предполагаем, что явка - это когда value не пустое и не равно кодам отсутствия)
-        if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ', 'А', 'П']:
+        value_str = str(ts.value) if ts.value else ""
+        
+        # Подсчет общего количества часов
+        if ts.value:
+            try:
+                # Для форматов с запятой (3,5)
+                if ',' in value_str:
+                    hours = float(value_str.replace(',', '.'))
+                # Для форматов с дробью (7/2, 8/2, 7/3, 8/3)
+                elif '/' in value_str:
+                    parts = value_str.split('/')
+                    if len(parts) == 2:
+                        base_hours = float(parts[0])
+                        if parts[1] == '2':
+                            hours = base_hours * 0.5
+                        elif parts[1] == '3':
+                            hours = base_hours * (1/3)
+                        else:
+                            hours = base_hours
+                    else:
+                        hours = float(value_str)
+                # Для простых чисел
+                elif value_str.replace('.', '', 1).isdigit():
+                    hours = float(value_str)
+                else:
+                    hours = 0
+                
+                if hours > 0:
+                    if ts.employee_id not in total_hours_counts:
+                        total_hours_counts[ts.employee_id] = 0
+                    total_hours_counts[ts.employee_id] += hours
+            except (ValueError, TypeError):
+                pass
+        
+        # Подсчет вечерних часов
+        if value_str in evening_formats:
+            evening_hours = 6.5
+            if ts.employee_id not in evening_hours_counts:
+                evening_hours_counts[ts.employee_id] = 0
+            evening_hours_counts[ts.employee_id] += evening_hours
+        
+        # Подсчет ночных часов
+        if value_str in night_formats:
+            night_hours = 8.67  # или ваше значение для ночной смены
+            if ts.employee_id not in night_hours_counts:
+                night_hours_counts[ts.employee_id] = 0
+            night_hours_counts[ts.employee_id] += night_hours
+        
+        # Подсчет дней явок
+        if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ', 'А']:
             if ts.employee_id not in attendance_counts:
                 attendance_counts[ts.employee_id] = 0
             attendance_counts[ts.employee_id] += 1
-
+        
+        # Подсчет целосменных простоев
         if ts.value == 'ЦП':
             if ts.employee_id not in downtime_counts:
                 downtime_counts[ts.employee_id] = 0
             downtime_counts[ts.employee_id] += 1
-
-         # Подсчет очередного отпуска (О)
+        
+        # Подсчет отпуска
         if ts.value == 'О':
             if ts.employee_id not in vacation_counts:
                 vacation_counts[ts.employee_id] = 0
             vacation_counts[ts.employee_id] += 1
-        #Подсчет болезней
+        
+        # Подсчет болезни
         if ts.value in ['Б', 'Р']:
             if ts.employee_id not in illness_counts:
                 illness_counts[ts.employee_id] = 0
             illness_counts[ts.employee_id] += 1
-        #Прочие неявки
+        
+        # Подсчет прочих неявок
         if ts.value in ['Г', 'ДМ', 'ОЖ', 'ОС']:
             if ts.employee_id not in other_absence_counts:
                 other_absence_counts[ts.employee_id] = 0
             other_absence_counts[ts.employee_id] += 1
-        # Подсчет разрешений администрации (А) 
+        
+        # Подсчет разрешений администрации
         if ts.value == 'А':
             if ts.employee_id not in admin_permission_counts:
                 admin_permission_counts[ts.employee_id] = 0
             admin_permission_counts[ts.employee_id] += 1
-        #Прогулы
+        
+        # Подсчет прогулов
         if ts.value == 'П':
             if ts.employee_id not in absence_counts:
                 absence_counts[ts.employee_id] = 0
             absence_counts[ts.employee_id] += 1
-
     
     for employee in employees:
         employee_timesheets = timesheet_dict.get(employee.id, {})
         
-        # Получаем количество дней явок для этого сотрудника
+        # Получаем все значения с безопасным доступом
         attendance_days = attendance_counts.get(employee.id, 0)
-
-        # Получаем количество целосменных простоев
         downtime_days = downtime_counts.get(employee.id, 0)
-
         vacation_days = vacation_counts.get(employee.id, 0)
-
         illness_days = illness_counts.get(employee.id, 0)
-
         other_absence_days = other_absence_counts.get(employee.id, 0)
-
         admin_permission_days = admin_permission_counts.get(employee.id, 0)
-        
         absence_days = absence_counts.get(employee.id, 0)
-
+        total_hours = round(total_hours_counts.get(employee.id, 0), 1)
+        evening_hours = round(evening_hours_counts.get(employee.id, 0), 1)
+        night_hours = round(night_hours_counts.get(employee.id, 0), 1)  # Получаем ночные часы
+        
         day_cells = []
         for day in days:
             ts_data = employee_timesheets.get(day)
@@ -473,13 +529,16 @@ def monthly_table_view(request):
         table_data.append({
             'employee': employee,
             'days': day_cells,
-            'attendance_days': attendance_days,  # Добавляем количество дней явок
-            'downtime_days': downtime_days,  # Добавляем целосменные простои
+            'attendance_days': attendance_days,
+            'downtime_days': downtime_days,
             'vacation_days': vacation_days,
             'illness_days': illness_days,
             'other_absence_days': other_absence_days,
             'admin_permission_days': admin_permission_days,
-            'absence_days': absence_counts.get(employee.id, 0),
+            'absence_days': absence_days,
+            'total_hours': total_hours,
+            'evening_hours': evening_hours,
+            'night_hours': night_hours,  # Добавляем ночные часы в данные
             'row_status': row_status,
             'employee_id': employee.id
         })
@@ -504,25 +563,18 @@ def monthly_table_view(request):
         'days_in_month': days_in_month,
         'departments': departments,
         'selected_department': request.GET.get('department'),
-        
-        # Навигация
         'prev_month': prev_month,
         'prev_year': prev_year,
         'next_month': next_month,
         'next_year': next_year,
-        
-        # Права доступа
         'is_master': request.user.is_master,
         'is_planner': request.user.is_planner,
         'is_admin': request.user.is_administrator,
-        
-        # Статистика
         'total_employees': employees.count(),
         'days_range': range(1, days_in_month + 1),
     }
     
     return render(request, 'timesheet/monthly_table.html', context)
-
 
 @login_required
 def quick_edit_timesheet(request):
