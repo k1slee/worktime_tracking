@@ -450,19 +450,14 @@
         </div>
         <div class="col-md-4 text-end">
             <div class="btn-group">
-                <a href="{% url 'timesheet:list' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-list"></i> Список
-                </a>
-                {% if is_master %}
-                <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-circle"></i> Создать месяц
-                </a>
-                {% endif %}
-                {% if is_planner or is_admin %}
-                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
-                    <i class="bi bi-download"></i> Экспорт
-                </button>
-                {% endif %}
+                <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master_id={{ request.user.id }}{% endif %}"
+                    class="btn btn-primary" target="_blank">
+                        <i class="bi bi-printer-fill"></i> Печатная форма
+                    </a>
+                    
+                    <button onclick="window.print()" class="btn btn-outline-primary">
+                        <i class="bi bi-printer"></i> Быстрая печать
+                    </button>
             </div>
         </div>
     </div>

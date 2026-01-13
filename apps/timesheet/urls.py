@@ -30,4 +30,5 @@ urlpatterns = [
     path('<int:pk>/submit/', web_views.submit_timesheet, name='submit'),
     path('bulk-submit/', web_views.bulk_submit_view, name='bulk_submit'),
     path('submit-month/', web_views.submit_month, name='submit_month'),
+    path('print-monthly-table/', web_views.print_monthly_table, name='print_monthly_table'),
 ]
