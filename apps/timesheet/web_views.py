@@ -14,6 +14,12 @@ from .models import MonthlyTimesheet, Timesheet
 from .forms import MonthlyTimesheetForm, BulkTimesheetForm, TimesheetForm
 from apps.users.models import Employee, Department
 from apps.users.permissions import IsMaster, IsPlanner
+from django.utils import timezone
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from apps.users.models import User, Employee, Department
+from .models import Timesheet
+import calendar
 def monthly_create_view(request):
     """Создание табелей на весь месяц"""
     if not request.user.is_master:
@@ -283,61 +289,117 @@ def print_monthly_table(request):
         year = today.year
         month = today.month
     
-    # Получаем информацию о мастере
-    master_id = request.GET.get('master_id')
-    if master_id:
-        try:
-            master = User.objects.get(id=master_id, role='master')
-            master_name = f"{master.last_name} {master.first_name[0]}.{master.patronymic[0] if master.patronymic else ''}."
-        except User.DoesNotExist:
-            master_name = request.user.get_full_name()
-    elif request.user.is_master:
-        master = request.user
-        master_name = f"{master.last_name} {master.first_name[0]}.{master.patronymic[0] if master.patronymic else ''}."
-    else:
-        master_name = ""
+    # Инициализация переменных
+    master_name = ""
+    workshop_name = ""
+    master = None
     
-    # Получаем сотрудников
+    # Импортируем модель User
+    from apps.users.models import User
+    
+    # 1. Если пользователь - мастер, берем его данные
     if request.user.is_master:
-        employees = Employee.objects.filter(master=request.user, is_active=True)
         master = request.user
+        # Формат: Фамилия И.О. (если нет отчества, то просто Фамилия И.)
+        master_name = f"{master.last_name} {master.first_name[0]}."
+        
+        # Получаем название цеха/отдела мастера
+        if hasattr(master, 'department') and master.department:
+            workshop_name = master.department.name.upper()
+        else:
+            workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+        
+        employees = Employee.objects.filter(master=master, is_active=True)
+    
+    # 2. Если пользователь - плановик или администратор
     elif request.user.is_planner or request.user.is_administrator:
         department_id = request.GET.get('department')
         master_id = request.GET.get('master')
         
+        # Если передан конкретный мастер
         if master_id:
-            employees = Employee.objects.filter(
-                master_id=master_id,
-                is_active=True
-            )
             try:
-                master = User.objects.get(id=master_id)
-                master_name = f"{master.last_name} {master.first_name[0]}.{master.patronymic[0] if master.patronymic else ''}."
-            except:
-                master_name = ""
+                master = User.objects.get(id=master_id, role='master')
+                master_name = f"{master.last_name} {master.first_name[0]}."
+                
+                if hasattr(master, 'department') and master.department:
+                    workshop_name = master.department.name.upper()
+                else:
+                    workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+                
+                employees = Employee.objects.filter(master_id=master_id, is_active=True)
+            
+            except User.DoesNotExist:
+                # Если мастер не найден, ищем по отделу
+                if department_id:
+                    try:
+                        department = Department.objects.get(id=department_id)
+                        workshop_name = department.name.upper()
+                        
+                        # Ищем первого мастера в этом отделе
+                        master_in_dept = User.objects.filter(
+                            department_id=department_id,
+                            role='master'
+                        ).first()
+                        
+                        if master_in_dept:
+                            master = master_in_dept
+                            master_name = f"{master.last_name} {master.first_name[0]}."
+                        else:
+                            master_name = "Гаврус С.В."
+                        
+                        employees = Employee.objects.filter(
+                            user__department_id=department_id,
+                            is_active=True
+                        )
+                    except Department.DoesNotExist:
+                        employees = Employee.objects.filter(is_active=True)
+                        workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+                        master_name = "Гаврус С.В."
+                else:
+                    employees = Employee.objects.filter(is_active=True)
+                    workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+                    master_name = "Гаврус С.В."
+        
+        # Если передан только отдел
         elif department_id:
-            employees = Employee.objects.filter(
-                user__department_id=department_id,
-                is_active=True
-            )
-            master_name = ""
+            try:
+                department = Department.objects.get(id=department_id)
+                workshop_name = department.name.upper()
+                
+                # Ищем первого мастера в этом отделе
+                master_in_dept = User.objects.filter(
+                    department_id=department_id,
+                    role='master'
+                ).first()
+                
+                if master_in_dept:
+                    master = master_in_dept
+                    master_name = f"{master.last_name} {master.first_name[0]}."
+                else:
+                    master_name = "Гаврус С.В."
+                
+                employees = Employee.objects.filter(
+                    user__department_id=department_id,
+                    is_active=True
+                )
+            
+            except Department.DoesNotExist:
+                employees = Employee.objects.filter(is_active=True)
+                workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+                master_name = "Гаврус С.В."
+        
+        # Если не передан ни мастер, ни отдел
         else:
             employees = Employee.objects.filter(is_active=True)
-            master_name = ""
+            workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+            master_name = "Гаврус С.В."
+    
+    # 3. Если пользователь не мастер, не плановик и не администратор
     else:
         employees = Employee.objects.none()
-        master_name = ""
-    
-    # Получаем информацию о цехе/отделе
-    workshop_name = ""
-    if request.GET.get('department'):
-        try:
-            department = Department.objects.get(id=request.GET.get('department'))
-            workshop_name = department.name
-        except:
-            pass
-    elif master_name:
-        workshop_name = f"Цех мастера {master_name.split()[0]}"  # Фамилия мастера
+        workshop_name = "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1"
+        master_name = "Гаврус С.В."
     
     # Получаем табели
     timesheets = Timesheet.objects.filter(
@@ -373,7 +435,7 @@ def print_monthly_table(request):
             'value': ts.value,
         }
     
-    # Форматы для подсчета часов (упрощенные)
+    # Форматы для подсчета часов
     total_hours_formats = {
         '7/3': 7.0, '7/2': 7.0, '8/2': 8.0, '8': 8.0, '7': 7.0,
         '4': 4.0, '10': 10.0, '10/2': 10.0, '3,5': 3.5, '9': 9.0,
@@ -488,7 +550,7 @@ def print_monthly_table(request):
         'departments': Department.objects.all() if (request.user.is_planner or request.user.is_administrator) else [],
         'selected_department': request.GET.get('department'),
         'master_name': master_name,
-        'workshop_name': workshop_name,
+        'workshop_name': workshop_name.upper() if workshop_name else "ПРОИЗВОДСТВЕННЫЙ ЦЕХ №1",
         'weekend_days': weekend_days_dict,
     }
     
