@@ -383,13 +383,34 @@ def monthly_table_view(request):
     absence_counts = {}
     evening_hours_counts = {}
     night_hours_counts = {}
-    weekend_hours_counts = {}  # Добавляем словарь для выходных часов
+    weekend_hours_counts = {}
+    overtime_hours_counts = {}
     total_hours_counts = {}
     
-    # Форматы для вечерних часов
+    # Форматы для подсчета часов
+    # Вечерние часы остаются как были
     evening_formats = ['8/2', '7/2', '9/2', '10/2', '6/2']
-    # Форматы для ночных часов
-    night_formats = ['8/3', '7/3', '9/3', '10/3', '6/3']
+    
+    # НОВАЯ ЛОГИКА: Ночные часы по вашей формуле
+    # 7/3 = 7 часов ночной смены
+    # 8/2 = 1.5 часа ночной смены
+    # 9/2 = 1.5 часа ночной смены
+    # 10/2 = 1.5 часа ночной смены
+    night_formats = {
+        '7/3': 7.0,     # 7 часов ночной смены
+        '8/2': 1.5,     # 1.5 часа ночной смены
+        '9/2': 1.5,     # 1.5 часа ночной смены
+        '10/2': 1.5,    # 1.5 часа ночной смены
+        '6/2': 1.5,     # предположим, что для 6/2 тоже 1.5 часа
+    }
+    
+    # Сверхурочные часы (остаются как были)
+    overtime_formats = {
+        '9': 1,      # "9" = 1 час сверхурочно
+        '10': 2,     # "10" = 2 часа сверхурочно
+        '9/2': 1,    # "9/2" = 1 час сверхурочно
+        '10/2': 2,   # "10/2" = 2 часа сверхурочно
+    }
     
     for ts in timesheets:
         day = ts.date.day
@@ -415,7 +436,7 @@ def monthly_table_view(request):
                 # Для форматов с запятой (3,5)
                 if ',' in value_str:
                     hours = float(value_str.replace(',', '.'))
-                # Для форматов с дробью (7/2, 8/2, 7/3, 8/3)
+                # Для форматов с дробью (7/2, 8/2, 7/3, 8/3, 9/2, 10/2)
                 elif '/' in value_str:
                     parts = value_str.split('/')
                     if len(parts) == 2:
@@ -449,19 +470,26 @@ def monthly_table_view(request):
             except (ValueError, TypeError):
                 pass
         
-        # Подсчет вечерних часов
+        # Подсчет вечерних часов (оставляем старую логику)
         if value_str in evening_formats:
             evening_hours = 6.5
             if ts.employee_id not in evening_hours_counts:
                 evening_hours_counts[ts.employee_id] = 0
             evening_hours_counts[ts.employee_id] += evening_hours
         
-        # Подсчет ночных часов
+        # ПЕРЕПИСАННАЯ ЛОГИКА: Подсчет ночных часов по новой формуле
         if value_str in night_formats:
-            night_hours = 8.67
+            night_hours = night_formats[value_str]
             if ts.employee_id not in night_hours_counts:
                 night_hours_counts[ts.employee_id] = 0
             night_hours_counts[ts.employee_id] += night_hours
+        
+        # Подсчет сверхурочных часов
+        if value_str in overtime_formats:
+            overtime_hours = overtime_formats[value_str]
+            if ts.employee_id not in overtime_hours_counts:
+                overtime_hours_counts[ts.employee_id] = 0
+            overtime_hours_counts[ts.employee_id] += overtime_hours
         
         # Подсчет дней явок
         if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ', 'А']:
@@ -519,7 +547,8 @@ def monthly_table_view(request):
         total_hours = round(total_hours_counts.get(employee.id, 0), 1)
         evening_hours = round(evening_hours_counts.get(employee.id, 0), 1)
         night_hours = round(night_hours_counts.get(employee.id, 0), 1)
-        weekend_hours = round(weekend_hours_counts.get(employee.id, 0), 1)  
+        weekend_hours = round(weekend_hours_counts.get(employee.id, 0), 1)
+        overtime_hours = round(overtime_hours_counts.get(employee.id, 0), 1)
         
         day_cells = []
         for day in days:
@@ -561,7 +590,8 @@ def monthly_table_view(request):
             'total_hours': total_hours,
             'evening_hours': evening_hours,
             'night_hours': night_hours,
-            'weekend_hours': weekend_hours,  
+            'weekend_hours': weekend_hours,
+            'overtime_hours': overtime_hours,
             'row_status': row_status,
             'employee_id': employee.id
         })
@@ -595,11 +625,10 @@ def monthly_table_view(request):
         'is_admin': request.user.is_administrator,
         'total_employees': employees.count(),
         'days_range': range(1, days_in_month + 1),
-        'weekend_days': weekend_days_dict,  
+        'weekend_days': weekend_days_dict,
     }
     
     return render(request, 'timesheet/monthly_table.html', context)
-
 @login_required
 def quick_edit_timesheet(request):
     """Быстрое редактирование дневного табеля через AJAX"""

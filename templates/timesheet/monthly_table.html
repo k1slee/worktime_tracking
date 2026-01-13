@@ -358,6 +358,24 @@
         color: #856404;
         font-weight: bold;
     }
+    .overtime-hours-col {
+        background-color: #f8d7da;
+        font-weight: bold;
+        text-align: center;
+        min-width: 90px;
+        border-left: 2px solid #dc3545;
+    }
+
+    .overtime-hours-count {
+        font-size: 1.1rem;
+        color: #721c24;
+        font-weight: bold;
+    }
+
+    .overtime-hours-col small {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
 </style>
 {% endblock %}
 
@@ -573,6 +591,7 @@
                             <th class="evening-hours-col">Вечерние часы</th>
                             <th class="night-hours-col">Ночные часы</th>
                             <th class="weekend-hours-col">Выходные часы</th>
+                            <th class="overtime-hours-col">Сверхурочно</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -710,6 +729,12 @@
                             <td class="weekend-hours-col">
                                 <div class="weekend-hours-count">
                                     {{ row.weekend_hours }}
+                                </div>
+                                <small class="text-muted">часов</small>
+                            </td>
+                            <td class="overtime-hours-col">
+                                <div class="overtime-hours-count">
+                                    {{ row.overtime_hours }}
                                 </div>
                                 <small class="text-muted">часов</small>
                             </td>
