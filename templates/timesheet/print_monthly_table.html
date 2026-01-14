@@ -74,23 +74,24 @@
             padding: 0.1mm;
             text-align: center;
             vertical-align: middle;
-            height: 6mm !important;
-            min-height: 6mm !important;
-            max-height: 6mm !important;
             line-height: 1;
             overflow: hidden;
         }
         
-        /* Заголовки таблицы */
+        /* Заголовки таблицы - специальные размеры */
         .table th {
             background-color: #f0f0f0;
             font-weight: bold;
         }
         
-        /* Специальные колонки */
+        /* Ячейки данных - обычные */
+        .table td {
+            height: auto;
+        }
+        
+        /* Специальные колонки - заголовки */
         .col-number { 
             width: 8mm; 
-            font-weight: bold; 
         }
         
         .col-name { 
@@ -106,39 +107,72 @@
             padding-left: 0.5mm !important;
         }
         
-        .col-employee-id { 
-            width: 15mm; 
-            font-weight: bold; 
+        /* ТОЛЬКО ЗАГОЛОВКИ ТАБЛИЦЫ: */
+        /* Ячейки дней в заголовках - 4мм ширина, 12мм высота */
+        .table th.day-col-header { 
+            width: 4mm !important; 
+            height: 12mm !important;
+            min-width: 4mm !important;
+            max-width: 4mm !important;
         }
         
-        /* Колонки дней - 4мм ширина */
-        .day-col { 
+        /* Статистические колонки в заголовках - 4мм ширина, 12мм высота */
+        .table th.col-worked-days-header,
+        .table th.col-stats-header,
+        .table th.col-total-hours-header,
+        .table th.col-subhours-header {
+            width: 4mm !important;
+            height: 12mm !important;
+            min-width: 4mm !important;
+            max-width: 4mm !important;
+        }
+        
+        /* Табельный номер в заголовке - 8мм ширина, 11мм высота */
+        .table th.col-employee-id-header { 
+            width: 8mm !important; 
+            height: 11mm !important;
+            min-width: 8mm !important;
+            max-width: 8mm !important;
+        }
+        
+        /* Колонки дней в данных - обычные 4мм ширина */
+        .table td.day-col { 
             width: 4mm !important; 
             min-width: 4mm !important;
             max-width: 4mm !important;
         }
         
-        /* Статистические колонки - 8мм ширина */
-        .col-worked-days, .col-stats, .col-total-hours, .col-subhours {
-            width: 8mm !important;
+        /* Статистические колонки в данных - обычные 4мм ширина */
+        .table td.col-worked-days-data,
+        .table td.col-stats-data,
+        .table td.col-total-hours-data,
+        .table td.col-subhours-data {
+            width: 4mm !important;
+            min-width: 4mm !important;
+            max-width: 4mm !important;
+        }
+        
+        /* Табельный номер в данных - 8мм ширина */
+        .table td.col-employee-id-data { 
+            width: 8mm !important; 
             min-width: 8mm !important;
             max-width: 8mm !important;
         }
         
         /* Цвета колонок */
-        .col-worked-days {
+        .col-worked-days-header, .table td.col-worked-days-data {
             background-color: #ffffcc !important; /* Желтый */
         }
         
-        .col-stats {
+        .col-stats-header, .table td.col-stats-data {
             background-color: #f5f5f5 !important; /* Серый */
         }
         
-        .col-total-hours {
+        .col-total-hours-header, .table td.col-total-hours-data {
             background-color: #ffffcc !important; /* Желтый */
         }
         
-        .col-subhours {
+        .col-subhours-header, .table td.col-subhours-data {
             background-color: #f5f5f5 !important; /* Серый */
         }
         
@@ -204,12 +238,6 @@
             width: 45%;
         }
         
-        .signature-line {
-            margin-top: 12mm;
-            border-top: 0.5pt solid #000;
-            width: 50mm;
-        }
-        
         /* Номер страницы */
         .page-number {
             position: fixed;
@@ -224,6 +252,38 @@
             .no-print { display: none !important; }
             body { margin: 0; padding: 0; }
             .table th, .table td { border-color: #000 !important; }
+        }
+        
+        /* Для текста внутри ячеек */
+        .cell-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+        }
+        
+        /* Многострочный текст в заголовках */
+        .multi-line {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.1;
+        }
+        /* Первая строка заголовков - 4мм высота */
+        .table th:first-child[rowspan="2"] {
+            height: 16mm !important; /* 4мм + 12мм */
+        }
+
+        /* Ячейка "Числа месяца" в первой строке - 4мм высота */
+        .table th[colspan="{{ days|length }}"]:first-of-type {
+            height: 4mm !important;
+        }
+
+        /* Аналогично для других объединяющих заголовков первой строки */
+        .table th[colspan="7"],
+        .table th[colspan="6"] {
+            height: 4mm !important;
         }
     </style>
 </head>
@@ -248,114 +308,200 @@
         <thead>
             <!-- Первая строка заголовков -->
             <tr>
-                <th rowspan="2" class="col-number">№ п/п</th>
-                <th rowspan="2" class="col-name">Фамилия, И.О.</th>
-                <th rowspan="2" class="col-position">Профессия, должность</th>
-                <th rowspan="2" class="col-employee-id">Табельный №</th>
+                <th rowspan="2" class="col-number" style="height: 16mm !important;">№ п/п</th>
+                <th rowspan="2" class="col-name" style="height: 16mm !important;">Фамилия, И.О.</th>
+                <th rowspan="2" class="col-position" style="height: 16mm !important;">Профессия, должность</th>
+                <th rowspan="2" class="col-employee-id-header" style="height: 16mm !important;">Табельный №</th>
                 
-                <!-- Числа месяца объединяющая ячейка -->
-                <th colspan="{{ days|length }}" style="text-align: center;">
-                    Числа месяца
+                <!-- Числа месяца объединяющая ячейка - 4мм высота -->
+                <th colspan="{{ days|length }}" style="text-align: center; height: 4mm !important;">
+                    <div class="cell-content">Числа месяца</div>
                 </th>
                 
-                <!-- Дни явок -->
-                <th colspan="7" style="text-align: center;">
-                    Дни явок
+                <!-- Дни явок - должно быть над 2 колонками -->
+                <th colspan="2" style="text-align: center; height: 4mm !important;">
+                    <div class="cell-content">Дни явок</div>
                 </th>
                 
-                <!-- Дни неявок -->
-                <th colspan="7" style="text-align: center;">
-                    Дни неявок
+                <!-- Дни неявок - должно быть над 5 колонками -->
+                <th colspan="5" style="text-align: center; height: 4mm !important;">
+                    <div class="cell-content">Дни неявок</div>
                 </th>
                 
-                <!-- Отработано часов -->
-                <th colspan="6" style="text-align: center;">
-                    Отработано часов
+                <!-- Отработано часов - должно быть над 6 колонками -->
+                <th colspan="6" style="text-align: center; height: 4mm !important;">
+                    <div class="cell-content">Отработано часов</div>
                 </th>
             </tr>
             
             <!-- Вторая строка заголовков -->
             <tr>
-                <!-- Дни месяца -->
+                <!-- Дни месяца - 12мм высота -->
                 {% for day in days %}
                 {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
-                <th class="day-col {% if day_date|date:'w' in '06' %}weekend-day{% endif %}">
-                    {{ day }}
+                <th class="day-col-header {% if day_date|date:'w' in '06' %}weekend-day{% endif %}" style="height: 12mm !important;">
+                    <div class="cell-content">{{ day }}</div>
                 </th>
                 {% endwith %}
                 {% endfor %}
                 
-                <!-- Подзаголовки дней явок -->
-                <th class="col-worked-days">фактической работы</th>
-                <th class="col-stats">целосменных простоев</th>
-                <th class="col-stats">очередной отпуск</th>
-                <th class="col-stats">болезнь</th>
-                <th class="col-stats">прочие неявки, разреш.закон.</th>
-                <th class="col-stats">с разрешения администрации</th>
-                <th class="col-stats">прогул</th>
+                <!-- Колонки под "Дни явок" (2 колонки) -->
+                <th class="col-worked-days-header" style="height: 12mm !important;">
+                    <div class="cell-content multi-line">фактической<br>работы</div>
+                </th>
+                <th class="col-stats-header" style="height: 12mm !important;">
+                    <div class="cell-content multi-line">целосменных<br>простоев</div>
+                </th>
                 
-                <!-- Подзаголовки часов -->
-                <th class="col-total-hours">всего</th>
-                <th class="col-subhours">СП</th>
-                <th class="col-subhours">вечерние</th>
-                <th class="col-subhours">ночные</th>
-                <th class="col-subhours">выходные</th>
-                <th class="col-subhours">сверхурочно</th>
+                <!-- Колонки под "Дни неявок" (5 колонок) -->
+                <th class="col-stats-header" style="height: 12mm !important;">
+                    <div class="cell-content multi-line">очередной<br>отпуск</div>
+                </th>
+                <th class="col-stats-header" style="height: 12mm !important;">
+                    <div class="cell-content">болезнь</div>
+                </th>
+                <th class="col-stats-header" style="height: 12mm !important;">
+                    <div class="cell-content multi-line">прочие неявки,<br>разреш.закон.</div>
+                </th>
+                <th class="col-stats-header" style="height: 12mm !important;">
+                    <div class="cell-content multi-line">с разрешения<br>администрации</div>
+                </th>
+                <th class="col-stats-header" style="height: 12мм !important;">
+                    <div class="cell-content">прогул</div>
+                </th>
+                
+                <!-- Колонки под "Отработано часов" (6 колонок) -->
+                <th class="col-total-hours-header" style="height: 12mm !important;">
+                    <div class="cell-content">всего</div>
+                </th>
+                <th class="col-subhours-header" style="height: 12mm !important;">
+                    <div class="cell-content">СП</div>
+                </th>
+                <th class="col-subhours-header" style="height: 12mm !important;">
+                    <div class="cell-content">вечерние</div>
+                </th>
+                <th class="col-subhours-header" style="height: 12mm !important;">
+                    <div class="cell-content">ночные</div>
+                </th>
+                <th class="col-subhours-header" style="height: 12mm !important;">
+                    <div class="cell-content">выходные</div>
+                </th>
+                <th class="col-subhours-header" style="height: 12mm !important;">
+                    <div class="cell-content">сверхурочно</div>
+                </th>
             </tr>
         </thead>
         
         <tbody>
             {% for row in table_data %}
             <tr>
-                <td class="col-number">{{ forloop.counter }}</td>
+                <td class="col-number">
+                    <div class="cell-content">{{ forloop.counter }}</div>
+                </td>
                 <td class="col-name">{{ row.employee.full_name }}</td>
                 <td class="col-position">{{ row.employee.position|default:"-" }}</td>
-                <td class="col-employee-id">{{ row.employee.employee_id }}</td>
+                <td class="col-employee-id-data">
+                    <div class="cell-content">{{ row.employee.employee_id }}</div>
+                </td>
                 
                 <!-- Дни месяца -->
                 {% for day_data in row.days %}
                 {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day_data.day|stringformat:"02d" %}
                 <td class="day-col {% if day_date|date:'w' in '06' %}weekend-cell{% endif %}">
-                    {{ day_data.display_value|default:"" }}
+                    <div class="cell-content">
+                        {{ day_data.display_value|default:"" }}
+                    </div>
                 </td>
                 {% endwith %}
                 {% endfor %}
                 
                 <!-- Статистика по дням -->
-                <td class="col-worked-days">{{ row.attendance_days }}</td>
-                <td class="col-stats">{{ row.downtime_days }}</td>
-                <td class="col-stats">{{ row.vacation_days }}</td>
-                <td class="col-stats">{{ row.illness_days }}</td>
-                <td class="col-stats">{{ row.other_absence_days|default:"0" }}</td>
-                <td class="col-stats">{{ row.admin_permission_days|default:"0" }}</td>
-                <td class="col-stats">{{ row.absence_days }}</td>
+                <td class="col-worked-days-data">
+                    <div class="cell-content">{{ row.attendance_days }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ row.downtime_days }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ row.vacation_days }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ row.illness_days }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ row.other_absence_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ row.admin_permission_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ row.absence_days }}</div>
+                </td>
                 
                 <!-- Часы работы -->
-                <td class="col-total-hours">{{ row.total_hours }}</td>
-                <td class="col-subhours">{{ row.sp_hours|default:"" }}</td>
-                <td class="col-subhours">{{ row.evening_hours }}</td>
-                <td class="col-subhours">{{ row.night_hours }}</td>
-                <td class="col-subhours">{{ row.weekend_hours }}</td>
-                <td class="col-subhours">{{ row.overtime_hours }}</td>
+                <td class="col-total-hours-data">
+                    <div class="cell-content">{{ row.total_hours }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ row.sp_hours|default:"" }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ row.evening_hours }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ row.night_hours }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ row.weekend_hours }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ row.overtime_hours }}</div>
+                </td>
             </tr>
             {% endfor %}
             
             <!-- Итоговая строка -->
             <tr class="total-row">
                 <td colspan="{{ days|length|add:'4' }}">ИТОГО</td>
-                <td>{{ total_attendance_days|default:"0" }}</td>
-                <td>{{ total_downtime_days|default:"0" }}</td>
-                <td>{{ total_vacation_days|default:"0" }}</td>
-                <td>{{ total_illness_days|default:"0" }}</td>
-                <td>{{ total_other_absence_days|default:"0" }}</td>
-                <td>{{ total_admin_permission_days|default:"0" }}</td>
-                <td>{{ total_absence_days|default:"0" }}</td>
-                <td>{{ total_hours|default:"0" }}</td>
-                <td>{{ total_sp_hours|default:"" }}</td>
-                <td>{{ total_evening_hours|default:"0" }}</td>
-                <td>{{ total_night_hours|default:"0" }}</td>
-                <td>{{ total_weekend_hours|default:"0" }}</td>
-                <td>{{ total_overtime_hours|default:"0" }}</td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_attendance_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_downtime_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_vacation_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_illness_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_other_absence_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_admin_permission_days|default:"0" }}</div>
+                </td>
+                <td class="col-stats-data">
+                    <div class="cell-content">{{ total_absence_days|default:"0" }}</div>
+                </td>
+                <td class="col-total-hours-data">
+                    <div class="cell-content">{{ total_hours|default:"0" }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ total_sp_hours|default:"" }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ total_evening_hours|default:"0" }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ total_night_hours|default:"0" }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ total_weekend_hours|default:"0" }}</div>
+                </td>
+                <td class="col-subhours-data">
+                    <div class="cell-content">{{ total_overtime_hours|default:"0" }}</div>
+                </td>
             </tr>
         </tbody>
     </table>
