@@ -8,103 +8,83 @@
         /* ===== БАЗОВЫЕ НАСТРОЙКИ ===== */
         @page {
             size: A4 landscape;
-            margin: 10mm 5mm;
+            margin: 5mm;
         }
         
         body {
             font-family: 'Arial', sans-serif;
-            font-size: 7pt;
-            line-height: 1.1;
+            font-size: 6pt;
+            line-height: 1;
             margin: 0;
             padding: 0;
         }
         
         /* ===== ШАПКА ДОКУМЕНТА ===== */
-        /* Левый блок с информацией об организации */
-        .header-left {
-            position: absolute;
-            top: 25mm;
-            left: 5mm;
-            width: 120mm;
-            text-align: left;
-            padding: 0;
-            background-color: #fff;
-            z-index: 100;
+        .header {
+            width: 100%;
+            margin-bottom: 2mm;
         }
         
         .org-name {
-            font-size: 9pt;
+            font-size: 8pt;
             font-weight: bold;
+            margin-bottom: 0.5mm;
         }
         
         .org-details {
-            font-size: 7pt;
+            font-size: 6pt;
             color: #666;
-            font-style: italic;
-            margin-top: 1mm;
+            margin-bottom: 1mm;
         }
         
-        /* Линия с цехом и мастером - в одну строку */
         .workshop-master-line {
-            margin-top: 2mm;
-            font-size: 9pt;
+            font-size: 8pt;
             font-weight: bold;
             text-transform: uppercase;
-            white-space: nowrap;
+            margin-bottom: 0.5mm;
         }
         
-        /* Правый блок с названием табеля */
-        .header-right {
-            position: absolute;
-            top: 25mm;
-            right: 5mm;
-            width: calc(100% - 130mm);
-            text-align: center;
-            padding: 0;
-            background-color: #fff;
+        .workshop-details {
+            font-size: 6pt;
+            color: #666;
+            margin-bottom: 2mm;
         }
         
         .main-title {
-            font-size: 16pt;
+            text-align: center;
+            font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
-            margin: 0;
-            line-height: 1.2;
-            white-space: nowrap;
-        }
-        
-        /* ===== ОСНОВНОЙ КОНТЕНТ ===== */
-        .content-container {
-            margin-top: 45mm;
+            margin-bottom: 2mm;
+            padding-bottom: 0.5mm;
+            border-bottom: 1pt solid #000;
         }
         
         /* ===== ТАБЛИЦА ===== */
         .table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 7pt;
+            font-size: 6pt;
             page-break-inside: auto;
-            margin-top: 2mm;
+            table-layout: fixed;
+        }
+        
+        .table th, .table td {
+            border: 0.5pt solid #000;
+            padding: 0.1mm;
+            text-align: center;
+            vertical-align: middle;
+            height: 6mm !important;
+            min-height: 6mm !important;
+            max-height: 6mm !important;
+            line-height: 1;
+            overflow: hidden;
         }
         
         /* Заголовки таблицы */
         .table th {
-            border: 1pt solid #000;
             background-color: #f0f0f0;
             font-weight: bold;
-            text-align: center;
-            vertical-align: middle;
-            padding: 1mm;
-            height: 15mm;
-            position: relative;
-        }
-        
-        /* Ячейки таблицы */
-        .table td {
-            border: 0.5pt solid #000;
-            padding: 0.5mm;
-            text-align: center;
-            vertical-align: middle;
         }
         
         /* Специальные колонки */
@@ -116,46 +96,50 @@
         .col-name { 
             width: 45mm; 
             text-align: left; 
-            padding-left: 2mm; 
+            padding-left: 0.5mm !important;
+            font-size: 6.5pt;
         }
         
         .col-position { 
             width: 35mm; 
             text-align: left; 
-            padding-left: 2mm; 
+            padding-left: 0.5mm !important;
         }
         
         .col-employee-id { 
-            width: 20mm; 
+            width: 15mm; 
             font-weight: bold; 
         }
         
+        /* Колонки дней - 4мм ширина */
         .day-col { 
-            width: 8mm; 
-            height: 10mm; 
+            width: 4mm !important; 
+            min-width: 4mm !important;
+            max-width: 4mm !important;
         }
         
-        /* Новая колонка "Фактически отработано" */
+        /* Статистические колонки - 8мм ширина */
+        .col-worked-days, .col-stats, .col-total-hours, .col-subhours {
+            width: 8mm !important;
+            min-width: 8mm !important;
+            max-width: 8mm !important;
+        }
+        
+        /* Цвета колонок */
         .col-worked-days {
-            width: 6mm;
-            font-weight: bold;
-            background-color: #ffffcc;
+            background-color: #ffffcc !important; /* Желтый */
         }
         
-        .stats-col { 
-            width: 6mm; 
-            font-weight: bold;
-            background-color: #f5f5f5; /* Серый фон */
+        .col-stats {
+            background-color: #f5f5f5 !important; /* Серый */
         }
         
-        /* ПОДСВЕТКА КОЛОНОК ЖЕЛТЫМ */
         .col-total-hours {
-            width: 10mm;
-            background-color: #ffffcc !important; /* Желтый фон */
+            background-color: #ffffcc !important; /* Желтый */
         }
         
-        .work-hours-cell {
-            background-color: #ffffcc !important;
+        .col-subhours {
+            background-color: #f5f5f5 !important; /* Серый */
         }
         
         /* Стили для выходных */
@@ -167,249 +151,284 @@
             background-color: #fff8f8 !important; 
         }
         
-        /* Вертикальный текст в заголовках дней */
-        .vertical-text {
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%) rotate(180deg);
-            white-space: nowrap;
-            font-size: 6pt;
+        /* Итоговая строка */
+        .total-row td {
+            font-weight: bold;
+            background-color: #e8e8e8 !important;
         }
         
-        /* Контент ячеек */
-        .cell-content {
-            min-height: 5mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* ===== УСЛОВНЫЕ ОБОЗНАЧЕНИЯ СРАЗУ ПОСЛЕ ТАБЛИЦЫ ===== */
+        /* Условные обозначения */
         .legend-container {
-            margin-top: 3mm;
-            font-size: 6.5pt;
-            padding-top: 1mm;
+            margin-top: 2mm;
+            font-size: 5.5pt;
+            border-top: 0.5pt solid #ccc;
+            padding-top: 0.5mm;
         }
         
         .legend-title {
             font-weight: bold;
-            margin-bottom: 1mm;
+            margin-bottom: 0.5mm;
             text-align: center;
-            font-size: 7pt;
+            font-size: 6pt;
         }
         
         .legend-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1mm;
+            margin-top: 0.5mm;
         }
         
         .legend-table td {
-            padding: 0.3mm 1mm;
+            padding: 0.2mm 0.5mm;
             vertical-align: top;
             border: none;
             text-align: left;
-        }
-        
-        .legend-group-title {
-            font-weight: bold;
-            background-color: #f5f5f5;
-            padding-left: 1mm !important;
+            width: 33.33%;
         }
         
         .legend-code {
             font-weight: bold;
-            width: 8mm;
+            width: 5mm;
             text-align: center;
         }
         
-        .legend-description {
-            padding-left: 2mm !important;
-        }
-        
-        /* Информация о документе */
-        .doc-info {
-            text-align: center;
+        /* Подписи */
+        .signatures {
             margin-top: 5mm;
+            display: flex;
+            justify-content: space-between;
+            font-size: 7pt;
+        }
+        
+        .signature-left, .signature-right {
+            width: 45%;
+        }
+        
+        .signature-line {
+            margin-top: 12mm;
+            border-top: 0.5pt solid #000;
+            width: 50mm;
+        }
+        
+        /* Номер страницы */
+        .page-number {
+            position: fixed;
+            bottom: 3mm;
+            right: 8mm;
             font-size: 6pt;
             color: #666;
         }
         
-        /* ===== НОМЕР СТРАНИЦЫ ===== */
-        .page-number {
-            position: fixed;
-            bottom: 5mm;
-            right: 10mm;
-            font-size: 8pt;
-            color: #666;
-        }
-        .col-worked-days {
-            width: 6mm;
-            font-weight: bold;
-            background-color: #ffffcc;
+        /* Скрыть элементы при печати */
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 0; }
+            .table th, .table td { border-color: #000 !important; }
         }
     </style>
 </head>
 <body>
     <!-- ===== ШАПКА ДОКУМЕНТА ===== -->
-    <div class="header-left">
+    <div class="header">
         <div class="org-name">Унитарное предприятие "Цветлит"</div>
         <div class="org-details">(наименование организации)</div>
         
-        <!-- Цех и мастер в ОДНОЙ строке -->
-        <div class="workshop-master-line">
-            {{ workshop_name }} {{ master_name }}
-        </div>
-        <div class="org-details">(название цеха - цех мастера, который сдал табель)</div>
-    </div>
-    
-    <div class="header-right">
+        <div class="workshop-master-line">{{ workshop_name }} {{ master_name }}</div>
+        <div class="workshop-details">Цех (отдел), участок</div>
+        
         <div class="main-title">
-            табель учета рабочего времени за 
-            {% now "F" as current_month %}
+            Табель учета рабочего времени за 
             {% if month == 1 %}январь{% elif month == 2 %}февраль{% elif month == 3 %}март{% elif month == 4 %}апрель{% elif month == 5 %}май{% elif month == 6 %}июнь{% elif month == 7 %}июль{% elif month == 8 %}август{% elif month == 9 %}сентябрь{% elif month == 10 %}октябрь{% elif month == 11 %}ноябрь{% elif month == 12 %}декабрь{% endif %}
             {{ year }} года
         </div>
     </div>
     
-    <!-- ===== ОСНОВНОЙ КОНТЕНТ ===== -->
-    <div class="content-container">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th class="col-number">№<br>п/п</th>
-                    <th class="col-name">ФИО работника</th>
-                    <th class="col-position">Должность</th>
-                    <th class="col-employee-id">Таб.<br>№</th>
-                    
-                    {% for day in days %}
-                    {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
-                    <th class="day-col {% if day_date|date:'w' in '06' %}weekend-day{% endif %}">
-                        <div class="vertical-text">
-                            {{ day }}<br>
-                            {{ day_date|date:'D'|slice:":2" }}
-                        </div>
-                    </th>
-                    {% endwith %}
-                    {% endfor %}
-                    
-                    <!-- Новая колонка "Фактически отработано" -->
-                    <th class="col-worked-days">Фактической работы</th>
-                    <th class="stats-col">Целосменные простои</th>
-                    <th class="stats-col">Очередной отпуск</th>
-                    <th class="stats-col">Болезнь</th>
-                    <th class="stats-col">Прогул</th>
-                    <th class="stats-col col-total-hours">Всего</th>
-                    <th class="stats-col">Вечерние</th>
-                    <th class="stats-col">Ночные</th>
-                    <th class="stats-col">Выходные</th>
-                    <th class="stats-col">Сверхурочные</th>
-                    <th class="stats-col">Явки<br>(дни)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in table_data %}
-                <tr>
-                    <td class="col-number">{{ forloop.counter }}</td>
-                    <td class="col-name"><strong>{{ row.employee.full_name }}</strong></td>
-                    <td class="col-position">{{ row.employee.position|default:"-" }}</td>
-                    <td class="col-employee-id">{{ row.employee.employee_id }}</td>
-                    
-                    {% for day_data in row.days %}
-                    {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day_data.day|stringformat:"02d" %}
-                    <td class="day-col {% if day_date|date:'w' in '06' %}weekend-cell{% endif %} {% if day_data.is_work_hours %}work-hours-cell{% endif %}">
-                        <div class="cell-content">
-                            {{ day_data.display_value|default:"" }}
-                        </div>
-                    </td>
-                    {% endwith %}
-                    {% endfor %}
-                    
-                    <td class="col-worked-days">{{ row.attendance_days }}</td>
-                    <td class="stats-col">{{ row.downtime_days }}</td>      <!-- Целосменные простои -->
-                    <td class="stats-col">{{ row.vacation_days }}</td>      <!-- Очередной отпуск -->
-                    <td class="stats-col">{{ row.illness_days }}</td>       <!-- Болезнь -->
-                    <td class="stats-col">{{ row.absence_days }}</td>       <!-- Прогул -->
-                    <td class="stats-col col-total-hours">{{ row.total_hours }}</td>  <!-- Всего -->
-                    <td class="stats-col">{{ row.evening_hours }}</td>      <!-- Вечерние -->
-                    <td class="stats-col">{{ row.night_hours }}</td>        <!-- Ночные -->
-                    <td class="stats-col">{{ row.weekend_hours }}</td>      <!-- Выходные -->
-                    <td class="stats-col">{{ row.overtime_hours }}</td>     <!-- Сверхурочные -->
-                    <td class="stats-col">{{ row.attendance_days }}</td>    <!-- Явки -->
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        
-        <!-- УСЛОВНЫЕ ОБОЗНАЧЕНИЯ СРАЗУ ПОСЛЕ ТАБЛИЦЫ -->
-        <div class="legend-container">
-            <div class="legend-title">УСЛОВНЫЕ ОБОЗНАЧЕНИЯ</div>
+    <!-- ===== ТАБЛИЦА ===== -->
+    <table class="table">
+        <thead>
+            <!-- Первая строка заголовков -->
+            <tr>
+                <th rowspan="2" class="col-number">№ п/п</th>
+                <th rowspan="2" class="col-name">Фамилия, И.О.</th>
+                <th rowspan="2" class="col-position">Профессия, должность</th>
+                <th rowspan="2" class="col-employee-id">Табельный №</th>
+                
+                <!-- Числа месяца объединяющая ячейка -->
+                <th colspan="{{ days|length }}" style="text-align: center;">
+                    Числа месяца
+                </th>
+                
+                <!-- Дни явок -->
+                <th colspan="7" style="text-align: center;">
+                    Дни явок
+                </th>
+                
+                <!-- Дни неявок -->
+                <th colspan="7" style="text-align: center;">
+                    Дни неявок
+                </th>
+                
+                <!-- Отработано часов -->
+                <th colspan="6" style="text-align: center;">
+                    Отработано часов
+                </th>
+            </tr>
             
-            <table class="legend-table">
-                <tr>
-                    <td class="legend-group-title">Выходные и праздничные дни</td>
-                    <td class="legend-code">В</td>
-                    <td class="legend-group-title">Льготные часы кормящих матерей</td>
-                    <td class="legend-code">М</td>
-                    <td class="legend-group-title">Прогулы</td>
-                    <td class="legend-code">П</td>
-                </tr>
+            <!-- Вторая строка заголовков -->
+            <tr>
+                <!-- Дни месяца -->
+                {% for day in days %}
+                {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
+                <th class="day-col {% if day_date|date:'w' in '06' %}weekend-day{% endif %}">
+                    {{ day }}
+                </th>
+                {% endwith %}
+                {% endfor %}
                 
-                <tr>
-                    <td class="legend-group-title">Командировки служебные</td>
-                    <td class="legend-code">К</td>
-                    <td class="legend-group-title">подростков до 18 лет</td>
-                    <td class="legend-code">Л</td>
-                    <td class="legend-group-title">Опоздания и преждевременный уход с работы</td>
-                    <td class="legend-code">Н</td>
-                </tr>
+                <!-- Подзаголовки дней явок -->
+                <th class="col-worked-days">фактической работы</th>
+                <th class="col-stats">целосменных простоев</th>
+                <th class="col-stats">очередной отпуск</th>
+                <th class="col-stats">болезнь</th>
+                <th class="col-stats">прочие неявки, разреш.закон.</th>
+                <th class="col-stats">с разрешения администрации</th>
+                <th class="col-stats">прогул</th>
                 
-                <tr>
-                    <td class="legend-group-title">Очередные и дополнительные отпуска</td>
-                    <td class="legend-code">О</td>
-                    <td class="legend-group-title">Льготные часы рабочих с вредными условиями</td>
-                    <td class="legend-code">Д</td>
-                    <td class="legend-group-title">Неявки, разрешенные законом (выполнение гос.обязанностей)</td>
-                    <td class="legend-code">Г</td>
-                </tr>
-                
-                <tr>
-                    <td class="legend-group-title">Нетрудоспособность (болезнь, карантин и т.п.)</td>
-                    <td class="legend-code">Б</td>
-                    <td class="legend-group-title">Отсутствие по справке</td>
-                    <td class="legend-code">ОС</td>
-                    <td class="legend-group-title">Неявки с разрешения администрации</td>
-                    <td class="legend-code">А</td>
-                </tr>
-                
-                <tr>
-                    <td class="legend-group-title">Отпуск по беременности и родам</td>
-                    <td class="legend-code">Р</td>
-                    <td class="legend-group-title">Простои целосменные</td>
-                    <td class="legend-code">ЦП</td>
-                    <td class="legend-group-title">Дополнительный свободный от работы день матери (отца)</td>
-                    <td class="legend-code">ДМ</td>
-                </tr>
-                
-                <tr>
-                    <td class="legend-group-title">Социальный отпуск по уходу за ребенком до 3 лет</td>
-                    <td class="legend-code">ОЖ</td>
-                    <td class="legend-group-title">Простои внутрисменные</td>
-                    <td class="legend-code">Ч</td>
-                    <td class="legend-description" colspan="2">(в ячейках дней ставятся проценты простоя)</td>
-                </tr>
-            </table>
-        </div>
+                <!-- Подзаголовки часов -->
+                <th class="col-total-hours">всего</th>
+                <th class="col-subhours">СП</th>
+                <th class="col-subhours">вечерние</th>
+                <th class="col-subhours">ночные</th>
+                <th class="col-subhours">выходные</th>
+                <th class="col-subhours">сверхурочно</th>
+            </tr>
+        </thead>
         
-        <!-- Информация о документе -->
-        <div class="doc-info">
-            Табель составлен в 1 экземпляре<br>
-            Дата составления: {% now "d.m.Y" %}
+        <tbody>
+            {% for row in table_data %}
+            <tr>
+                <td class="col-number">{{ forloop.counter }}</td>
+                <td class="col-name">{{ row.employee.full_name }}</td>
+                <td class="col-position">{{ row.employee.position|default:"-" }}</td>
+                <td class="col-employee-id">{{ row.employee.employee_id }}</td>
+                
+                <!-- Дни месяца -->
+                {% for day_data in row.days %}
+                {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day_data.day|stringformat:"02d" %}
+                <td class="day-col {% if day_date|date:'w' in '06' %}weekend-cell{% endif %}">
+                    {{ day_data.display_value|default:"" }}
+                </td>
+                {% endwith %}
+                {% endfor %}
+                
+                <!-- Статистика по дням -->
+                <td class="col-worked-days">{{ row.attendance_days }}</td>
+                <td class="col-stats">{{ row.downtime_days }}</td>
+                <td class="col-stats">{{ row.vacation_days }}</td>
+                <td class="col-stats">{{ row.illness_days }}</td>
+                <td class="col-stats">{{ row.other_absence_days|default:"0" }}</td>
+                <td class="col-stats">{{ row.admin_permission_days|default:"0" }}</td>
+                <td class="col-stats">{{ row.absence_days }}</td>
+                
+                <!-- Часы работы -->
+                <td class="col-total-hours">{{ row.total_hours }}</td>
+                <td class="col-subhours">{{ row.sp_hours|default:"" }}</td>
+                <td class="col-subhours">{{ row.evening_hours }}</td>
+                <td class="col-subhours">{{ row.night_hours }}</td>
+                <td class="col-subhours">{{ row.weekend_hours }}</td>
+                <td class="col-subhours">{{ row.overtime_hours }}</td>
+            </tr>
+            {% endfor %}
+            
+            <!-- Итоговая строка -->
+            <tr class="total-row">
+                <td colspan="{{ days|length|add:'4' }}">ИТОГО</td>
+                <td>{{ total_attendance_days|default:"0" }}</td>
+                <td>{{ total_downtime_days|default:"0" }}</td>
+                <td>{{ total_vacation_days|default:"0" }}</td>
+                <td>{{ total_illness_days|default:"0" }}</td>
+                <td>{{ total_other_absence_days|default:"0" }}</td>
+                <td>{{ total_admin_permission_days|default:"0" }}</td>
+                <td>{{ total_absence_days|default:"0" }}</td>
+                <td>{{ total_hours|default:"0" }}</td>
+                <td>{{ total_sp_hours|default:"" }}</td>
+                <td>{{ total_evening_hours|default:"0" }}</td>
+                <td>{{ total_night_hours|default:"0" }}</td>
+                <td>{{ total_weekend_hours|default:"0" }}</td>
+                <td>{{ total_overtime_hours|default:"0" }}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- ===== УСЛОВНЫЕ ОБОЗНАЧЕНИЯ ===== -->
+    <div class="legend-container">
+        <div class="legend-title">УСЛОВНЫЕ ОБОЗНАЧЕНИЯ</div>
+        <table class="legend-table">
+            <tr>
+                <td>Выходные и праздничные дни</td>
+                <td class="legend-code">В</td>
+                <td>Льготные часы кормящих матерей</td>
+                <td class="legend-code">М</td>
+                <td>Прогулы</td>
+                <td class="legend-code">П</td>
+            </tr>
+            <tr>
+                <td>Командировки служебные</td>
+                <td class="legend-code">К</td>
+                <td>подростков до 18 лет</td>
+                <td class="legend-code">Л</td>
+                <td>Опоздания и преждевременный уход с работы</td>
+                <td class="legend-code">Н</td>
+            </tr>
+            <tr>
+                <td>Очередные и дополнительные отпуска</td>
+                <td class="legend-code">О</td>
+                <td>Льготные часы рабочих с вредными условиями</td>
+                <td class="legend-code">Д</td>
+                <td>Неявки, разрешенные законом (выполнение гос.обязанностей)</td>
+                <td class="legend-code">Г</td>
+            </tr>
+            <tr>
+                <td>Нетрудоспособность (болезнь, карантин и т.п.)</td>
+                <td class="legend-code">Б</td>
+                <td>Отсутствие по справке</td>
+                <td class="legend-code">ОС</td>
+                <td>Неявки с разрешения администрации</td>
+                <td class="legend-code">А</td>
+            </tr>
+            <tr>
+                <td>Отпуск по беременности и родам</td>
+                <td class="legend-code">Р</td>
+                <td>Простои целосменные</td>
+                <td class="legend-code">ЦП</td>
+                <td>Дополнительный свободный от работы день матери (отца)</td>
+                <td class="legend-code">ДМ</td>
+            </tr>
+            <tr>
+                <td>Социальный отпуск по уходу за ребенком до 3 лет</td>
+                <td class="legend-code">ОЖ</td>
+                <td>Простои внутрисменные</td>
+                <td class="legend-code">Ч</td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- ===== ПОДПИСИ ===== -->
+    <div class="signatures">
+        <div class="signature-left">
+            Начальник цеха ______________ А.Г. Лапицкий
+        </div>
+        <div class="signature-right">
+            Составил______________________ {{ master_name }}
         </div>
     </div>
+    
+    <!-- Кнопка печати (не печатается) -->
+    <button onclick="window.print()" class="no-print" style="position: fixed; top: 5px; right: 5px; padding: 3px 6px; background: #4CAF50; color: white; border: none; cursor: pointer; z-index: 1000; font-size: 8pt;">
+        🖨️ Печать
+    </button>
     
     <!-- Номер страницы -->
     <div class="page-number">Страница 1</div>
