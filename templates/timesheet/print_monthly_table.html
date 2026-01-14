@@ -44,20 +44,13 @@
             margin-top: 1mm;
         }
         
-        /* Линия с цехом и мастером */
-        .workshop-line {
+        /* Линия с цехом и мастером - в одну строку */
+        .workshop-master-line {
             margin-top: 2mm;
             font-size: 9pt;
-        }
-        
-        .workshop-name {
             font-weight: bold;
             text-transform: uppercase;
-        }
-        
-        .master-name-inline {
-            font-weight: bold;
-            margin-left: 10mm;
+            white-space: nowrap;
         }
         
         /* Правый блок с названием табеля */
@@ -140,6 +133,13 @@
         .day-col { 
             width: 8mm; 
             height: 10mm; 
+        }
+        
+        /* Новая колонка "Фактически отработано" */
+        .col-worked-days {
+            width: 12mm;
+            font-weight: bold;
+            background-color: #e8f4f8;
         }
         
         .stats-col { 
@@ -244,6 +244,11 @@
             font-size: 8pt;
             color: #666;
         }
+        .col-worked-days {
+            width: 12mm;
+            font-weight: bold;
+            background-color: #e8f4f8;
+        }
     </style>
 </head>
 <body>
@@ -252,11 +257,11 @@
         <div class="org-name">Унитарное предприятие "Цветлит"</div>
         <div class="org-details">(наименование организации)</div>
         
-        <div class="workshop-line">
-            <span class="workshop-name">{{ workshop_name }}</span>
-            <span class="master-name-inline">{{ master_name }}</span>
+        <!-- Цех и мастер в ОДНОЙ строке -->
+        <div class="workshop-master-line">
+            {{ workshop_name }} {{ master_name }}
         </div>
-        <div class="workshop-details">(название цеха - цех мастера, который сдал табель)</div>
+        <div class="org-details">(название цеха - цех мастера, который сдал табель)</div>
     </div>
     
     <div class="header-right">
@@ -289,17 +294,18 @@
                     {% endwith %}
                     {% endfor %}
                     
-                    <!-- Подсвеченная колонка "Всего часов" -->
-                    <th class="stats-col col-total-hours">Всего<br>часов</th>
-                    <th class="stats-col">Вечерние<br>часы</th>
-                    <th class="stats-col">Ночные<br>часы</th>
-                    <th class="stats-col">Выходные<br>часы</th>
-                    <th class="stats-col">Сверхурочные<br>часы</th>
+                    <!-- Новая колонка "Фактически отработано" -->
+                    <th class="col-worked-days">Фактической работы</th>
+                    <th class="stats-col">Целосменные простои</th>
+                    <th class="stats-col">Очередной отпуск</th>
+                    <th class="stats-col">Болезнь</th>
+                    <th class="stats-col">Прогул</th>
+                    <th class="stats-col col-total-hours">Всего</th>
+                    <th class="stats-col">Вечерние</th>
+                    <th class="stats-col">Ночные</th>
+                    <th class="stats-col">Выходные</th>
+                    <th class="stats-col">Сверхурочные</th>
                     <th class="stats-col">Явки<br>(дни)</th>
-                    <th class="stats-col">Отпуск<br>(дни)</th>
-                    <th class="stats-col">Болезнь<br>(дни)</th>
-                    <th class="stats-col">Простои<br>(дни)</th>
-                    <th class="stats-col">Прогулы<br>(дни)</th>
                 </tr>
             </thead>
             <tbody>
@@ -320,17 +326,17 @@
                     {% endwith %}
                     {% endfor %}
                     
-                    <!-- Подсвеченная ячейка "Всего часов" -->
-                    <td class="stats-col col-total-hours">{{ row.total_hours }}</td>
-                    <td class="stats-col">{{ row.evening_hours }}</td>
-                    <td class="stats-col">{{ row.night_hours }}</td>
-                    <td class="stats-col">{{ row.weekend_hours }}</td>
-                    <td class="stats-col">{{ row.overtime_hours }}</td>
-                    <td class="stats-col">{{ row.attendance_days }}</td>
-                    <td class="stats-col">{{ row.vacation_days }}</td>
-                    <td class="stats-col">{{ row.illness_days }}</td>
-                    <td class="stats-col">{{ row.downtime_days }}</td>
-                    <td class="stats-col">{{ row.absence_days }}</td>
+                    <td class="col-worked-days">{{ row.attendance_days }}</td>
+                    <td class="stats-col">{{ row.downtime_days }}</td>      <!-- Целосменные простои -->
+                    <td class="stats-col">{{ row.vacation_days }}</td>      <!-- Очередной отпуск -->
+                    <td class="stats-col">{{ row.illness_days }}</td>       <!-- Болезнь -->
+                    <td class="stats-col">{{ row.absence_days }}</td>       <!-- Прогул -->
+                    <td class="stats-col col-total-hours">{{ row.total_hours }}</td>  <!-- Всего -->
+                    <td class="stats-col">{{ row.evening_hours }}</td>      <!-- Вечерние -->
+                    <td class="stats-col">{{ row.night_hours }}</td>        <!-- Ночные -->
+                    <td class="stats-col">{{ row.weekend_hours }}</td>      <!-- Выходные -->
+                    <td class="stats-col">{{ row.overtime_hours }}</td>     <!-- Сверхурочные -->
+                    <td class="stats-col">{{ row.attendance_days }}</td>    <!-- Явки -->
                 </tr>
                 {% endfor %}
             </tbody>
