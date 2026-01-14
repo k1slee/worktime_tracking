@@ -5,287 +5,332 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Табель учета рабочего времени за {{ month|stringformat:"02d" }}.{{ year }} г.</title>
     <style>
-        /* ===== БАЗОВЫЕ НАСТРОЙКИ ===== */
-        @page {
-            size: A4 landscape;
-            margin: 5mm;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            font-size: 6pt;
-            line-height: 1;
-            margin: 0;
-            padding: 0;
-        }
-        
-        /* ===== ШАПКА ДОКУМЕНТА ===== */
-        .header {
-            width: 100%;
-            margin-bottom: 2mm;
-        }
-        
-        .org-name {
-            font-size: 8pt;
-            font-weight: bold;
-            margin-bottom: 0.5mm;
-        }
-        
-        .org-details {
-            font-size: 6pt;
-            color: #666;
-            margin-bottom: 1mm;
-        }
-        
-        .workshop-master-line {
-            font-size: 8pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 0.5mm;
-        }
-        
-        .workshop-details {
-            font-size: 6pt;
-            color: #666;
-            margin-bottom: 2mm;
-        }
-        
-        .main-title {
-            text-align: center;
-            font-size: 12pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 2mm;
-            padding-bottom: 0.5mm;
-            border-bottom: 1pt solid #000;
-        }
-        
-        /* ===== ТАБЛИЦА ===== */
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 6pt;
-            page-break-inside: auto;
-            table-layout: fixed;
-        }
-        
-        .table th, .table td {
-            border: 0.5pt solid #000;
-            padding: 0.1mm;
-            text-align: center;
-            vertical-align: middle;
-            line-height: 1;
-            overflow: hidden;
-        }
-        
-        /* Заголовки таблицы - специальные размеры */
-        .table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-        }
-        
-        /* Ячейки данных - обычные */
-        .table td {
-            height: auto;
-        }
-        
-        /* Специальные колонки - заголовки */
-        .col-number { 
-            width: 8mm; 
-        }
-        
-        .col-name { 
-            width: 45mm; 
-            text-align: left; 
-            padding-left: 0.5mm !important;
-            font-size: 6.5pt;
-        }
-        
-        .col-position { 
-            width: 35mm; 
-            text-align: left; 
-            padding-left: 0.5mm !important;
-        }
-        
-        /* ТОЛЬКО ЗАГОЛОВКИ ТАБЛИЦЫ: */
-        /* Ячейки дней в заголовках - 4мм ширина, 12мм высота */
-        .table th.day-col-header { 
-            width: 4mm !important; 
-            height: 12mm !important;
-            min-width: 4mm !important;
-            max-width: 4mm !important;
-        }
-        
-        /* Статистические колонки в заголовках - 4мм ширина, 12мм высота */
-        .table th.col-worked-days-header,
-        .table th.col-stats-header,
-        .table th.col-total-hours-header,
-        .table th.col-subhours-header {
-            width: 4mm !important;
-            height: 12mm !important;
-            min-width: 4mm !important;
-            max-width: 4mm !important;
-        }
-        
-        /* Табельный номер в заголовке - 8мм ширина, 11мм высота */
-        .table th.col-employee-id-header { 
-            width: 8mm !important; 
-            height: 11mm !important;
-            min-width: 8mm !important;
-            max-width: 8mm !important;
-        }
-        
-        /* Колонки дней в данных - обычные 4мм ширина */
-        .table td.day-col { 
-            width: 4mm !important; 
-            min-width: 4mm !important;
-            max-width: 4mm !important;
-        }
-        
-        /* Статистические колонки в данных - обычные 4мм ширина */
-        .table td.col-worked-days-data,
-        .table td.col-stats-data,
-        .table td.col-total-hours-data,
-        .table td.col-subhours-data {
-            width: 4mm !important;
-            min-width: 4mm !important;
-            max-width: 4mm !important;
-        }
-        
-        /* Табельный номер в данных - 8мм ширина */
-        .table td.col-employee-id-data { 
-            width: 8mm !important; 
-            min-width: 8mm !important;
-            max-width: 8mm !important;
-        }
-        
-        /* Цвета колонок */
-        .col-worked-days-header, .table td.col-worked-days-data {
-            background-color: #ffffcc !important; /* Желтый */
-        }
-        
-        .col-stats-header, .table td.col-stats-data {
-            background-color: #f5f5f5 !important; /* Серый */
-        }
-        
-        .col-total-hours-header, .table td.col-total-hours-data {
-            background-color: #ffffcc !important; /* Желтый */
-        }
-        
-        .col-subhours-header, .table td.col-subhours-data {
-            background-color: #f5f5f5 !important; /* Серый */
-        }
-        
-        /* Стили для выходных */
-        .weekend-day { 
-            background-color: #fff0f0 !important; 
-        }
-        
-        .weekend-cell { 
-            background-color: #fff8f8 !important; 
-        }
-        
-        /* Итоговая строка */
-        .total-row td {
-            font-weight: bold;
-            background-color: #e8e8e8 !important;
-        }
-        
-        /* Условные обозначения */
-        .legend-container {
-            margin-top: 2mm;
-            font-size: 5.5pt;
-            border-top: 0.5pt solid #ccc;
-            padding-top: 0.5mm;
-        }
-        
-        .legend-title {
-            font-weight: bold;
-            margin-bottom: 0.5mm;
-            text-align: center;
-            font-size: 6pt;
-        }
-        
-        .legend-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0.5mm;
-        }
-        
-        .legend-table td {
-            padding: 0.2mm 0.5mm;
-            vertical-align: top;
-            border: none;
-            text-align: left;
-            width: 33.33%;
-        }
-        
-        .legend-code {
-            font-weight: bold;
-            width: 5mm;
-            text-align: center;
-        }
-        
-        /* Подписи */
-        .signatures {
-            margin-top: 5mm;
-            display: flex;
-            justify-content: space-between;
-            font-size: 7pt;
-        }
-        
-        .signature-left, .signature-right {
-            width: 45%;
-        }
-        
-        /* Номер страницы */
-        .page-number {
-            position: fixed;
-            bottom: 3mm;
-            right: 8mm;
-            font-size: 6pt;
-            color: #666;
-        }
-        
-        /* Скрыть элементы при печати */
+    /* ===== БАЗОВЫЕ НАСТРОЙКИ ===== */
+    @page {
+        size: A4 landscape;
+        margin: 5mm;
+    }
+    
+    body {
+        font-family: 'Arial', sans-serif;
+        font-size: 6pt;
+        line-height: 1;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* ===== ШАПКА ДОКУМЕНТА ===== */
+    .header {
+        width: 100%;
+        margin-bottom: 2mm;
+    }
+    
+    .org-name {
+        font-size: 8pt;
+        font-weight: bold;
+        margin-bottom: 0.5mm;
+    }
+    
+    .org-details {
+        font-size: 6pt;
+        color: #666;
+        margin-bottom: 1mm;
+    }
+    
+    .workshop-master-line {
+        font-size: 8pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 0.5mm;
+    }
+    
+    .workshop-details {
+        font-size: 6pt;
+        color: #666;
+        margin-bottom: 2mm;
+    }
+    
+    .main-title {
+        text-align: center;
+        font-size: 12pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 2mm;
+        padding-bottom: 0.5mm;
+        border-bottom: 1pt solid #000;
+    }
+    
+    /* ===== ТАБЛИЦА ===== */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 6pt;
+        page-break-inside: auto;
+        table-layout: fixed;
+    }
+    
+    .table th, .table td {
+        border: 0.5pt solid #000;
+        padding: 0.1mm;
+        text-align: center;
+        vertical-align: middle;
+        line-height: 1;
+        overflow: hidden;
+    }
+    
+    /* Заголовки таблицы */
+    .table th {
+        background-color: #f0f0f0;
+        font-weight: normal !important; /* Без жирного */
+    }
+    
+    /* Ячейки данных */
+    .table td {
+        height: auto;
+    }
+    
+    /* Специальные колонки */
+    .col-number { 
+        width: 8mm; 
+    }
+    
+    .col-name { 
+        width: 45mm; 
+        text-align: left; 
+        padding-left: 0.5mm !important;
+        font-size: 6.5pt;
+    }
+    
+    .col-position { 
+        width: 35mm; 
+        text-align: left; 
+        padding-left: 0.5mm !important;
+    }
+    
+    /* РАЗМЕРЫ ЗАГОЛОВКОВ */
+    /* Ячейки с датами - 4мм × 12мм */
+    .table th.day-col-header { 
+        width: 4mm !important; 
+        height: 12mm !important;
+        min-width: 4mm !important;
+        max-width: 4mm !important;
+    }
+    
+    /* Статистические колонки - 4мм × 12мм */
+    .table th.col-worked-days-header,
+    .table th.col-stats-header,
+    .table th.col-total-hours-header,
+    .table th.col-subhours-header {
+        width: 4mm !important;
+        height: 12mm !important;
+        min-width: 4mm !important;
+        max-width: 4mm !important;
+    }
+    
+    /* Табельный номер - 8мм × 11мм */
+    .table th.col-employee-id-header { 
+        width: 8mm !important; 
+        height: 11mm !important;
+        min-width: 8mm !important;
+        max-width: 8mm !important;
+    }
+    
+    /* Первая строка заголовков - 4мм высота */
+    .table th[colspan]:not([rowspan]) {
+        height: 4mm !important;
+    }
+    
+    /* Колонки № п/п, ФИО, Должность - 16мм высота */
+    .table th[rowspan="2"]:not(.col-employee-id-header) {
+        height: 16mm !important; /* 4мм + 12мм */
+    }
+    
+    /* РАЗМЕРЫ ДАННЫХ */
+    .table td.day-col { 
+        width: 4mm !important; 
+        min-width: 4mm !important;
+        max-width: 4mm !important;
+    }
+    
+    .table td.col-worked-days-data,
+    .table td.col-stats-data,
+    .table td.col-total-hours-data,
+    .table td.col-subhours-data {
+        width: 4mm !important;
+        min-width: 4mm !important;
+        max-width: 4mm !important;
+    }
+    
+    .table td.col-employee-id-data { 
+        width: 8mm !important; 
+        min-width: 8mm !important;
+        max-width: 8mm !important;
+    }
+    
+    /* ЦВЕТА КОЛОНОК */
+    .col-worked-days-header, .table td.col-worked-days-data {
+        background-color: #ffffcc !important;
+    }
+    
+    .col-stats-header, .table td.col-stats-data {
+        background-color: #f5f5f5 !important;
+    }
+    
+    .col-total-hours-header, .table td.col-total-hours-data {
+        background-color: #ffffcc !important;
+    }
+    
+    .col-subhours-header, .table td.col-subhours-data {
+        background-color: #f5f5f5 !important;
+    }
+    
+    /* Выходные дни */
+    .weekend-day { 
+        background-color: #fff0f0 !important; 
+    }
+    
+    .weekend-cell { 
+        background-color: #fff8f8 !important; 
+    }
+    
+    /* Итоговая строка */
+    .total-row td {
+        font-weight: bold;
+        background-color: #e8e8e8 !important;
+    }
+    
+    /* ВЕРТИКАЛЬНЫЙ ТЕКСТ */
+    .vertical-text-header {
+        position: relative;
+        padding: 0 !important;
+    }
+    
+    .vertical-text-content {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) rotate(180deg);
+        white-space: nowrap;
+        font-size: 5.5pt;
+        line-height: 1;
+        font-weight: normal;
+        text-align: center;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Часовые колонки - горизонтальный текст */
+    .col-total-hours-header .vertical-text-content,
+    .col-subhours-header .vertical-text-content {
+        writing-mode: horizontal-tb !important;
+        transform: none !important;
+        white-space: normal !important;
+        font-size: 6pt !important;
+    }
+    
+    /* Для текста внутри ячеек */
+    .cell-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+    }
+    
+    /* Условные обозначения */
+    .legend-container {
+        margin-top: 2mm;
+        font-size: 5.5pt;
+        border-top: 0.5pt solid #ccc;
+        padding-top: 0.5mm;
+    }
+    
+    .legend-title {
+        font-weight: bold;
+        margin-bottom: 0.5mm;
+        text-align: center;
+        font-size: 6pt;
+    }
+    
+    .legend-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.5mm;
+    }
+    
+    .legend-table td {
+        padding: 0.2mm 0.5mm;
+        vertical-align: top;
+        border: none;
+        text-align: left;
+        width: 33.33%;
+    }
+    
+    .legend-code {
+        font-weight: bold;
+        width: 5mm;
+        text-align: center;
+    }
+    
+    /* Подписи */
+    .signatures {
+        margin-top: 5mm;
+        display: flex;
+        justify-content: space-between;
+        font-size: 7pt;
+    }
+    
+    .signature-left, .signature-right {
+        width: 45%;
+    }
+    
+    /* Номер страницы */
+    .page-number {
+        position: fixed;
+        bottom: 3mm;
+        right: 8mm;
+        font-size: 6pt;
+        color: #666;
+    }
+    
+    /* Печать */
+    @media print {
+        .no-print { display: none !important; }
+        body { margin: 0; padding: 0; }
+        .table th, .table td { border-color: #000 !important; }
+    }
+    /* Скрыть пустые строки для печати */
         @media print {
-            .no-print { display: none !important; }
-            body { margin: 0; padding: 0; }
-            .table th, .table td { border-color: #000 !important; }
-        }
-        
-        /* Для текста внутри ячеек */
-        .cell-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            width: 100%;
-        }
-        
-        /* Многострочный текст в заголовках */
-        .multi-line {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            line-height: 1.1;
-        }
-        /* Первая строка заголовков - 4мм высота */
-        .table th:first-child[rowspan="2"] {
-            height: 16mm !important; /* 4мм + 12мм */
+            tr[style*="height: 0"] th {
+                display: none !important;
+                height: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+            }
+            
+            tr[style*="height: 0"] {
+                height: 0 !important;
+                line-height: 0 !important;
+            }
         }
 
-        /* Ячейка "Числа месяца" в первой строке - 4мм высота */
-        .table th[colspan="{{ days|length }}"]:first-of-type {
-            height: 4mm !important;
+        /* Явно задать видимость для всех ячеек в заголовках */
+        .table th[rowspan],
+        .table th[colspan] {
+            visibility: visible !important;
         }
 
-        /* Аналогично для других объединяющих заголовков первой строки */
-        .table th[colspan="7"],
-        .table th[colspan="6"] {
-            height: 4mm !important;
+        /* Убедиться, что границы отображаются */
+        .table th, .table td {
+            border: 0.5pt solid #000 !important;
         }
-    </style>
+</style>
 </head>
 <body>
     <!-- ===== ШАПКА ДОКУМЕНТА ===== -->
@@ -306,37 +351,56 @@
     <!-- ===== ТАБЛИЦА ===== -->
     <table class="table">
         <thead>
-            <!-- Первая строка заголовков -->
+            <!-- Первая строка - только основные заголовки -->
             <tr>
-                <th rowspan="2" class="col-number" style="height: 16mm !important;">№ п/п</th>
-                <th rowspan="2" class="col-name" style="height: 16mm !important;">Фамилия, И.О.</th>
-                <th rowspan="2" class="col-position" style="height: 16mm !important;">Профессия, должность</th>
-                <th rowspan="2" class="col-employee-id-header" style="height: 16mm !important;">Табельный №</th>
+                <th rowspan="3" class="col-number" style="height: 16mm !important;">№ п/п</th>
+                <th rowspan="3" class="col-name" style="height: 16mm !important;">Фамилия, И.О.</th>
+                <th rowspan="3" class="col-position" style="height: 16mm !important;">Профессия, должность</th>
+                <th rowspan="3" class="col-employee-id-header" style="height: 16mm !important;">Табельный №</th>
                 
-                <!-- Числа месяца объединяющая ячейка - 4мм высота -->
-                <th colspan="{{ days|length }}" style="text-align: center; height: 4mm !important;">
+                <!-- Числа месяца -->
+                <th colspan="{{ days|length }}" rowspan="1" style="text-align: center; height: 4mm !important;">
                     <div class="cell-content">Числа месяца</div>
                 </th>
                 
-                <!-- Дни явок - должно быть над 2 колонками -->
-                <th colspan="2" style="text-align: center; height: 4mm !important;">
+                <!-- Дни явок -->
+                <th colspan="2" rowspan="1" style="text-align: center; height: 4mm !important;">
                     <div class="cell-content">Дни явок</div>
                 </th>
                 
-                <!-- Дни неявок - должно быть над 5 колонками -->
-                <th colspan="5" style="text-align: center; height: 4mm !important;">
+                <!-- Дни неявок -->
+                <th colspan="5" rowspan="1" style="text-align: center; height: 4mm !important;">
                     <div class="cell-content">Дни неявок</div>
                 </th>
                 
-                <!-- Отработано часов - должно быть над 6 колонками -->
-                <th colspan="6" style="text-align: center; height: 4mm !important;">
+                <!-- Отработано часов -->
+                <th colspan="6" rowspan="1" style="text-align: center; height: 4mm !important;">
                     <div class="cell-content">Отработано часов</div>
                 </th>
             </tr>
             
-            <!-- Вторая строка заголовков -->
+            <!-- Вторая строка - пустая, для совместимости печати -->
+            <tr style="height: 0 !important;">
+                {% for day in days %}
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                {% endfor %}
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+                <th style="height: 0 !important; border: none !important; padding: 0 !important;"></th>
+            </tr>
+            
+            <!-- Третья строка - детальные заголовки -->
             <tr>
-                <!-- Дни месяца - 12мм высота -->
+                <!-- Дни месяца -->
                 {% for day in days %}
                 {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
                 <th class="day-col-header {% if day_date|date:'w' in '06' %}weekend-day{% endif %}" style="height: 12mm !important;">
@@ -345,32 +409,32 @@
                 {% endwith %}
                 {% endfor %}
                 
-                <!-- Колонки под "Дни явок" (2 колонки) -->
-                <th class="col-worked-days-header" style="height: 12mm !important;">
-                    <div class="cell-content multi-line">фактической<br>работы</div>
+                <!-- Колонки под "Дни явок" -->
+                <th class="col-worked-days-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">фактической работы</div>
                 </th>
-                <th class="col-stats-header" style="height: 12mm !important;">
-                    <div class="cell-content multi-line">целосменных<br>простоев</div>
-                </th>
-                
-                <!-- Колонки под "Дни неявок" (5 колонок) -->
-                <th class="col-stats-header" style="height: 12mm !important;">
-                    <div class="cell-content multi-line">очередной<br>отпуск</div>
-                </th>
-                <th class="col-stats-header" style="height: 12mm !important;">
-                    <div class="cell-content">болезнь</div>
-                </th>
-                <th class="col-stats-header" style="height: 12mm !important;">
-                    <div class="cell-content multi-line">прочие неявки,<br>разреш.закон.</div>
-                </th>
-                <th class="col-stats-header" style="height: 12mm !important;">
-                    <div class="cell-content multi-line">с разрешения<br>администрации</div>
-                </th>
-                <th class="col-stats-header" style="height: 12мм !important;">
-                    <div class="cell-content">прогул</div>
+                <th class="col-stats-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">целосменных</br> простоев</div>
                 </th>
                 
-                <!-- Колонки под "Отработано часов" (6 колонок) -->
+                <!-- Колонки под "Дни неявок" -->
+                <th class="col-stats-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">очередной</br> отпуск</div>
+                </th>
+                <th class="col-stats-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">болезнь</div>
+                </th>
+                <th class="col-stats-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">прочие неявки,</br> разреш.закон.</div>
+                </th>
+                <th class="col-stats-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">с разрешения</br> администрации</div>
+                </th>
+                <th class="col-stats-header vertical-text-header" style="height: 12mm !important;">
+                    <div class="vertical-text-content">прогул</div>
+                </th>
+                
+                <!-- Колонки под "Отработано часов" -->
                 <th class="col-total-hours-header" style="height: 12mm !important;">
                     <div class="cell-content">всего</div>
                 </th>
