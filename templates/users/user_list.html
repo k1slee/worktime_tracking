@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">{{ title }}</h4>
+                        <a href="{% url 'users:profile_edit' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-1"></i> Редактировать
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="mb-4">
+                                <div class="avatar-lg mx-auto mb-3">
+                                    <i class="fas fa-user-circle fa-6x text-primary"></i>
+                                </div>
+                                <h5>{{ user.get_full_name }}</h5>
+                                <p class="text-muted">{{ user.position|default:"Должность не указана" }}</p>
+                                <span class="badge bg-secondary">{{ user.get_role_display }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Табельный номер</label>
+                                    <p class="form-control-plaintext">{{ user.employee_id }}</p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Email</label>
+                                    <p class="form-control-plaintext">{{ user.email|default:"Не указан" }}</p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Телефон</label>
+                                    <p class="form-control-plaintext">{{ user.phone|default:"Не указан" }}</p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Отдел</label>
+                                    <p class="form-control-plaintext">
+                                        {% if user.department %}
+                                            {{ user.department.name }}
+                                        {% else %}
+                                            Не назначен
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Дата регистрации</label>
+                                    <p class="form-control-plaintext">{{ user.date_joined|date:"d.m.Y H:i" }}</p>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Последний вход</label>
+                                    <p class="form-control-plaintext">{{ user.last_login|date:"d.m.Y H:i"|default:"Еще не входил" }}</p>
+                                </div>
+                            </div>
+                            
+                            {% if user.is_master %}
+                            <hr>
+                            <h6>Статистика мастера</h6>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center py-3">
+                                            <h5 class="mb-0">{{ employee_count }}</h5>
+                                            <small>Всего сотрудников</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center py-3">
+                                            <h5 class="mb-0">{{ active_employee_count }}</h5>
+                                            <small>Активных</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center py-3">
+                                            <h5 class="mb-0">{{ timesheets_this_month }}</h5>
+                                            <small>Табелей в этом месяце</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'logout' %}" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i> Выйти из системы
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

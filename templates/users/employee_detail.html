@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Карточка сотрудника - {{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о сотруднике</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-lg mx-auto mb-3">
+                            <i class="fas fa-user-circle fa-6x text-primary"></i>
+                        </div>
+                        <h4>{{ employee.full_name }}</h4>
+                        <p class="text-muted">{{ employee.position|default:"Должность не указана" }}</p>
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Табельный номер:</span>
+                            <strong>{{ employee.employee_id }}</strong>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Отдел:</span>
+                            <span>
+                                {% if employee.department %}
+                                    {{ employee.department.name }}
+                                {% else %}
+                                    <span class="text-danger">Не назначен</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Дата приема:</span>
+                            <span>
+                                {% if employee.hire_date %}
+                                    {{ employee.hire_date|date:"d.m.Y" }}
+                                {% else %}
+                                    <span class="text-muted">Не указана</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Статус:</span>
+                            <span>
+                                {% if employee.is_active %}
+                                    <span class="badge bg-success">Активен</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Неактивен</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span>Мастер:</span>
+                            <strong>{{ employee.master.get_full_name }}</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'users:toggle_employee' employee.pk %}" 
+                           class="btn btn-outline-warning">
+                            <i class="fas {% if employee.is_active %}fa-user-slash{% else %}fa-user-check{% endif %} me-1"></i>
+                            {% if employee.is_active %}Деактивировать{% else %}Активировать{% endif %}
+                        </a>
+                        <a href="{% url 'timesheet:monthly_table' %}?employee_id={{ employee.id }}" 
+                           class="btn btn-outline-info">
+                            <i class="fas fa-calendar-alt me-1"></i> Табель сотрудника
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Статистика по табелям</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ timesheet_stats.total_this_month }}</h3>
+                                    <p class="mb-0">Записей в этом месяце</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ timesheet_stats.approved_this_month }}</h3>
+                                    <p class="mb-0">Утверждено</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ timesheet_stats.submitted_this_month }}</h3>
+                                    <p class="mb-0">Сдано</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ timesheet_stats.total_hours_this_month }}</h3>
+                                    <p class="mb-0">Часов в месяце</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Можно добавить график или таблицу последних записей -->
+                    <div class="mt-4">
+                        <h6>Последние записи в табеле</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Значение</th>
+                                        <th>Статус</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Здесь можно добавить последние записи -->
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Интеграция с табелем будет добавлена позже
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

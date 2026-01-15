@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if action == 'add' %}Добавить сотрудника{% else %}Создать сотрудника{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if action == 'add' %}
+                            <i class="fas fa-user-plus me-2"></i>Добавить существующего сотрудника
+                        {% else %}
+                            <i class="fas fa-user-plus me-2"></i>Создать нового сотрудника
+                        {% endif %}
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% if action == 'add' %}
+                                    Выберите пользователя, который еще не привязан к отделу. 
+                                    Пользователь будет автоматически добавлен в ваш отдел <strong>{{ request.user.department.name }}</strong>.
+                                {% else %}
+                                    Создайте нового сотрудника в системе. 
+                                    Сотрудник будет автоматически добавлен в ваш отдел <strong>{{ request.user.department.name }}</strong>.
+                                    Пароль будет равен табельному номеру.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if action == 'add' %}
+                        <!-- Форма добавления существующего пользователя -->
+                        <div class="mb-3">
+                            <label for="id_employee" class="form-label">
+                                <strong>Выберите пользователя *</strong>
+                            </label>
+                            {{ form.employee }}
+                            {% if form.employee.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.employee.errors }}
+                            </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Отображаются только пользователи без отдела
+                            </small>
+                        </div>
+                        
+                        {% else %}
+                        <!-- Форма создания нового сотрудника -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_last_name" class="form-label">Фамилия *</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.last_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_first_name" class="form-label">Имя *</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.first_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="id_middle_name" class="form-label">Отчество *</label>
+                                {{ form.middle_name }}
+                                {% if form.middle_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.middle_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_employee_id" class="form-label">Табельный номер *</label>
+                                {{ form.employee_id }}
+                                {% if form.employee_id.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.employee_id.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_position" class="form-label">Должность *</label>
+                                {{ form.position }}
+                                {% if form.position.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.position.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="id_hire_date" class="form-label">Дата приема на работу</label>
+                            {{ form.hire_date }}
+                            {% if form.hire_date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.hire_date.errors }}
+                            </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Оставьте пустым, чтобы использовать текущую дату</small>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <a href="{% url 'users:employee_list' %}" class="btn btn-secondary w-100">
+                                    <i class="fas fa-arrow-left me-1"></i> Назад к списку
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% if action == 'add' %}
+                                        Добавить сотрудника
+                                    {% else %}
+                                        Создать сотрудника
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                {% if action == 'add' %}
+                <div class="card-footer text-center">
+                    <p class="mb-0">
+                        Не нашли нужного пользователя? 
+                        <a href="{% url 'users:create_employee' %}" class="text-primary">
+                            Создайте нового сотрудника
+                        </a>
+                    </p>
+                </div>
+                {% else %}
+                <div class="card-footer text-center">
+                    <p class="mb-0">
+                        Хотите добавить существующего пользователя? 
+                        <a href="{% url 'users:add_employee' %}" class="text-primary">
+                            Выбрать из существующих
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if action == 'add' %}
+<script>
+// Инициализация Select2 для поиска пользователей
+$(document).ready(function() {
+    $('#id_employee').select2({
+        placeholder: "Начните вводить ФИО или табельный номер...",
+        language: {
+            noResults: function() {
+                return "Пользователи не найдены";
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

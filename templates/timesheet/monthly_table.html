@@ -450,6 +450,12 @@
         </div>
         <div class="col-md-4 text-end">
             <div class="btn-group">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:employee_list' %}">
+                        <i class="fas fa-users me-2"></i>
+                        <span>Мои сотрудники</span>
+                    </a>
+                </li>
                 <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master_id={{ request.user.id }}{% endif %}"
                     class="btn btn-primary" target="_blank">
                         <i class="bi bi-printer-fill"></i> Печатная форма

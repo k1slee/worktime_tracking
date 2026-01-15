@@ -4,6 +4,11 @@ from apps.users.models import Employee
 from django.utils import timezone
 from datetime import datetime
 import calendar
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
+from apps.users.models import User, Employee, Department
+from .models import MonthlyTimesheet, Timesheet
 class MonthlyTimesheetForm(forms.Form):
     """Форма для создания месячного табеля"""
     month = forms.CharField(

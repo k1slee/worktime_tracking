@@ -29,9 +29,10 @@ class User(AbstractUser):
     employee_id = models.CharField('Табельный номер', max_length=50, unique=True)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, 
                                  null=True, blank=True, verbose_name='Отдел')
-    role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES, default='master')
     phone = models.CharField('Телефон', max_length=20, blank=True)
+    role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES, default='master')
     position = models.CharField('Должность', max_length=200, blank=True)
+    middle_name = models.CharField('Отчество', max_length=150, blank=True)
     
     class Meta:
         verbose_name = 'Пользователь'
@@ -53,9 +54,7 @@ class User(AbstractUser):
         return self.role == 'planner'
     
     def get_managed_employees(self):
-    
         if self.is_master:
-            # Импортируем здесь, чтобы избежать циклического импорта
             from django.apps import apps
             Employee = apps.get_model('users', 'Employee')
             return Employee.objects.filter(master=self)
