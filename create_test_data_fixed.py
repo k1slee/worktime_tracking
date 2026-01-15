@@ -92,6 +92,7 @@ try:
             'employee_id': '10001',
             'first_name': 'Иван',
             'last_name': 'Петров',
+            'middle_name': 'Иванович',
             'position': 'Старший мастер цеха №1',
             'phone': '+7 (999) 111-11-11',
             'department': departments[0] if len(departments) > 0 else None
@@ -102,6 +103,7 @@ try:
             'employee_id': '10002',
             'first_name': 'Сергей',
             'last_name': 'Сидоров',
+            'middle_name': 'Сергеевич',
             'position': 'Мастер цеха №2',
             'phone': '+7 (999) 222-22-22',
             'department': departments[1] if len(departments) > 1 else None
@@ -112,6 +114,7 @@ try:
             'employee_id': '10003',
             'first_name': 'Андрей',
             'last_name': 'Кузнецов',
+            'middle_name': 'Андреевич',
             'position': 'Мастер цеха №3',
             'phone': '+7 (999) 333-33-33',
             'department': departments[2] if len(departments) > 2 else None
@@ -127,6 +130,7 @@ try:
                 'role': 'master',
                 'first_name': data['first_name'],
                 'last_name': data['last_name'],
+                'middle_name': data.get('middle_name', ''),
                 'position': data['position'],
                 'phone': data['phone'],
                 'email': f"{data['username']}@company.com"
