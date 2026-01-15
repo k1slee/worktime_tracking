@@ -19,7 +19,7 @@ class AddEmployeeForm(forms.ModelForm):
         
         # Ленивый импорт для избежания циклических импортов
         from .models import Employee
-        
+        existing_employee_users = Employee.objects.values_list('user_id', flat=True)
         if self.master:
             # Фильтруем пользователей: только без отдела и не привязанные к сотрудникам
             existing_employee_users = Employee.objects.values_list('user_id', flat=True)

@@ -20,6 +20,7 @@ from django.contrib.auth.decorators import login_required
 from apps.users.models import User, Employee, Department
 from .models import Timesheet
 import calendar
+from django.db.models import Q
 def monthly_create_view(request):
     """Создание табелей на весь месяц"""
     if not request.user.is_master:
@@ -66,20 +67,21 @@ def bulk_edit_view(request):
                 messages.error(request, f'Ошибка при обновлении табелей: {str(e)}')
     else:
         # Получаем выбранных сотрудников из GET параметра
-        employee_ids = request.GET.get('employee_ids', '')
-        date = request.GET.get('date', '')
+        employee_info = []
+    if request.GET.get('employee_ids'):
+        from apps.users.models import Employee
+        from django.db.models import Q
+        ids = [int(id) for id in request.GET.get('employee_ids').split(',') if id]
         
-        initial = {}
-        if employee_ids:
-            initial['employee_ids'] = employee_ids
-        if date:
-            try:
-                from datetime import datetime
-                initial['date'] = datetime.strptime(date, '%Y-%m-%d').date()
-            except:
-                pass
+        # Включаем мастера в выборку
+        employees = Employee.objects.filter(
+            Q(id__in=ids) & (Q(master=request.user) | Q(user=request.user))
+        )
         
-        form = BulkTimesheetForm(initial=initial, user=request.user)
+        employee_info = [
+            {'id': emp.id, 'name': emp.full_name, 'employee_id': emp.employee_id}
+            for emp in employees
+        ]
     
     # Получаем информацию о выбранных сотрудниках
     employee_info = []
@@ -300,6 +302,10 @@ def print_monthly_table(request):
     # 1. Если пользователь - мастер, берем его данные
     if request.user.is_master:
         master = request.user
+        employees = Employee.objects.filter(
+            Q(master=master) | Q(user=master),
+            is_active=True
+        ).distinct()
         # Формат: Фамилия И.О. (если нет отчества, то просто Фамилия И.)
         master_name = f"{master.last_name} {master.first_name[0]}."
         
@@ -615,7 +621,25 @@ def monthly_table_view(request):
     
     # Получаем сотрудников
     if request.user.is_master:
+        # Получаем всех сотрудников мастера
         employees = Employee.objects.filter(master=request.user, is_active=True)
+        
+        # Проверяем, есть ли мастер в качестве сотрудника
+        master_employee = Employee.objects.filter(user=request.user).first()
+        if not master_employee:
+            # Создаем запись сотрудника для мастера, если её нет
+            master_employee = Employee.objects.create(
+                user=request.user,
+                master=request.user,
+                hire_date=request.user.date_joined.date() if request.user.date_joined else timezone.now().date(),
+                is_active=True
+            )
+            # Добавляем мастера к списку сотрудников
+            employees = employees | Employee.objects.filter(id=master_employee.id)
+        else:
+            # Если мастер уже есть в базе, добавляем его к списку
+            employees = employees | Employee.objects.filter(id=master_employee.id)
+        
     elif request.user.is_planner or request.user.is_administrator:
         department_id = request.GET.get('department')
         if department_id:
@@ -628,12 +652,15 @@ def monthly_table_view(request):
     else:
         employees = Employee.objects.none()
     
+    # Убедимся, что queryset уникальный и отсортированный
+    employees = employees.distinct().order_by('user__last_name', 'user__first_name')
     
     timesheets = Timesheet.objects.filter(
         date__year=year,
         date__month=month,
         employee__in=employees
     ).select_related('employee', 'employee__user', 'master')
+
     
     # Создаем структуру данных для таблицы
     table_data = []
