@@ -172,7 +172,7 @@ class Timesheet(models.Model):
     @property
     def can_edit(self):
         """Может ли табель быть отредактирован"""
-        return not self.is_approved
+        return self.status == 'draft'
     
     @property
     def display_value(self):

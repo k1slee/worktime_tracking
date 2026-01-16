@@ -26,7 +26,9 @@ urlpatterns = [
 
     path('monthly-table/', web_views.monthly_table_view, name='monthly_table'),
     path('quick-edit/', web_views.quick_edit_timesheet, name='quick_edit'),
-
+    path('submit/<int:timesheet_id>/', views.submit_timesheet, name='submit_timesheet'),
+    path('submit-month/', views.submit_month, name='submit_month'),
+    path('approve/<int:timesheet_id>/', views.approve_timesheet, name='approve_timesheet'),
     path('<int:pk>/submit/', web_views.submit_timesheet, name='submit'),
     path('bulk-submit/', web_views.bulk_submit_view, name='bulk_submit'),
     path('submit-month/', web_views.submit_month, name='submit_month'),
