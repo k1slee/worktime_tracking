@@ -17,7 +17,7 @@ urlpatterns = [
     path('<int:pk>/approve/', web_views.approve_timesheet, name='approve'),
     path('export/', web_views.export_view, name='export'),
     path('bulk-approve/', web_views.bulk_approve_view, name='bulk_approve'),
-    
+    path('print-monthly/', web_views.print_monthly_table, name='print_monthly_table'),
     # API
     path('api/', include(router.urls)),
 
