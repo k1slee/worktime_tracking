@@ -552,7 +552,7 @@
                     <!-- Дни месяца -->
                     {% for day_data in row.days %}
                     <td class="day-col {% if weekend_days|get_item:day_data.day %}weekend{% endif %}">
-                        <div class="cell-content">{{ day_data.display_value|default:"" }}</div>
+                        <div class="cell-content">{{ day_data.display_value|remove_h|default:"" }}</div>
                     </td>
                     {% endfor %}
                     
@@ -586,22 +586,22 @@
 
                     <!--Отработано часов-->
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content">{{ row.total_hours|floatformat:1 }}</div>
+                        <div class="cell-content">{{ row.total_hours|remove_h }}</div>
                     </td>
                     <td class="col-stats col-weekend-hours">
-                        <div class="cell-content">{{ row.weekend_hours|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ row.weekend_hours|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-evening-hours">
-                        <div class="cell-content">{{ row.evening_hours|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ row.evening_hours|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-night-hours">
-                        <div class="cell-content">{{ row.night_hours|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ row.night_hours|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-weekend-hours2">
-                        <div class="cell-content">{{ row.weekend_hours|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ row.weekend_hours|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-overtime">
-                        <div class="cell-content">{{ row.overtime_hours|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ row.overtime_hours|floatformat:0|default:"0" }}</div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -634,10 +634,10 @@
                         <div class="cell-content">{{ table_data|sum_attr:"business_trip_days"|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-weekend-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:1|default:"0" }}</div>
+                        <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-evening-hours">
                         <div class="cell-content">{{ table_data|sum_attr:"evening_hours"|floatformat:1|default:"0" }}</div>
