@@ -9,7 +9,7 @@
     /* ===== БАЗОВЫЕ НАСТРОЙКИ ===== */
     @page {
         size: A4 landscape;
-        margin: 5mm;
+        margin: 1mm;
     }
     
     body {
@@ -22,11 +22,10 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
-    
     /* ===== ШАПКА ДОКУМЕНТА ===== */
     .header {
         width: 100%;
-        margin-bottom: 1mm;
+        margin-bottom: 0mm;
         text-align: left;
     }
     
@@ -34,28 +33,34 @@
         font-size: 8pt;
         font-weight: bold;
         margin-bottom: 0.2mm;
-        text-align: center;
+        text-align: left;
+        padding-left: 5mm; /* ← Сдвиг вправо */
+        margin-top: 10mm; /* Прижми к верху */
     }
     
     .org-details {
         font-size: 6.5pt;
         margin-bottom: 0.5mm;
         font-style: italic;
-        text-align: center;
+        text-align: left;
+        padding-left: 5mm; /* ← Сдвиг вправо */
     }
-    
+
     .department-line {
         font-size: 8pt;
         font-weight: bold;
         margin-bottom: 0.2mm;
-        text-align: center;
+        text-align: left;
+        padding-left: 5mm; /* ← Сдвиг вправо */
+        margin-top: 0mm;
     }
-    
+
     .department-details {
         font-size: 6.5pt;
         margin-bottom: 1mm;
         font-style: italic;
-        text-align: center;
+        text-align: left;
+        padding-left: 5mm; /* ← Сдвиг вправо */
     }
     
     .main-title {
@@ -103,26 +108,26 @@
     }
     
     .col-name { 
-        width: 35mm; 
+        width: 38mm; 
         text-align: left; 
         padding-left: 0.5mm !important;
         font-size: 6.5pt;
-        min-width: 35mm;
-        max-width: 35mm;
+        min-width: 38mm;
+        max-width: 38mm;
     }
     
     .col-position { 
-        width: 32mm; 
+        width: 29mm; 
         text-align: left; 
         padding-left: 0.5mm !important;
-        min-width: 32mm;
-        max-width: 32mm;
+        min-width: 29mm;
+        max-width: 29mm;
     }
     
     .col-employee-id { 
-        width: 10mm; 
-        min-width: 10mm;
-        max-width: 10mm;
+        width: 8mm !important; 
+        min-width: 12mm !important;
+        max-width: 12mm !important;
     }
     
     /* Колонки с днями - узкие */
@@ -134,15 +139,114 @@
         font-size: 6.5pt;
     }
     
-    /* Колонки статистики */
     .col-stats { 
-        width: 4.5mm !important; 
-        min-width: 4.5mm !important;
-        max-width: 4.5mm !important;
         padding: 0 !important;
         font-size: 6.5pt;
+        text-align: center;
+        vertical-align: middle;
     }
     
+    /* ВЕРТИКАЛЬНЫЙ ТЕКСТ В ЗАГОЛОВКАХ */
+    .vertical-header {
+        position: relative;
+        height: 17mm !important;
+        padding: 0 !important;
+    }
+    
+    .vertical-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-90deg);
+        transform-origin: center center;
+        white-space: nowrap;
+        font-size: 6pt;
+        line-height: 1;
+        width: 17mm;
+        height: 5mm;
+        text-align: center;
+        font-weight: normal;
+    }
+    
+    /* Стили для конкретных колонок - ДОЛЖНЫ БЫТЬ ПОСЛЕ .vertical-header */
+    .col-days-work { /* фактической работы */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-days-downtime { /* целосменных простоев */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-vacation { /* очередной отпуск */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-illness { /* болезнь */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-other-absences { /* прочие неявки */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-admin-permission { /* с разрешения администрации */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-absence { /* прогул */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    /* ОТРАБОТАНО ЧАСОВ */
+    .col-total-hours { /* всего */
+        width: 15mm !important;
+        min-width: 15mm !important;
+        max-width: 15mm !important;
+    }
+
+    .col-weekend-hours { /* выходные */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-evening-hours { /* вечерние */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-night-hours { /* ночные */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-weekend-hours2 { /* выходные (вторая колонка) */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
+
+    .col-overtime { /* сверхурочно */
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
+    }
     /* Колонки часов */
     .col-hours { 
         width: 5mm !important; 
@@ -167,29 +271,6 @@
     .table th[rowspan="2"]:not([rowspan="3"]) {
         height: 8.7mm !important;
         vertical-align: middle;
-    }
-    
-    /* ВЕРТИКАЛЬНЫЙ ТЕКСТ В ЗАГОЛОВКАХ */
-    .vertical-header {
-        position: relative;
-        height: 17mm !important;
-        padding: 0 !important;
-        width: 5mm !important;
-    }
-    
-    .vertical-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(-90deg);
-        transform-origin: center center;
-        white-space: nowrap;
-        font-size: 6pt;
-        line-height: 1;
-        width: 17mm;
-        height: 5mm;
-        text-align: center;
-        font-weight: normal;
     }
     
     /* Горизонтальный текст */
@@ -377,7 +458,7 @@
                     <th rowspan="3" class="col-number">№ п/п</th>
                     <th rowspan="3" class="col-name">Фамилия, И.О.</th>
                     <th rowspan="3" class="col-position">Профессия, должность</th>
-                    <th rowspan="3" class="col-employee-id">Табельный №</th>
+                    <th rowspan="3" class="col-employee-id vertical-header"><div class="vertical-text">Табельный №</div></th>
                     
                     <!-- Числа месяца -->
                     <th colspan="{{ days|length }}" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Числа месяца</th>
@@ -393,6 +474,7 @@
                 </tr>
                 
                 <!-- Третья строка заголовков (детальные) -->
+                <!-- Третья строка заголовков (детальные) -->
                 <tr>
                     <!-- Дни месяца -->
                     {% for day in days %}
@@ -402,27 +484,27 @@
                     {% endfor %}
                     
                     <!-- Дни явок -->
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
-                        <div class="vertical-text">фактической работы</div>
+                    <th class="col-stats vertical-header col-days-work" style="height: 17mm !important;">
+                        <div class="vertical-text">фактической<br> работы</div>
                     </th>
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
-                        <div class="vertical-text">целосменных простоев</div>
+                    <th class="col-stats vertical-header col-days-downtime" style="height: 17mm !important;">
+                        <div class="vertical-text">целосменных<br> простоев</div>
                     </th>
                     
                     <!-- Дни неявок -->
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
-                        <div class="vertical-text">очередной отпуск</div>
+                    <th class="col-stats vertical-header col-vacation" style="height: 17mm !important;">
+                        <div class="vertical-text">очередной<br> отпуск</div>
                     </th>
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
+                    <th class="col-stats vertical-header col-illness" style="height: 17mm !important;">
                         <div class="vertical-text">болезнь</div>
                     </th>
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
-                        <div class="vertical-text">прочие неявки, разреш.закон.</div>
+                    <th class="col-stats vertical-header col-other-absences" style="height: 17mm !important;">
+                        <div class="vertical-text">прочие неявки,<br> разреш.закон.</div>
                     </th>
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
-                        <div class="vertical-text">с разрешения администрации</div>
+                    <th class="col-stats vertical-header col-admin-permission" style="height: 17mm !important;">
+                        <div class="vertical-text">с разрешения<br> администрации</div>
                     </th>
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
+                    <th class="col-stats vertical-header col-absence" style="height: 17mm !important;">
                         <div class="vertical-text">прогул</div>
                     </th>
                     <th class="col-stats vertical-header" style="height: 17mm !important;">
@@ -430,23 +512,23 @@
                     </th>
                     
                     <!-- Отработано часов -->
-                    <th class="col-stats" style="height: 17mm !important;">
-                        <div class="horizontal-text">всего</div>
+                    <th class="col-stats col-total-hours vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">всего</div>
                     </th>
-                    <th class="col-stats" style="height: 17mm !important;">
-                        <div class="horizontal-text">выходные</div>
+                    <th class="col-stats col-weekend-hours vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">выходные</div>
                     </th>
-                    <th class="col-stats" style="height: 17mm !important;">
-                        <div class="horizontal-text">вечерние</div>
+                    <th class="col-stats col-evening-hours vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">вечерние</div>
                     </th>
-                    <th class="col-stats" style="height: 17mm !important;">
-                        <div class="horizontal-text">ночные</div>
+                    <th class="col-stats col-night-hours vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">ночные</div>
                     </th>
-                    <th class="col-stats" style="height: 17mm !important;">
-                        <div class="horizontal-text">выходные</div>
+                    <th class="col-stats col-weekend-hours2 vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">выходные</div>
                     </th>
-                    <th class="col-stats" style="height: 17mm !important;">
-                        <div class="horizontal-text">сверхурочно</div>
+                    <th class="col-stats col-overtime vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">сверхурочно</div>
                     </th>
                 </tr>
             </thead>
@@ -475,50 +557,50 @@
                     {% endfor %}
                     
                     <!-- Дни явок -->
-                    <td class="col-stats">
+                    <td class="col-stats col-days-work">
                         <div class="cell-content">{{ row.attendance_days }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-days-downtime">
                         <div class="cell-content">{{ row.downtime_days }}</div>
                     </td>
-                    
+
                     <!-- Дни неявок -->
-                    <td class="col-stats">
+                    <td class="col-stats col-vacation">
                         <div class="cell-content">{{ row.vacation_days }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-illness">
                         <div class="cell-content">{{ row.illness_days }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-other-absences">
                         <div class="cell-content">{{ row.other_absence_days|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-admin-permission">
                         <div class="cell-content">{{ row.admin_permission_days|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-absence">
                         <div class="cell-content">{{ row.absence_days }}</div>
                     </td>
                     <td class="col-stats">
                         <div class="cell-content">{{ row.business_trip_days|default:"0" }}</div>
                     </td>
-                    
-                    <!--Отработано часов-->>
-                    <td class="col-stats">
+
+                    <!--Отработано часов-->
+                    <td class="col-stats col-total-hours">
                         <div class="cell-content">{{ row.total_hours|floatformat:1 }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-weekend-hours">
                         <div class="cell-content">{{ row.weekend_hours|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-evening-hours">
                         <div class="cell-content">{{ row.evening_hours|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-night-hours">
                         <div class="cell-content">{{ row.night_hours|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-weekend-hours2">
                         <div class="cell-content">{{ row.weekend_hours|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-overtime">
                         <div class="cell-content">{{ row.overtime_hours|floatformat:1|default:"0" }}</div>
                     </td>
                 </tr>
@@ -527,46 +609,46 @@
                 <!-- Итоговая строка -->
                 <tr class="total-row">
                     <td colspan="{{ days|length|add:'4' }}">ИТОГО</td>
-                    <td class="col-stats">
+                    <td class="col-stats col-days-work">
                         <div class="cell-content">{{ table_data|sum_attr:"attendance_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-days-downtime">
                         <div class="cell-content">{{ table_data|sum_attr:"downtime_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-vacation">
                         <div class="cell-content">{{ table_data|sum_attr:"vacation_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-illness">
                         <div class="cell-content">{{ table_data|sum_attr:"illness_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-other-absences">
                         <div class="cell-content">{{ table_data|sum_attr:"other_absence_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-admin-permission">
                         <div class="cell-content">{{ table_data|sum_attr:"admin_permission_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-absence">
                         <div class="cell-content">{{ table_data|sum_attr:"absence_days"|default:"0" }}</div>
                     </td>
                     <td class="col-stats">
                         <div class="cell-content">{{ table_data|sum_attr:"business_trip_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-total-hours">
                         <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-weekend-hours">
                         <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-evening-hours">
                         <div class="cell-content">{{ table_data|sum_attr:"evening_hours"|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-night-hours">
                         <div class="cell-content">{{ table_data|sum_attr:"night_hours"|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-weekend-hours2">
                         <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:1|default:"0" }}</div>
                     </td>
-                    <td class="col-stats">
+                    <td class="col-stats col-overtime">
                         <div class="cell-content">{{ table_data|sum_attr:"overtime_hours"|floatformat:1|default:"0" }}</div>
                     </td>
                 </tr>
