@@ -421,6 +421,15 @@
 .alert-info small {
     color: #0c5460;
 }
+
+/* Стили для скрытой панели условных обозначений */
+.collapsible-panel {
+    display: none;
+}
+
+.collapsible-panel.show {
+    display: block;
+}
 </style>
 {% endblock %}
 
@@ -450,17 +459,14 @@
         </div>
         <div class="col-md-4 text-end">
             <div class="btn-group">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'users:employee_list' %}">
-                        <i class="fas fa-users me-2"></i>
-                        <span>Мои сотрудники</span>
-                    </a>
-                </li>
+                <a href="{% url 'users:employee_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-users me-2"></i>
+                    Мои сотрудники
+                </a>
                 <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master_id={{ request.user.id }}{% endif %}"
                     class="btn btn-primary" target="_blank">
                         <i class="bi bi-printer-fill"></i> Печатная форма
                     </a>
-                    
                     <button onclick="window.print()" class="btn btn-outline-primary">
                         <i class="bi bi-printer"></i> Быстрая печать
                     </button>
@@ -468,7 +474,7 @@
         </div>
     </div>
     
-    <!-- Панель управления сдачей (только для мастера) -->
+    <!-- Панель управления для мастера -->
     {% if is_master %}
     <div class="row mb-3">
         <div class="col-12">
@@ -477,43 +483,47 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="mb-0">Управление табелями за {{ month_name }}</h6>
-                            <small class="text-muted" id="selectionCounter">
-                                Выбрано: 0 ячеек
+                            <small class="text-muted">
+                                {% if total_employees > 0 %}
+                                Всего сотрудников: {{ total_employees }}
+                                {% else %}
+                                Нет сотрудников для отображения
+                                {% endif %}
                             </small>
                         </div>
                         <div class="btn-group">
-                            <!-- Сдача выбранных -->
-                            <button type="button" class="btn btn-primary btn-sm" 
-                                    onclick="showSubmitSelectedModal()" 
-                                    id="submitSelectedBtn" disabled>
-                                <i class="bi bi-send-check"></i> Сдать выбранные
-                            </button>
-                            
-                            <!-- Быстрая сдача всего месяца -->
-                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                            <!-- Одна кнопка "Сдать табель" -->
+                            <button type="button" class="btn btn-success btn-sm" 
                                     onclick="submitEntireMonth()">
-                                <i class="bi bi-send-check-fill"></i> Сдать весь месяц
+                                <i class="bi bi-send-check-fill"></i> Сдать табель
                             </button>
                             
-                            <!-- Массовое редактирование -->
-                            <button type="button" class="btn btn-warning btn-sm" 
-                                    onclick="bulkEditSelected()" 
-                                    id="bulkEditBtn" disabled>
-                                <i class="bi bi-pencil-square"></i> Редактировать выбранные
+                            <!-- Кнопка для показа условных обозначений -->
+                            <button type="button" class="btn btn-outline-info btn-sm" 
+                                    onclick="toggleLegend()">
+                                <i class="bi bi-info-circle"></i> Условные обозначения
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Секция с условными обозначениями -->
-    <div class="row mt-4">
+    </div>
+    {% endif %}
+    
+    <!-- Секция с условными обозначениями (скрыта по умолчанию) -->
+    <div class="row mt-2 collapsible-panel" id="legendPanel">
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-light">
-                    <h5 class="mb-0">
-                        <i class="bi bi-info-circle"></i> Условные обозначения
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle"></i> Условные обозначения
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleLegend()">
+                            <i class="bi bi-x"></i> Скрыть
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -649,9 +659,6 @@
             </div>
         </div>
     </div>
-
-    </div>
-    {% endif %}
     
     <!-- Фильтры (для плановиков и администраторов) -->
     {% if is_planner or is_admin %}
@@ -704,6 +711,7 @@
         </div>
     </div>
     {% endif %}
+    
     <!-- Основная таблица -->
     <div class="row">
         <div class="col-12">
@@ -901,7 +909,8 @@
             </div>
         </div>
     </div>
-    
+</div>
+
 <!-- Модальное окно для редактирования -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
@@ -946,134 +955,44 @@
     </div>
 </div>
 
-<!-- Модальное окно массового редактирования -->
-<div class="modal fade" id="bulkEditModal" tabindex="-1">
+<!-- Модальное окно для сдачи табеля -->
+<div class="modal fade" id="submitConfirmModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Массовое редактирование</h5>
+                <h5 class="modal-title">Сдача табеля за {{ month_name }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Установить значение для всех выбранных:</label>
-                    <input type="text" id="bulkValue" class="form-control" 
-                           placeholder="Часы или код" maxlength="10">
-                    <div class="form-text">
-                        Часы ( 7/2, 8, 3,5) или код: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А, ОЖ
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input type="checkbox" id="bulkIncludeEmpty" class="form-check-input" checked>
-                        <label class="form-check-label" for="bulkIncludeEmpty">
-                            Применять к пустым ячейкам
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" id="bulkIncludeDraft" class="form-check-input" checked>
-                        <label class="form-check-label" for="bulkIncludeDraft">
-                            Применять к черновикам
-                        </label>
-                    </div>
-                </div>
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    Будет обновлено: <span id="bulkCount">0</span> ячеек
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="applyBulkEdit()">Применить</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно для сдачи выбранных -->
-<div class="modal fade" id="submitSelectedModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Сдача выбранных табелей</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Вы уверены, что хотите сдать <span id="submitCount">0</span> выбранных табелей?</p>
+                <p>Вы уверены, что хотите сдать табель за {{ month_name }}?</p>
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
                     После сдачи редактирование табелей будет невозможно!
                 </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Что произойдет после сдачи:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Все черновики табелей будут отправлены плановому отделу</li>
+                        <li>Табели получат статус "Сдан мастером"</li>
+                        <li>Вы больше не сможете редактировать эти табели</li>
+                        <li>Плановый отдел сможет увидеть и утвердить табели</li>
+                    </ul>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="submitSelected()">Сдать табели</button>
+                <button type="button" class="btn btn-success" onclick="submitMonthConfirmed()">Да, сдать табель</button>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Модальное окно для экспорта -->
-{% if is_planner or is_admin %}
-<div class="modal fade" id="exportModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Экспорт табеля</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" action="{% url 'timesheet:export' %}">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Формат:</label>
-                        <select name="format" class="form-select">
-                            <option value="csv">CSV (Excel)</option>
-                            <option value="pdf">PDF</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Период:</label>
-                        <div class="input-group">
-                            <input type="date" name="start_date" class="form-control" 
-                                   value="{{ month_date|date:'Y-m-d' }}">
-                            <span class="input-group-text">по</span>
-                            <input type="date" name="end_date" class="form-control"
-                                   value="{{ month_date|date:'Y-m-t' }}">
-                        </div>
-                    </div>
-                    {% if is_planner or is_admin %}
-                    <div class="mb-3">
-                        <label class="form-label">Отдел:</label>
-                        <select name="department" class="form-select">
-                            <option value="">Все отделы</option>
-                            {% for dept in departments %}
-                            <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"i" %}selected{% endif %}>
-                                {{ dept.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Экспортировать</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
     // Текущая редактируемая ячейка
     let currentCell = null;
-    
-    // Массив выбранных ячеек
-    let selectedCells = [];
     
     // Функция для редактирования ячейки
     function editCell(cell) {
@@ -1202,136 +1121,21 @@
         });
     });
     
-    // Выбор ячеек для массовых операций
-    function toggleCellSelection(cell) {
-        const status = cell.getAttribute('data-status');
-        
-        // Можно выбирать только черновики или пустые ячейки
-        if (status !== 'draft' && status !== '') {
-            alert('Можно выбирать только черновики или пустые ячейки');
-            return;
-        }
-        
-        if (cell.classList.contains('selected')) {
-            cell.classList.remove('selected');
-            selectedCells = selectedCells.filter(c => c !== cell);
-        } else {
-            cell.classList.add('selected');
-            selectedCells.push(cell);
-        }
-        
-        updateSelectionCounter();
-    }
-    
-    // Обновление счетчика выбранных ячеек
-    function updateSelectionCounter() {
-        const counter = document.getElementById('selectionCounter');
-        const submitBtn = document.getElementById('submitSelectedBtn');
-        const bulkEditBtn = document.getElementById('bulkEditBtn');
-        
-        if (counter) {
-            counter.textContent = `Выбрано: ${selectedCells.length}`;
-        }
-        
-        // Включаем/выключаем кнопки
-        if (submitBtn) {
-            submitBtn.disabled = selectedCells.length === 0;
-        }
-        if (bulkEditBtn) {
-            bulkEditBtn.disabled = selectedCells.length === 0;
-        }
-    }
-    
-    // Показ модального окна сдачи выбранных
-    function showSubmitSelectedModal() {
-        if (selectedCells.length === 0) {
-            alert('Выберите табели для сдачи');
-            return;
-        }
-        
-        // Считаем только табели (не пустые ячейки)
-        const timesheetIds = selectedCells
-            .map(cell => cell.getAttribute('data-timesheet-id'))
-            .filter(id => id);
-        
-        document.getElementById('submitCount').textContent = timesheetIds.length;
-        
-        const modal = new bootstrap.Modal(document.getElementById('submitSelectedModal'));
+    // Сдача всего месяца (просто показывает модальное окно)
+    function submitEntireMonth() {
+        const modal = new bootstrap.Modal(document.getElementById('submitConfirmModal'));
         modal.show();
     }
     
-    // Сдача выбранных табелей
-    function submitSelected() {
-        const timesheetIds = selectedCells
-            .map(cell => cell.getAttribute('data-timesheet-id'))
-            .filter(id => id);
-        
-        if (timesheetIds.length === 0) {
-            alert('Выбранные ячейки не содержат табелей');
-            return;
-        }
-        
+    // Подтвержденная сдача месяца
+    function submitMonthConfirmed() {
         // Закрываем модальное окно
-        bootstrap.Modal.getInstance(document.getElementById('submitSelectedModal')).hide();
-        
-        // Отправляем каждый табель отдельно
-        let submittedCount = 0;
-        let errors = [];
-        
-        timesheetIds.forEach(timesheetId => {
-            submitSingleTimesheet(timesheetId)
-                .then(() => submittedCount++)
-                .catch(error => errors.push(error));
-        });
-        
-        // Обновляем интерфейс после всех запросов
-        setTimeout(() => {
-            if (submittedCount > 0) {
-                showNotification(`Сдано ${submittedCount} табелей`, 'success');
-                selectedCells = [];
-                updateSelectionCounter();
-                
-                // Перезагружаем страницу через 2 секунды
-                setTimeout(() => location.reload(), 2000);
-            }
-            
-            if (errors.length > 0) {
-                showNotification(`Ошибок: ${errors.length}`, 'danger');
-            }
-        }, 1000);
-    }
-    
-    // Сдача одного табеля
-    function submitSingleTimesheet(timesheetId) {
-        return new Promise((resolve, reject) => {
-            const url = `{% url 'timesheet:submit' 0 %}`.replace('/0/', `/${timesheetId}/`);
-            
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    resolve();
-                } else {
-                    reject(data.error);
-                }
-            })
-            .catch(error => reject(error));
-        });
-    }
-    
-    // Сдача всего месяца
-    function submitEntireMonth() {
-        if (!confirm(`Сдать все табели за {{ month_name }}? После сдачи редактирование будет невозможно.`)) {
-            return;
-        }
+        bootstrap.Modal.getInstance(document.getElementById('submitConfirmModal')).hide();
         
         const url = `{% url 'timesheet:submit_month' %}?year={{ year }}&month={{ month }}`;
+        
+        // Показываем индикатор загрузки
+        showNotification('Отправка табелей...', 'info');
         
         fetch(url, {
             method: 'GET',
@@ -1340,13 +1144,14 @@
                 'X-CSRFToken': '{{ csrf_token }}'
             }
         })
-        .then(response => {
-            if (response.ok) {
-                showNotification('Табели успешно сданы', 'success');
-                // Перезагружаем страницу через 1 секунду
-                setTimeout(() => location.reload(), 1000);
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message || 'Табели успешно сданы', 'success');
+                // Перезагружаем страницу через 2 секунды
+                setTimeout(() => location.reload(), 2000);
             } else {
-                showNotification('Ошибка при сдаче табелей', 'danger');
+                showNotification(data.error || 'Ошибка при сдаче табелей', 'danger');
             }
         })
         .catch(error => {
@@ -1355,102 +1160,16 @@
         });
     }
     
-    // Массовое редактирование выбранных
-    function bulkEditSelected() {
-        if (selectedCells.length === 0) {
-            alert('Выберите ячейки для массового редактирования');
-            return;
-        }
-        
-        // Обновляем счетчик
-        document.getElementById('bulkCount').textContent = selectedCells.length;
-        
-        // Показываем модальное окно
-        const modal = new bootstrap.Modal(document.getElementById('bulkEditModal'));
-        modal.show();
-    }
-    
-    // Применение массового редактирования
-    function applyBulkEdit() {
-        const value = document.getElementById('bulkValue').value.trim();
-        const includeEmpty = document.getElementById('bulkIncludeEmpty').checked;
-        const includeDraft = document.getElementById('bulkIncludeDraft').checked;
-        
-        if (!value) {
-            alert('Введите значение');
-            return;
-        }
-        
-        if (!validateTimesheetValue(value)) {
-            return;
-        }
-        
-        // Фильтруем ячейки по условиям
-        const cellsToUpdate = selectedCells.filter(cell => {
-            const status = cell.getAttribute('data-status');
-            const hasTimesheet = cell.getAttribute('data-timesheet-id');
-            
-            if (status === '' && !includeEmpty) return false;
-            if (status === 'draft' && !includeDraft) return false;
-            if (status === 'submitted' || status === 'approved') return false;
-            
-            return true;
-        });
-        
-        if (cellsToUpdate.length === 0) {
-            alert('Нет ячеек, удовлетворяющих условиям');
-            return;
-        }
-        
-        // Закрываем модальное окно
-        bootstrap.Modal.getInstance(document.getElementById('bulkEditModal')).hide();
-        
-        // Обновляем каждую ячейку
-        let updatedCount = 0;
-        let errors = [];
-        
-        cellsToUpdate.forEach(cell => {
-            const formData = new FormData();
-            formData.append('timesheet_id', cell.getAttribute('data-timesheet-id') || '');
-            formData.append('date', cell.getAttribute('data-date'));
-            formData.append('employee_id', cell.getAttribute('data-employee-id'));
-            formData.append('value', value);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-            
-            fetch('{% url "timesheet:quick_edit" %}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateCellAfterSave(cell, value, data);
-                    updatedCount++;
-                } else {
-                    errors.push(data.error);
-                }
-            })
-            .catch(error => {
-                errors.push(error.message);
-            });
-        });
-        
-        // Показываем результат
-        setTimeout(() => {
-            if (updatedCount > 0) {
-                showNotification(`Обновлено ${updatedCount} ячеек`, 'success');
-            }
-            if (errors.length > 0) {
-                showNotification(`Ошибок: ${errors.length}`, 'warning');
-            }
-        }, 1000);
+    // Переключение отображения условных обозначений
+    function toggleLegend() {
+        const legendPanel = document.getElementById('legendPanel');
+        legendPanel.classList.toggle('show');
     }
     
     // Вспомогательные функции
     function validateTimesheetValue(value) {
         if (value) {
             // Проверка на числовые форматы
-            // Допустимые: целые числа, числа с точкой, числа с запятой, форматы с дробью
             const numericPatterns = [
                 /^\d+$/,                     // 8, 7, 10
                 /^\d+\.\d+$/,                // 7.5, 3.5
@@ -1580,18 +1299,6 @@
                     tooltip.style.display = 'none';
                 }
             });
-            
-            // Двойной клик для выбора
-            cell.addEventListener('dblclick', function(e) {
-                e.stopPropagation();
-                toggleCellSelection(this);
-            });
-            
-            // Правый клик для контекстного меню
-            cell.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                showContextMenu(this, e.clientX, e.clientY);
-            });
         });
         
         // Быстрое редактирование по клавишам
@@ -1610,53 +1317,5 @@
             }
         });
     });
-    
-    // Контекстное меню - ИСПРАВЛЕНА ОШИБКА В СТРОКЕ style.zIndex
-    function showContextMenu(cell, x, y) {
-        const status = cell.getAttribute('data-status');
-        const timesheetId = cell.getAttribute('data-timesheet-id');
-        
-        // Создаем меню
-        const menu = document.createElement('div');
-        menu.className = 'context-menu';
-        menu.style.position = 'fixed';
-        menu.style.left = x + 'px';
-        menu.style.top = y + 'px';
-        menu.style.zIndex = '10000'; // ИСПРАВЛЕНО: z-index вместо z-index
-        
-        let menuHtml = `
-            <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action" onclick="editCell(this.parentElement.parentElement.parentElement); return false;">
-                    <i class="bi bi-pencil"></i> Редактировать
-                </a>
-                <a href="#" class="list-group-item list-group-item-action" onclick="toggleCellSelection(this.parentElement.parentElement.parentElement); return false;">
-                    <i class="bi bi-check-square"></i> Выбрать
-                </a>
-        `;
-        
-        // Добавляем опцию сдачи, если это черновик
-        if (status === 'draft' && timesheetId) {
-            menuHtml += `
-                <a href="#" class="list-group-item list-group-item-action" onclick="submitSingleTimesheet('${timesheetId}').then(() => location.reload()); return false;">
-                    <i class="bi bi-send-check"></i> Сдать
-                </a>
-            `;
-        }
-        
-        menuHtml += `</div>`;
-        menu.innerHTML = menuHtml;
-        
-        document.body.appendChild(menu);
-        
-        // Закрываем меню при клике вне его
-        setTimeout(() => {
-            document.addEventListener('click', function closeMenu() {
-                if (menu.parentNode) {
-                    menu.parentNode.removeChild(menu);
-                }
-                document.removeEventListener('click', closeMenu);
-            });
-        }, 10);
-    }
 </script>
 {% endblock %}
