@@ -386,14 +386,11 @@
                     <th colspan="2" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Дни явок</th>
                     
                     <!-- Дни неявок -->
-                    <th colspan="7" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Дни неявок</th>
+                    <th colspan="6" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Дни неявок</th>
                     
                     <!-- Отработано часов -->
                     <th colspan="6" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Отработано часов</th>
                 </tr>
-                
-                <!-- Вторая строка заголовков (техническая) -->
-                
                 
                 <!-- Третья строка заголовков (детальные) -->
                 <tr>
@@ -414,9 +411,6 @@
                     
                     <!-- Дни неявок -->
                     <th class="col-stats vertical-header" style="height: 17mm !important;">
-                        <div class="vertical-text">командировки</div>
-                    </th>
-                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">очередной отпуск</div>
                     </th>
                     <th class="col-stats vertical-header" style="height: 17mm !important;">
@@ -431,13 +425,13 @@
                     <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">прогул</div>
                     </th>
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
+                        <div class="vertical-text">командировки</div>
+                    </th>
                     
                     <!-- Отработано часов -->
-                    <th class="col-hours" style="height: 17mm !important;">
+                    <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">всего</div>
-                    </th>
-                    <th class="col-hours" style="height: 17mm !important;">
-                        <div class="horizontal-text">из них</div>
                     </th>
                     <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">выходные</div>
@@ -504,13 +498,13 @@
                     <td class="col-stats">
                         <div class="cell-content">{{ row.absence_days }}</div>
                     </td>
-                    
-                    <!-- Часы работы -->
-                    <td class="col-hours">
-                        <div class="cell-content">{{ row.total_hours|floatformat:1 }}</div>
+                    <td class="col-stats">
+                        <div class="cell-content">{{ row.business_trip_days|default:"0" }}</div>
                     </td>
-                    <td class="col-hours">
-                        <div class="cell-content"></div>
+                    
+                    <!--Отработано часов-->>
+                    <td class="col-stats">
+                        <div class="cell-content">{{ row.total_hours|floatformat:1 }}</div>
                     </td>
                     <td class="col-stats">
                         <div class="cell-content">{{ row.weekend_hours|floatformat:1|default:"0" }}</div>
@@ -554,11 +548,11 @@
                     <td class="col-stats">
                         <div class="cell-content">{{ table_data|sum_attr:"absence_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:1|default:"0" }}</div>
+                    <td class="col-stats">
+                        <div class="cell-content">{{ table_data|sum_attr:"business_trip_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-hours">
-                        <div class="cell-content"></div>
+                    <td class="col-stats">
+                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:1|default:"0" }}</div>
                     </td>
                     <td class="col-stats">
                         <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:1|default:"0" }}</div>
