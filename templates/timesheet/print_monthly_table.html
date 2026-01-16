@@ -172,9 +172,9 @@
     /* ВЕРТИКАЛЬНЫЙ ТЕКСТ В ЗАГОЛОВКАХ */
     .vertical-header {
         position: relative;
-        height: 8.7mm;
+        height: 17mm !important;
         padding: 0 !important;
-        width: 4.5mm !important;
+        width: 5mm !important;
     }
     
     .vertical-text {
@@ -186,8 +186,8 @@
         white-space: nowrap;
         font-size: 6pt;
         line-height: 1;
-        width: 8.7mm;
-        height: 4.5mm;
+        width: 17mm;
+        height: 5mm;
         text-align: center;
         font-weight: normal;
     }
@@ -399,59 +399,59 @@
                 <tr>
                     <!-- Дни месяца -->
                     {% for day in days %}
-                    <th class="day-col {% if weekend_days|get_item:day %}weekend{% endif %}" style="height: 8.7mm !important;">
+                    <th class="day-col {% if weekend_days|get_item:day %}weekend{% endif %}" style="height: 17mm !important;">
                         <div class="horizontal-text">{{ day }}</div>
                     </th>
                     {% endfor %}
                     
                     <!-- Дни явок -->
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">фактической работы</div>
                     </th>
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">целосменных простоев</div>
                     </th>
                     
                     <!-- Дни неявок -->
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">командировки</div>
                     </th>
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">очередной отпуск</div>
                     </th>
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">болезнь</div>
                     </th>
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">прочие неявки, разреш.закон.</div>
                     </th>
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">с разрешения администрации</div>
                     </th>
-                    <th class="col-stats vertical-header">
+                    <th class="col-stats vertical-header" style="height: 17mm !important;">
                         <div class="vertical-text">прогул</div>
                     </th>
                     
                     <!-- Отработано часов -->
-                    <th class="col-hours" style="height: 8.7mm !important;">
+                    <th class="col-hours" style="height: 17mm !important;">
                         <div class="horizontal-text">всего</div>
                     </th>
-                    <th class="col-hours" style="height: 8.7mm !important;">
+                    <th class="col-hours" style="height: 17mm !important;">
                         <div class="horizontal-text">из них</div>
                     </th>
-                    <th class="col-stats" style="height: 8.7mm !important;">
+                    <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">выходные</div>
                     </th>
-                    <th class="col-stats" style="height: 8.7mm !important;">
+                    <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">вечерние</div>
                     </th>
-                    <th class="col-stats" style="height: 8.7mm !important;">
+                    <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">ночные</div>
                     </th>
-                    <th class="col-stats" style="height: 8.7mm !important;">
+                    <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">выходные</div>
                     </th>
-                    <th class="col-stats" style="height: 8.7mm !important;">
+                    <th class="col-stats" style="height: 17mm !important;">
                         <div class="horizontal-text">сверхурочно</div>
                     </th>
                 </tr>
