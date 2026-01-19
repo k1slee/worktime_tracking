@@ -691,11 +691,7 @@
         </div>
         <div class="signature-right">
             Составил______________________ 
-            {% if is_master %}
-                {{ user.get_full_name|format_fio_short|default:user.username }}
-            {% else %}
-                Н.А. Долгошей
-            {% endif %}
+            {{ composer_fio }}
         </div>
     </div>
     

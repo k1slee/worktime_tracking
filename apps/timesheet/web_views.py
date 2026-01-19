@@ -245,40 +245,6 @@ def approve_timesheet(request, pk):
     
     messages.success(request, 'Табель успешно утвержден')
     return redirect('timesheet:detail', pk=pk)
-
-@login_required
-def bulk_approve_view(request):
-    """Массовое утверждение табелей"""
-    if not request.user.is_planner and not request.user.is_administrator:
-        messages.error(request, 'У вас нет прав для массового утверждения')
-        return redirect('timesheet:list')
-    
-    if request.method == 'POST':
-        timesheet_ids = request.POST.getlist('timesheet_ids')
-        action = request.POST.get('action')
-        
-        if not timesheet_ids:
-            messages.error(request, 'Не выбраны табели для обработки')
-            return redirect('timesheet:list')
-        
-        queryset = Timesheet.objects.filter(id__in=timesheet_ids)
-        
-        if action == 'approve':
-            updated = queryset.filter(status='draft').update(
-                status='approved',
-                approved_by=request.user,
-                approved_at=datetime.now()
-            )
-            messages.success(request, f'Утверждено табелей: {updated}')
-        elif action == 'unapprove':
-            updated = queryset.filter(status='approved').update(
-                status='draft',
-                approved_by=None,
-                approved_at=None
-            )
-            messages.success(request, f'Снято с утверждения табелей: {updated}')
-    
-    return redirect('timesheet:list')
 @login_required
 def print_monthly_table(request):
     """Печатная форма табеля за месяц"""
@@ -295,9 +261,11 @@ def print_monthly_table(request):
     # Инициализация переменных
     employees = Employee.objects.none()
     timesheets = Timesheet.objects.none()
+    master_user = None  # Для хранения мастера-составителя
     
     # === ЛОГИКА ДЛЯ МАСТЕРА ===
     if request.user.is_master:
+        master_user = request.user  # Мастер сам составитель
         # 1. Получаем или создаем запись мастера как сотрудника
         master_employee, created = Employee.objects.get_or_create(
             user=request.user,
@@ -325,6 +293,13 @@ def print_monthly_table(request):
     elif request.user.is_planner or request.user.is_administrator:
         department_id = request.GET.get('department')
         master_id = request.GET.get('master')
+        
+        # Если выбран мастер в фильтре - берем его
+        if master_id:
+            try:
+                master_user = User.objects.get(id=master_id, role='master')
+            except User.DoesNotExist:
+                master_user = None
         
         # 1. Получаем ВСЕХ сотрудников (для списка)
         employees = Employee.objects.filter(is_active=True)
@@ -355,6 +330,12 @@ def print_monthly_table(request):
         employee_ids_from_timesheets = timesheets.values_list('employee_id', flat=True).distinct()
         if employee_ids_from_timesheets:
             employees = employees.filter(id__in=employee_ids_from_timesheets)
+        
+        # Если мастер не выбран в фильтре, берем первого из табелей
+        if not master_user and timesheets.exists():
+            first_timesheet = timesheets.first()
+            if first_timesheet and first_timesheet.master:
+                master_user = first_timesheet.master
     
     employees = employees.order_by('user__last_name', 'user__first_name')
     
@@ -374,7 +355,7 @@ def print_monthly_table(request):
                 is_weekend = day_date.weekday() >= 5
                 weekend_days_dict[day_date.day] = is_weekend
     
-    # Словари для подсчета статистики (как в вашем коде)
+    # Словари для подсчета статистики
     timesheet_dict = {}
     attendance_counts = {}
     downtime_counts = {}
@@ -389,7 +370,7 @@ def print_monthly_table(request):
     overtime_hours_counts = {}
     total_hours_counts = {}
     
-    # Форматы для подсчета часов (как в вашем коде)
+    # Форматы для подсчета часов
     total_hours_formats = {
         '7/3': 7.0, '7/2': 7.0, '8/2': 8.0, '8': 8.0, '7': 7.0,
         '4': 4.0, '10': 10.0, '10/2': 10.0, '3,5': 3.5, '9': 9.0,
@@ -404,7 +385,7 @@ def print_monthly_table(request):
     
     overtime_formats = {'9': 1, '10': 2, '9/2': 1, '10/2': 2}
     
-    # === ОБРАБОТКА ТАБЕЛЕЙ (как в вашем коде) ===
+    # === ОБРАБОТКА ТАБЕЛЕЙ ===
     for ts in timesheets:
         day = ts.date.day
         employee_id = ts.employee_id
@@ -513,7 +494,8 @@ def print_monthly_table(request):
             'row_status': 'has_data' if row_has_timesheets else 'empty',
             'employee_id': employee.id
         })
-     # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
+    
+    # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
     shop_chief_name = "С.В. Ефременко"  # значение по умолчанию
     
     # Определяем отдел для которого формируем табель
@@ -535,7 +517,52 @@ def print_monthly_table(request):
                 shop_chief_name = department.shop_chief_name
         except Department.DoesNotExist:
             pass
+    
+    # === ПОЛУЧАЕМ СОСТАВИТЕЛЯ ТАБЕЛЯ ===
+    composer_fio = "Н.А. Долгошей"  # значение по умолчанию
 
+    # Способ 1: Из GET параметра master (если плановик выбрал)
+    master_id = request.GET.get('master')
+    if master_id:
+        try:
+            master_user = User.objects.get(id=master_id, role='master')
+        except User.DoesNotExist:
+            master_user = None
+
+    # Способ 2: Из первого табеля (если есть табели)
+    if not master_user and timesheets.exists():
+        for ts in timesheets:
+            if ts.master:
+                master_user = ts.master
+                break
+
+    # Способ 3: Из отдела (первый мастер отдела)
+    if not master_user and department_id:
+        # Находим первого мастера в отделе
+        master_in_dept = User.objects.filter(
+            role='master',
+            department_id=department_id
+        ).first()
+        if master_in_dept:
+            master_user = master_in_dept
+
+    if master_user:
+        # Форматируем ФИО мастера в формат "И.О. Фамилия"
+        full_name = master_user.get_full_name()
+        if full_name:
+            parts = full_name.split()
+            if len(parts) >= 3:
+                last_name = parts[0]
+                first_initial = parts[1][0] + '.' if parts[1] else ''
+                middle_initial = parts[2][0] + '.' if len(parts) > 2 and parts[2] else ''
+                composer_fio = f"{first_initial}{middle_initial} {last_name}"
+            elif len(parts) == 2:
+                last_name = parts[0]
+                first_initial = parts[1][0] + '.' if parts[1] else ''
+                composer_fio = f"{first_initial}. {last_name}"
+            else:
+                composer_fio = full_name
+        
     context = {
         'title': f'Табель за {month:02d}.{year}',
         'year': year,
@@ -548,9 +575,44 @@ def print_monthly_table(request):
         'is_admin': request.user.is_administrator,
         'user': request.user,
         'shop_chief_name': shop_chief_name,
+        'composer_fio': composer_fio,  # Добавляем составителя
     }
     
     return render(request, 'timesheet/print_monthly_table.html', context)
+@login_required
+def bulk_approve_view(request):
+    """Массовое утверждение табелей"""
+    if not request.user.is_planner and not request.user.is_administrator:
+        messages.error(request, 'У вас нет прав для массового утверждения')
+        return redirect('timesheet:list')
+    
+    if request.method == 'POST':
+        timesheet_ids = request.POST.getlist('timesheet_ids')
+        action = request.POST.get('action')
+        
+        if not timesheet_ids:
+            messages.error(request, 'Не выбраны табели для обработки')
+            return redirect('timesheet:list')
+        
+        queryset = Timesheet.objects.filter(id__in=timesheet_ids)
+        
+        if action == 'approve':
+            updated = queryset.filter(status='draft').update(
+                status='approved',
+                approved_by=request.user,
+                approved_at=datetime.now()
+            )
+            messages.success(request, f'Утверждено табелей: {updated}')
+        elif action == 'unapprove':
+            updated = queryset.filter(status='approved').update(
+                status='draft',
+                approved_by=None,
+                approved_at=None
+            )
+            messages.success(request, f'Снято с утверждения табелей: {updated}')
+    
+    return redirect('timesheet:list')
+
 @login_required
 def export_view(request):
     """Экспорт табелей в CSV"""
@@ -869,7 +931,7 @@ def monthly_table_view(request):
     prev_year = year if month > 1 else year - 1
     next_month = month + 1 if month < 12 else 1
     next_year = year if month < 12 else year + 1
-    
+
      # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
     shop_chief_name = "С.В. Ефременко"
     department_id = request.GET.get('department')
