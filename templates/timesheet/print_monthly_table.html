@@ -9,7 +9,7 @@
     /* ===== БАЗОВЫЕ НАСТРОЙКИ ===== */
     @page {
         size: A4 landscape;
-        margin: 1mm;
+        margin: 5mm;
     }
     
     body {
@@ -96,7 +96,6 @@
         vertical-align: middle;
         line-height: 1;
         overflow: hidden;
-        height: 4.2mm;
         font-weight: normal;
     }
     
@@ -132,11 +131,12 @@
     
     /* Колонки с днями - узкие */
     .day-col { 
-        width: 4.5mm !important; 
-        min-width: 4.5mm !important;
-        max-width: 4.5mm !important;
+        width: 4mm !important; 
+        min-width: 4mm !important;
+        max-width: 4mm !important;
         padding: 0 !important;
         font-size: 6.5pt;
+        height: 6mm !important;
     }
     
     .col-stats { 
@@ -612,45 +612,17 @@
                     <td class="col-stats col-days-work">
                         <div class="cell-content">{{ table_data|sum_attr:"attendance_days"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats col-days-downtime">
-                        <div class="cell-content">{{ table_data|sum_attr:"downtime_days"|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-vacation">
-                        <div class="cell-content">{{ table_data|sum_attr:"vacation_days"|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-illness">
-                        <div class="cell-content">{{ table_data|sum_attr:"illness_days"|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-other-absences">
-                        <div class="cell-content">{{ table_data|sum_attr:"other_absence_days"|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-admin-permission">
-                        <div class="cell-content">{{ table_data|sum_attr:"admin_permission_days"|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-absence">
-                        <div class="cell-content">{{ table_data|sum_attr:"absence_days"|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats">
-                        <div class="cell-content">{{ table_data|sum_attr:"business_trip_days"|default:"0" }}</div>
-                    </td>
+                    
+                    <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Дни явок" и "Дни неявок" -->
+                    <td colspan="7"></td>
+                    
+                    <!-- Колонка "всего" -->
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:0|default:"0" }}</div>
+                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:"0"|default:"0" }}</div>
                     </td>
-                    <td class="col-stats col-weekend-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:0|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-evening-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"evening_hours"|floatformat:1|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-night-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"night_hours"|floatformat:1|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-weekend-hours2">
-                        <div class="cell-content">{{ table_data|sum_attr:"weekend_hours"|floatformat:1|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-overtime">
-                        <div class="cell-content">{{ table_data|sum_attr:"overtime_hours"|floatformat:1|default:"0" }}</div>
-                    </td>
+                    
+                    <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Отработано часов" -->
+                    <td colspan="5"></td>
                 </tr>
             </tbody>
         </table>
@@ -714,12 +686,20 @@
     <!-- ===== ПОДПИСИ ===== -->
     <div class="signatures">
         <div class="signature-left">
-            Руководитель ______________ 
-            {% if is_master %}{{ user.get_full_name|default:user.username }}{% else %}С.В. Ефременко{% endif %}
+            Начальник цеха ______________ 
+            {% if is_master %}
+                {{ user.get_full_name|format_fio_short|default:user.username }}
+            {% else %}
+                С.В. Ефременко
+            {% endif %}
         </div>
         <div class="signature-right">
             Составил______________________ 
-            {% if is_master %}{{ user.get_full_name|default:user.username }}{% else %}Н.А. Долгошей{% endif %}
+            {% if is_master %}
+                {{ user.get_full_name|format_fio_short|default:user.username }}
+            {% else %}
+                Н.А. Долгошей
+            {% endif %}
         </div>
     </div>
     
