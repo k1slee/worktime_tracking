@@ -27,11 +27,11 @@ class AddEmployeeForm(forms.ModelForm):
             self.fields['employee'].queryset = User.objects.filter(
                 department=None,
                 is_active=True,
-                role='master'  # Только обычные пользователи
+                role='worker'  
             ).exclude(
                 id__in=existing_employee_users
             ).exclude(
-                role__in=['admin', 'planner']  # Исключаем админов и плановиков
+                role__in=['admin', 'planner', 'master']  # Исключаем админов и плановиков
             )
     
     def clean_employee(self):
@@ -156,7 +156,7 @@ class CreateEmployeeForm(forms.Form):
             middle_name=self.cleaned_data.get('middle_name', ''),
             position=self.cleaned_data['position'],
             department=self.master.department if self.master else None,
-            role='master'  # Обычный пользователь
+            role='worker'  # Обычный пользователь
         )
         middle_name = self.cleaned_data.get('middle_name', '')
         if middle_name:

@@ -30,12 +30,13 @@ class User(AbstractUser):
         ('admin', 'Администратор'),
         ('master', 'Мастер'),
         ('planner', 'Плановый отдел'),
+        ('worker', 'Работник'),
     ]
     
     employee_id = models.CharField('Табельный номер', max_length=50, unique=True)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, 
                                  null=True, blank=True, verbose_name='Отдел')
-    role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES, default='master')
+    role = models.CharField('Роль', max_length=20, choices=ROLE_CHOICES, default='worker')
     phone = models.CharField('Телефон', max_length=20, blank=True)
     position = models.CharField('Должность', max_length=200, blank=True)
     middle_name = models.CharField('Отчество', max_length=150, blank=True)
