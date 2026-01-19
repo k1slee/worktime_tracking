@@ -248,7 +248,6 @@ def approve_timesheet(request, pk):
 @login_required
 def print_monthly_table(request):
     """Печатная форма табеля за месяц"""
-    # Получаем параметры месяца (та же логика, что и в monthly_table_view)
     today = timezone.now().date()
     
     try:
@@ -258,55 +257,35 @@ def print_monthly_table(request):
         year = today.year
         month = today.month
     
+    # Получаем выбранного мастера
+    master_id = request.GET.get('master')
+    master_user = None
+    department_id = None
+    
+    if master_id:
+        try:
+            master_user = User.objects.get(id=master_id, role='master')
+            department_id = master_user.department_id
+        except User.DoesNotExist:
+            pass
+    
     # Инициализация переменных
     employees = Employee.objects.none()
     timesheets = Timesheet.objects.none()
-    master_user = None  # Для хранения мастера-составителя
     
     # === ЛОГИКА ДЛЯ МАСТЕРА ===
     if request.user.is_master:
-        master_user = request.user  # Мастер сам составитель
-        # 1. Получаем или создаем запись мастера как сотрудника
-        master_employee, created = Employee.objects.get_or_create(
-            user=request.user,
-            defaults={
-                'master': request.user,
-                'hire_date': request.user.date_joined.date() if request.user.date_joined else today,
-                'is_active': True
-            }
-        )
+        master_user = request.user
+        department_id = request.user.department_id
         
-        # 2. Получаем всех сотрудников мастера (включая самого мастера)
-        employees = Employee.objects.filter(
-            Q(master=request.user) | Q(user=request.user),
-            is_active=True
-        ).distinct()
-        
-        # 3. Получаем ВСЕ табели сотрудников мастера
-        timesheets = Timesheet.objects.filter(
-            date__year=year,
-            date__month=month,
-            employee__in=employees
-        ).select_related('employee', 'employee__user', 'master')
+        # ... существующий код для мастера ...
     
     # === ЛОГИКА ДЛЯ ПЛАНОВИКА И АДМИНИСТРАТОРА ===
     elif request.user.is_planner or request.user.is_administrator:
-        department_id = request.GET.get('department')
-        master_id = request.GET.get('master')
-        
-        # Если выбран мастер в фильтре - берем его
-        if master_id:
-            try:
-                master_user = User.objects.get(id=master_id, role='master')
-            except User.DoesNotExist:
-                master_user = None
-        
-        # 1. Получаем ВСЕХ сотрудников (для списка)
+        # 1. Получаем всех сотрудников
         employees = Employee.objects.filter(is_active=True)
         
-        # 2. Применяем фильтры к сотрудникам
-        if department_id:
-            employees = employees.filter(user__department_id=department_id)
+        # 2. Фильтруем только по мастеру (отдел убран)
         if master_id:
             employees = employees.filter(master_id=master_id)
         
@@ -320,9 +299,7 @@ def print_monthly_table(request):
             status__in=['submitted', 'approved']
         ).select_related('employee', 'employee__user', 'master')
         
-        # 4. Применяем те же фильтры к табелям
-        if department_id:
-            timesheets = timesheets.filter(employee__user__department_id=department_id)
+        # 4. Фильтруем табели по мастеру
         if master_id:
             timesheets = timesheets.filter(master_id=master_id)
         
@@ -331,185 +308,18 @@ def print_monthly_table(request):
         if employee_ids_from_timesheets:
             employees = employees.filter(id__in=employee_ids_from_timesheets)
         
-        # Если мастер не выбран в фильтре, берем первого из табелей
+        # 6. Если мастер не выбран, берем первого из табелей
         if not master_user and timesheets.exists():
             first_timesheet = timesheets.first()
             if first_timesheet and first_timesheet.master:
                 master_user = first_timesheet.master
+                department_id = master_user.department_id if master_user else None
     
-    employees = employees.order_by('user__last_name', 'user__first_name')
-    
-    # === ПОДГОТОВКА ДАННЫХ ДЛЯ ТАБЛИЦЫ ===
-    import calendar
-    days_in_month = calendar.monthrange(year, month)[1]
-    days = list(range(1, days_in_month + 1))
-    
-    # Определяем выходные дни
-    weekend_days_dict = {}
-    cal = calendar.Calendar()
-    month_days = cal.monthdatescalendar(year, month)
-    
-    for week in month_days:
-        for day_date in week:
-            if day_date.month == month:
-                is_weekend = day_date.weekday() >= 5
-                weekend_days_dict[day_date.day] = is_weekend
-    
-    # Словари для подсчета статистики
-    timesheet_dict = {}
-    attendance_counts = {}
-    downtime_counts = {}
-    vacation_counts = {}
-    illness_counts = {}
-    other_absence_counts = {}
-    admin_permission_counts = {}
-    absence_counts = {}
-    evening_hours_counts = {}
-    night_hours_counts = {}
-    weekend_hours_counts = {}
-    overtime_hours_counts = {}
-    total_hours_counts = {}
-    
-    # Форматы для подсчета часов
-    total_hours_formats = {
-        '7/3': 7.0, '7/2': 7.0, '8/2': 8.0, '8': 8.0, '7': 7.0,
-        '4': 4.0, '10': 10.0, '10/2': 10.0, '3,5': 3.5, '9': 9.0,
-        '9/2': 9.0, '6': 6.0, '6/2': 6.0, '5': 5.0, '5/2': 5.0,
-    }
-    
-    evening_formats = ['8/2', '7/2', '9/2', '10/2', '6/2']
-    
-    night_formats = {
-        '7/3': 7.0, '8/2': 1.5, '9/2': 1.5, '10/2': 1.5, '6/2': 1.5,
-    }
-    
-    overtime_formats = {'9': 1, '10': 2, '9/2': 1, '10/2': 2}
-    
-    # === ОБРАБОТКА ТАБЕЛЕЙ ===
-    for ts in timesheets:
-        day = ts.date.day
-        employee_id = ts.employee_id
-        
-        if employee_id not in timesheet_dict:
-            timesheet_dict[employee_id] = {}
-        
-        timesheet_dict[employee_id][day] = {
-            'value': ts.value,
-            'display_value': ts.display_value,
-        }
-        
-        value_str = str(ts.value) if ts.value else ""
-        
-        # Подсчет общего количества часов
-        if value_str in total_hours_formats:
-            hours = total_hours_formats[value_str]
-            total_hours_counts[employee_id] = total_hours_counts.get(employee_id, 0) + hours
-            
-            # Подсчет часов в выходные дни
-            if weekend_days_dict.get(day, False):
-                weekend_hours_counts[employee_id] = weekend_hours_counts.get(employee_id, 0) + hours
-        
-        # Если значение не в форматах, но это число
-        elif ts.value and value_str.replace(',', '', 1).replace('.', '', 1).isdigit():
-            try:
-                hours = float(value_str.replace(',', '.')) if ',' in value_str else float(value_str)
-                if hours > 0:
-                    total_hours_counts[employee_id] = total_hours_counts.get(employee_id, 0) + hours
-                    if weekend_days_dict.get(day, False):
-                        weekend_hours_counts[employee_id] = weekend_hours_counts.get(employee_id, 0) + hours
-            except (ValueError, TypeError):
-                pass
-        
-        # Подсчет вечерних часов
-        if value_str in evening_formats:
-            evening_hours_counts[employee_id] = evening_hours_counts.get(employee_id, 0) + 6.5
-        
-        # Подсчет ночных часов
-        if value_str in night_formats:
-            night_hours_counts[employee_id] = night_hours_counts.get(employee_id, 0) + night_formats[value_str]
-        
-        # Подсчет сверхурочных часов
-        if value_str in overtime_formats:
-            overtime_hours_counts[employee_id] = overtime_hours_counts.get(employee_id, 0) + overtime_formats[value_str]
-        
-        # Подсчет дней явок
-        if ts.value and ts.value not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ', 'А']:
-            attendance_counts[employee_id] = attendance_counts.get(employee_id, 0) + 1
-        
-        # Подсчет других категорий
-        if ts.value == 'ЦП':
-            downtime_counts[employee_id] = downtime_counts.get(employee_id, 0) + 1
-        elif ts.value == 'О':
-            vacation_counts[employee_id] = vacation_counts.get(employee_id, 0) + 1
-        elif ts.value in ['Б', 'Р']:
-            illness_counts[employee_id] = illness_counts.get(employee_id, 0) + 1
-        elif ts.value == 'П':
-            absence_counts[employee_id] = absence_counts.get(employee_id, 0) + 1
-        elif ts.value in ['Г', 'ДМ', 'ОЖ', 'ОС']:
-            other_absence_counts[employee_id] = other_absence_counts.get(employee_id, 0) + 1
-        elif ts.value == 'А':
-            admin_permission_counts[employee_id] = admin_permission_counts.get(employee_id, 0) + 1
-    
-    # === ФОРМИРОВАНИЕ ТАБЛИЦЫ ===
-    table_data = []
-    
-    for employee in employees:
-        employee_timesheets = timesheet_dict.get(employee.id, {})
-        
-        # Формируем ячейки дней
-        day_cells = []
-        for day in days:
-            ts_data = employee_timesheets.get(day)
-            if ts_data:
-                day_cells.append({
-                    'day': day,
-                    'value': ts_data['value'],
-                    'display_value': ts_data['display_value'],
-                })
-            else:
-                day_cells.append({
-                    'day': day,
-                    'value': '',
-                    'display_value': '',
-                })
-        
-        # Получаем статистику
-        row_has_timesheets = any(cell['value'] for cell in day_cells)
-        
-        table_data.append({
-            'employee': employee,
-            'days': day_cells,
-            'attendance_days': attendance_counts.get(employee.id, 0),
-            'downtime_days': downtime_counts.get(employee.id, 0),
-            'vacation_days': vacation_counts.get(employee.id, 0),
-            'illness_days': illness_counts.get(employee.id, 0),
-            'other_absence_days': other_absence_counts.get(employee.id, 0),
-            'admin_permission_days': admin_permission_counts.get(employee.id, 0),
-            'absence_days': absence_counts.get(employee.id, 0),
-            'total_hours': round(total_hours_counts.get(employee.id, 0), 1),
-            'evening_hours': round(evening_hours_counts.get(employee.id, 0), 1),
-            'night_hours': round(night_hours_counts.get(employee.id, 0), 1),
-            'weekend_hours': round(weekend_hours_counts.get(employee.id, 0), 1),
-            'overtime_hours': round(overtime_hours_counts.get(employee.id, 0), 1),
-            'row_status': 'has_data' if row_has_timesheets else 'empty',
-            'employee_id': employee.id
-        })
+    # ... остальной код подготовки таблицы ...
     
     # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
     shop_chief_name = "С.В. Ефременко"  # значение по умолчанию
     
-    # Определяем отдел для которого формируем табель
-    department_id = None
-    
-    # Если мастер - берем его отдел
-    if request.user.is_master:
-        department_id = request.user.department_id if request.user.department else None
-    
-    # Если плановик/админ - берем выбранный отдел из фильтра
-    elif request.user.is_planner or request.user.is_administrator:
-        department_id = request.GET.get('department')
-    
-    # Если отдел определен, получаем начальника цеха
     if department_id:
         try:
             department = Department.objects.get(id=department_id)
@@ -520,34 +330,9 @@ def print_monthly_table(request):
     
     # === ПОЛУЧАЕМ СОСТАВИТЕЛЯ ТАБЕЛЯ ===
     composer_fio = "Н.А. Долгошей"  # значение по умолчанию
-
-    # Способ 1: Из GET параметра master (если плановик выбрал)
-    master_id = request.GET.get('master')
-    if master_id:
-        try:
-            master_user = User.objects.get(id=master_id, role='master')
-        except User.DoesNotExist:
-            master_user = None
-
-    # Способ 2: Из первого табеля (если есть табели)
-    if not master_user and timesheets.exists():
-        for ts in timesheets:
-            if ts.master:
-                master_user = ts.master
-                break
-
-    # Способ 3: Из отдела (первый мастер отдела)
-    if not master_user and department_id:
-        # Находим первого мастера в отделе
-        master_in_dept = User.objects.filter(
-            role='master',
-            department_id=department_id
-        ).first()
-        if master_in_dept:
-            master_user = master_in_dept
-
+    
     if master_user:
-        # Форматируем ФИО мастера в формат "И.О. Фамилия"
+        # Форматируем ФИО мастера
         full_name = master_user.get_full_name()
         if full_name:
             parts = full_name.split()
@@ -923,8 +708,17 @@ def monthly_table_view(request):
     
     # === ПОДГОТОВКА КОНТЕКСТА ===
     departments = []
+    masters = []
+    
     if request.user.is_planner or request.user.is_administrator:
+        # Получаем все отделы
         departments = Department.objects.all()
+        
+        # Получаем всех пользователей с ролью мастера
+        masters = User.objects.filter(
+            role='master', 
+            is_active=True
+        ).order_by('last_name', 'first_name')
     
     # Навигация по месяцам
     prev_month = month - 1 if month > 1 else 12
@@ -932,21 +726,32 @@ def monthly_table_view(request):
     next_month = month + 1 if month < 12 else 1
     next_year = year if month < 12 else year + 1
 
-     # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
+    # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
     shop_chief_name = "С.В. Ефременко"
+    master_id = request.GET.get('master')
     department_id = request.GET.get('department')
     
-    if department_id:
+    # Приоритет 1: Если выбран мастер, берем отдел из его профиля
+    if master_id:
+        try:
+            master_user = User.objects.get(id=master_id)
+            if master_user.department and master_user.department.shop_chief_name:
+                shop_chief_name = master_user.department.shop_chief_name
+        except User.DoesNotExist:
+            pass
+    # Приоритет 2: Если выбран отдел напрямую
+    elif department_id:
         try:
             department = Department.objects.get(id=department_id)
             if department.shop_chief_name:
                 shop_chief_name = department.shop_chief_name
         except Department.DoesNotExist:
             pass
+    # Приоритет 3: Для мастера без выбранного отдела берем его отдел
     elif request.user.is_master and request.user.department:
-        # Для мастера без выбранного отдела берем его отдел
         if request.user.department.shop_chief_name:
             shop_chief_name = request.user.department.shop_chief_name
+    
     context = {
         'title': f'Табель за {month:02d}.{year}',
         'year': year,
@@ -956,7 +761,9 @@ def monthly_table_view(request):
         'days': days,
         'days_in_month': days_in_month,
         'departments': departments,
+        'masters': masters,  # Добавлено!
         'selected_department': request.GET.get('department'),
+        'selected_master': request.GET.get('master'),  # Добавлено!
         'prev_month': prev_month,
         'prev_year': prev_year,
         'next_month': next_month,

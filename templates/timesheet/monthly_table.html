@@ -667,23 +667,25 @@
             <div class="card filters-card">
                 <div class="card-body py-2">
                     <form method="get" class="row g-2">
-                        <div class="col-md-3">
-                            <label class="form-label">Отдел:</label>
-                            <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="">Все отделы</option>
-                                {% for dept in departments %}
-                                <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"i" %}selected{% endif %}>
-                                    {{ dept.name }}
+                        <!-- Добавляем фильтр по мастеру -->
+                        <div class="col-md-4">
+                            <label class="form-label">Мастер:</label>
+                            <select name="master" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">Все мастера</option>
+                                {% for master in masters %}
+                                <option value="{{ master.id }}" {% if request.GET.master == master.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ master.get_full_name }} ({{ master.employee_id }})
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        
+                        <div class="col-md-4">
                             <label class="form-label">Год:</label>
                             <input type="number" name="year" value="{{ year }}" min="2023" max="2030" 
                                    class="form-control form-control-sm" onchange="this.form.submit()">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">Месяц:</label>
                             <select name="month" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="1" {% if month == 1 %}selected{% endif %}>Январь</option>
@@ -700,9 +702,9 @@
                                 <option value="12" {% if month == 12 %}selected{% endif %}>Декабрь</option>
                             </select>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
+                        <div class="col-md-4 d-flex align-items-end">
                             <a href="?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary btn-sm">
-                                Сбросить
+                                Сбросить фильтры
                             </a>
                         </div>
                     </form>
@@ -710,7 +712,7 @@
             </div>
         </div>
     </div>
-    {% endif %}
+{% endif %}
     
     <!-- Основная таблица -->
     <div class="row">
