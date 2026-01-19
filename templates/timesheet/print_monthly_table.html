@@ -687,11 +687,7 @@
     <div class="signatures">
         <div class="signature-left">
             Начальник цеха ______________ 
-            {% if is_master %}
-                {{ user.get_full_name|format_fio_short|default:user.username }}
-            {% else %}
-                С.В. Ефременко
-            {% endif %}
+            {{ shop_chief_name|default:"С.В. Ефременко" }}
         </div>
         <div class="signature-right">
             Составил______________________ 

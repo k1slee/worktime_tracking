@@ -104,10 +104,30 @@ class DepartmentAdmin(admin.ModelAdmin):
     list_filter = ('parent',)
     search_fields = ('name', 'code')
     ordering = ('name',)
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('name', 'code', 'parent')
+        }),
+        ('Дополнительно', {
+            'fields': ('shop_chief_name',),
+            'classes': ('collapse',)
+        }),
+    )
 
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'is_active', 'department')
     list_filter = ('master', 'is_active', 'hire_date')
+    fieldsets = (
+        (None, {
+            'fields' : ('user', 'master', 'shop_chief_name', 'is_active')
+        }),
+        ('Дополнительно', {
+            'fields': ('hire_date',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
     search_fields = ('user__last_name', 'user__first_name', 'user__employee_id', 'user__middle_name')
     raw_id_fields = ('user', 'master')
     ordering = ('user__last_name', 'user__first_name')

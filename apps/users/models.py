@@ -9,6 +9,12 @@ class Department(models.Model):
     parent = models.ForeignKey('self', on_delete=models.CASCADE, 
                              null=True, blank=True, 
                              verbose_name='Родительский отдел')
+    shop_chief_name = models.CharField(
+        'Начальник цеха (ФИО)',
+        max_length=200,
+        blank=True,
+        default='С.В. Ефременко',
+        help_text='ФИО начальника цеха, например: С.В. Ефременко')
     
     class Meta:
         verbose_name = 'Отдел'
@@ -79,7 +85,6 @@ class Employee(models.Model):
                              verbose_name='Мастер', limit_choices_to={'role': 'master'})
     hire_date = models.DateField('Дата приема', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
-    
     class Meta:
         verbose_name = 'Сотрудник'
         verbose_name_plural = 'Сотрудники'

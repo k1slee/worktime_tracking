@@ -513,7 +513,29 @@ def print_monthly_table(request):
             'row_status': 'has_data' if row_has_timesheets else 'empty',
             'employee_id': employee.id
         })
+     # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
+    shop_chief_name = "С.В. Ефременко"  # значение по умолчанию
     
+    # Определяем отдел для которого формируем табель
+    department_id = None
+    
+    # Если мастер - берем его отдел
+    if request.user.is_master:
+        department_id = request.user.department_id if request.user.department else None
+    
+    # Если плановик/админ - берем выбранный отдел из фильтра
+    elif request.user.is_planner or request.user.is_administrator:
+        department_id = request.GET.get('department')
+    
+    # Если отдел определен, получаем начальника цеха
+    if department_id:
+        try:
+            department = Department.objects.get(id=department_id)
+            if department.shop_chief_name:
+                shop_chief_name = department.shop_chief_name
+        except Department.DoesNotExist:
+            pass
+
     context = {
         'title': f'Табель за {month:02d}.{year}',
         'year': year,
@@ -525,6 +547,7 @@ def print_monthly_table(request):
         'is_planner': request.user.is_planner,
         'is_admin': request.user.is_administrator,
         'user': request.user,
+        'shop_chief_name': shop_chief_name,
     }
     
     return render(request, 'timesheet/print_monthly_table.html', context)
@@ -847,6 +870,21 @@ def monthly_table_view(request):
     next_month = month + 1 if month < 12 else 1
     next_year = year if month < 12 else year + 1
     
+     # === ПОЛУЧАЕМ ИМЯ НАЧАЛЬНИКА ЦЕХА ИЗ ОТДЕЛА ===
+    shop_chief_name = "С.В. Ефременко"
+    department_id = request.GET.get('department')
+    
+    if department_id:
+        try:
+            department = Department.objects.get(id=department_id)
+            if department.shop_chief_name:
+                shop_chief_name = department.shop_chief_name
+        except Department.DoesNotExist:
+            pass
+    elif request.user.is_master and request.user.department:
+        # Для мастера без выбранного отдела берем его отдел
+        if request.user.department.shop_chief_name:
+            shop_chief_name = request.user.department.shop_chief_name
     context = {
         'title': f'Табель за {month:02d}.{year}',
         'year': year,
@@ -867,6 +905,7 @@ def monthly_table_view(request):
         'total_employees': employees.count(),
         'days_range': range(1, days_in_month + 1),
         'weekend_days': weekend_days_dict,
+        'shop_chief_name': shop_chief_name,
     }
     
     return render(request, 'timesheet/monthly_table.html', context)
