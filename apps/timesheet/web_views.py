@@ -18,9 +18,17 @@ from django.utils import timezone
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from apps.users.models import User, Employee, Department
-from .models import Timesheet
+from .models import Timesheet, Holiday
 import calendar
+from datetime import date
 from django.db.models import Q
+def get_day_value(day_date):
+    if Holiday.objects.filter(date=day_date, type="holiday").exists():
+        return "В"
+    elif Holiday.objects.filter(date=day_date, type="preholiday").exists():
+        return "7"
+    else:
+        return "8"  
 def monthly_create_view(request):
     """Создание табелей на весь месяц"""
     if not request.user.is_master:
@@ -352,6 +360,12 @@ def print_monthly_table(request):
     for week in month_days:
         for day_date in week:
             if day_date.month == month:
+                if Holiday.objects.filter(date = day_date, type = 'holiday').exists():
+                    weekend_days_dict[day_date.day] = True
+                elif Holiday.objects.filter(date=day_date, type="preholiday").exists():
+                    weekend_days_dict[day_date.day] = False
+                else:
+                    weekend_days_dict[day_date.day] = False
                 is_weekend = day_date.weekday() >= 5
                 weekend_days_dict[day_date.day] = is_weekend
     
@@ -409,8 +423,9 @@ def print_monthly_table(request):
             total_hours_counts[employee_id] = total_hours_counts.get(employee_id, 0) + hours
             
             # Подсчет часов в выходные дни
-            if weekend_days_dict.get(day, False):
+            if Holiday.objects.filter(date=day_date, type="holiday").exists():
                 weekend_hours_counts[employee_id] = weekend_hours_counts.get(employee_id, 0) + hours
+
         
         # Если значение не в форматах, но это число
         elif ts.value and value_str.replace(',', '', 1).replace('.', '', 1).isdigit():
@@ -458,12 +473,14 @@ def print_monthly_table(request):
     
     for employee in employees:
         employee_timesheets = timesheet_dict.get(employee.id, {})
-        
+        holiday_value = get_day_value(day_date)
         # Формируем ячейки дней
         day_cells = []
         for day in days:
             ts_data = employee_timesheets.get(day)
+            day_date = date(year, month, day)
             if ts_data:
+                display_value = holiday_value if holiday_value else ts_data['display_value']
                 day_cells.append({
                     'day': day,
                     'timesheet_id': ts_data['id'],
@@ -473,6 +490,7 @@ def print_monthly_table(request):
                     'css_class': ts_data['css_class']
                 })
             else:
+                display_value = holiday_value if holiday_value else ''
                 day_cells.append({
                     'day': day,
                     'timesheet_id': None,
@@ -734,6 +752,12 @@ def monthly_table_view(request):
     for week in month_days:
         for day_date in week:
             if day_date.month == month:
+                if Holiday.objects.filter(date= day_date, type='holiday').exists():
+                    weekend_days_dict[day_date.day] = True
+                elif Holiday.objects.filter(date=day_date, type="preholiday").exists():
+                    weekend_days_dict[day_date.day] = False
+                else:
+                    weekend_days_dict[day_date.day] = False
                 is_weekend = day_date.weekday() >= 5
                 weekend_days_dict[day_date.day] = is_weekend
     
@@ -794,8 +818,9 @@ def monthly_table_view(request):
             total_hours_counts[employee_id] = total_hours_counts.get(employee_id, 0) + hours
             
             # Подсчет часов в выходные дни
-            if weekend_days_dict.get(day, False):
+            if Holiday.objects.filter(date=day_date, type="holiday").exists():
                 weekend_hours_counts[employee_id] = weekend_hours_counts.get(employee_id, 0) + hours
+
         
         # Если значение не в форматах, но это число
         elif ts.value and value_str.replace(',', '', 1).replace('.', '', 1).isdigit():
@@ -848,7 +873,10 @@ def monthly_table_view(request):
         day_cells = []
         for day in days:
             ts_data = employee_timesheets.get(day)
+            holiday_value = get_day_value(day_date)
+            day_date = date(year, month, day)
             if ts_data:
+                display_value = holiday_value if holiday_value else ts_data['display_value']
                 can_edit = ts_data['can_edit'] if request.user.is_master else False
                 day_cells.append({
                     'day': day,
@@ -861,6 +889,7 @@ def monthly_table_view(request):
                 })
             else:
                 can_edit = True if request.user.is_master else False
+                display_value = holiday_value if holiday_value else ''
                 day_cells.append({
                     'day': day,
                     'timesheet_id': None,
@@ -1179,3 +1208,4 @@ def submit_month(request):
         
     except (ValueError, TypeError) as e:
         return JsonResponse({'error': 'Ошибка в параметрах месяца'}, status=400)
+    

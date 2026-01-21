@@ -219,3 +219,20 @@ class Timesheet(models.Model):
         self.approved_by = user
         self.approved_at = timezone.now()
         self.save()
+
+class Holiday(models.Model):
+    date = models.DateField(unique = True)
+    name = models.CharField(max_length = 100, blank = True, null = True)
+    type = models.CharField(
+        max_length=20,
+        choices=[
+            ("holiday", "Праздник"),
+            ("preholiday","Предпраздник"),
+        ], 
+        default ="holiday"
+    )
+
+    class Meta:
+        ordering = ["date"]
+    def __str__(self):
+        return f"{self.date} - {self.name or self.type}"

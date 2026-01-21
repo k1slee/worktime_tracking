@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Timesheet
-
+from .models import Holiday
 @admin.register(Timesheet)
 class TimesheetAdmin(admin.ModelAdmin):
     list_display = ['date', 'employee', 'master', 'value', 'status', 'approved_by', 'approved_at']
@@ -28,3 +28,9 @@ class TimesheetAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'Снято с утверждения табелей: {updated}')
     unapprove_selected.short_description = 'Снять утверждение с выбранных'
+
+@admin.register(Holiday)
+class HolidayAdmin(admin.ModelAdmin):
+    list_display = ("date", "type", "name")
+    list_filter = ("type",)
+    search_fields = ("name",)
