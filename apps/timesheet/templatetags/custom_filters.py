@@ -96,3 +96,15 @@ def sum_attr_int(iterable, attr):
             if cleaned.isdigit():
                 total += int(cleaned)
     return total
+@register.filter
+def only_number(value):
+    """
+    Возвращает только число из строки.
+    Если там буква или пусто — возвращает исходное значение.
+    """
+    if not value:
+        return ""
+    cleaned = str(value).replace('ч', '').strip()
+    if cleaned.isdigit():
+        return int(cleaned)
+    return value

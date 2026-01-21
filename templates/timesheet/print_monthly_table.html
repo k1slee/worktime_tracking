@@ -552,7 +552,7 @@
                     <!-- Дни месяца -->
                     {% for day_data in row.days %}
                     <td class="day-col {% if weekend_days|get_item:day_data.day %}weekend{% endif %}">
-                        <div class="cell-content">{{ day_data.display_value|remove_h|default:"" }}</div>
+                        <div class="cell-content">{{ day_data.display_value| only_number}}</div>
                     </td>
                     {% endfor %}
                     
