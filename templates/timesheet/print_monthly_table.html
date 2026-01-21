@@ -586,7 +586,7 @@
 
                     <!--Отработано часов-->
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content">{{ row.total_hours|remove_h }}</div>
+                        <div class="cell-content">{{ row.total_hours}}</div>
                     </td>
                     <td class="col-stats col-weekend-hours">
                         <div class="cell-content">{{ row.weekend_hours|floatformat:0|default:"0" }}</div>
@@ -610,7 +610,7 @@
                 <tr class="total-row">
                     <td colspan="{{ days|length|add:'4' }}">ИТОГО</td>
                     <td class="col-stats col-days-work">
-                        <div class="cell-content">{{ table_data|sum_attr:"attendance_days"|default:"0" }}</div>
+                        <div class="cell-content">{{ table_data|sum_attr_int:"attendance_days"}}</div>
                     </td>
                     
                     <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Дни явок" и "Дни неявок" -->
@@ -618,7 +618,7 @@
                     
                     <!-- Колонка "всего" -->
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content">{{ table_data|sum_attr:"total_hours"|floatformat:"0"|default:"0" }}</div>
+                        <div class="cell-content">{{ table_data|sum_attr_any:"total_hours"}}</div>
                     </td>
                     
                     <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Отработано часов" -->
