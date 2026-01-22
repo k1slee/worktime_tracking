@@ -119,7 +119,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_filter = ('master', 'is_active', 'hire_date')
     fieldsets = (
         (None, {
-            'fields' : ('user', 'master', 'shop_chief_name', 'is_active')
+            'fields' : ('user', 'master', 'is_active')
         }),
         ('Дополнительно', {
             'fields': ('hire_date',),
