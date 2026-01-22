@@ -25,8 +25,10 @@ from django.db.models import Q
 def get_day_value(day_date):
     if Holiday.objects.filter(date=day_date, type="holiday").exists():
         return "В"
-    elif Holiday.objects.filter(date=day_date, type="preholiday").exists():
+    if Holiday.objects.filter(date=day_date, type="preholiday").exists():
         return "7"
+    if day_date.weekday() in (5, 6):
+        return 'В'
     else:
         return "8" 
 import calendar
