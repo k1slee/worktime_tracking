@@ -179,7 +179,7 @@ class Timesheet(models.Model):
         """Отображаемое значение"""
         if self.value.isdigit():
             return f"{self.value} ч"
-        return self.value
+        return self.value if self.value else ""
 
     @property
     def is_submitted(self):
@@ -219,6 +219,17 @@ class Timesheet(models.Model):
         self.approved_by = user
         self.approved_at = timezone.now()
         self.save()
+    @property
+    def css_class(self):
+        """CSS класс для стилизации в зависимости от статуса"""
+        if self.status == 'approved':
+            return 'approved'
+        elif self.status == 'submitted':
+            return 'submitted'
+        elif self.status == 'draft':
+            return 'draft'
+        else:
+            return ''
 
 class Holiday(models.Model):
     date = models.DateField(unique = True)
