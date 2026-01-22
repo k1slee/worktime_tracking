@@ -243,9 +243,9 @@
 
     /* ОТРАБОТАНО ЧАСОВ */
     .col-total-hours { /* всего */
-        width: 15mm !important;
-        min-width: 15mm !important;
-        max-width: 15mm !important;
+        width: 10mm !important;
+        min-width: 10mm !important;
+        max-width: 10mm !important;
     }
 
     .col-weekend-hours { /* выходные */
@@ -261,12 +261,6 @@
     }
 
     .col-night-hours { /* ночные */
-        width: 10mm !important;
-        min-width: 10mm !important;
-        max-width: 10mm !important;
-    }
-
-    .col-weekend-hours2 { /* выходные (вторая колонка) */
         width: 10mm !important;
         min-width: 10mm !important;
         max-width: 10mm !important;
@@ -513,10 +507,10 @@
                     <th colspan="2" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Дни явок</th>
                     
                     <!-- Дни неявок -->
-                    <th colspan="6" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Дни неявок</th>
+                    <th colspan="5" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Дни неявок</th>
                     
                     <!-- Отработано часов -->
-                    <th colspan="6" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Отработано часов</th>
+                    <th colspan="5" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Отработано часов</th>
                 </tr>
                 
                 <!-- Третья строка заголовков (детальные) -->
@@ -524,7 +518,7 @@
                 <!-- Дни месяца -->
                 {% for day in days %}
                 <th class="day-col {% if weekend_days|get_item:day %}weekend{% endif %}" style="height: 17mm !important;">
-                    <div class="horizontal-text" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 5pt;">{{ day }}</div>
+                    <div class="horizontal-text" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 5pt; font-family: 'Times New Roman', serif;">{{ day }}</div>
                 </th>
                 {% endfor %}
                 
@@ -566,11 +560,6 @@
                         <div style="transform: rotate(-90deg); transform-origin: center; font-size: 5pt; text-align: center; line-height: 1.1; white-space: nowrap;">прогул</div>
                     </div>
                 </th>
-                <th class="col-stats vertical-header" style="height: 17mm !important; position: relative;">
-                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-                        <div style="transform: rotate(-90deg); transform-origin: center; font-size: 5pt; text-align: center; line-height: 1.1; white-space: nowrap;">командировки</div>
-                    </div>
-                </th>
                 
                 <!-- Отработано часов -->
                 <th class="col-stats col-total-hours vertical-header" style="height: 17mm !important; position: relative;">
@@ -591,11 +580,6 @@
                 <th class="col-stats col-night-hours vertical-header" style="height: 17mm !important; position: relative;">
                     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
                         <div style="transform: rotate(-90deg); transform-origin: center; font-size: 5pt; text-align: center; line-height: 1.1; white-space: nowrap;">ночные</div>
-                    </div>
-                </th>
-                <th class="col-stats col-weekend-hours2 vertical-header" style="height: 17mm !important; position: relative;">
-                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-                        <div style="transform: rotate(-90deg); transform-origin: center; font-size: 5pt; text-align: center; line-height: 1.1; white-space: nowrap;">выходные</div>
                     </div>
                 </th>
                 <th class="col-stats col-overtime vertical-header" style="height: 17mm !important; position: relative;">
@@ -653,9 +637,6 @@
                     <td class="col-stats col-absence">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.absence_days }}</div>
                     </td>
-                    <td class="col-stats">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.business_trip_days|default:"0" }}</div>
-                    </td>
 
                     <!--Отработано часов-->
                     <td class="col-stats col-total-hours">
@@ -669,9 +650,6 @@
                     </td>
                     <td class="col-stats col-night-hours">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.night_hours|floatformat:0|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-weekend-hours2">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.weekend_hours|floatformat:0|default:"0" }}</div>
                     </td>
                     <td class="col-stats col-overtime">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.overtime_hours|floatformat:0|default:"0" }}</div>
@@ -687,7 +665,7 @@
                     </td>
                     
                     <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Дни явок" и "Дни неявок" -->
-                    <td colspan="7"></td>
+                    <td colspan="6"></td>
                     
                     <!-- Колонка "всего" -->
                     <td class="col-stats col-total-hours">
@@ -695,7 +673,7 @@
                     </td>
                     
                     <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Отработано часов" -->
-                    <td colspan="5"></td>
+                    <td colspan="4"></td>
                 </tr>
             </tbody>
         </table>
