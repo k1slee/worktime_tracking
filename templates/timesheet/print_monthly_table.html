@@ -520,7 +520,6 @@
                 </tr>
                 
                 <!-- Третья строка заголовков (детальные) -->
-                <!-- Третья строка заголовков (детальные) -->
                 <tr>
                     <!-- Дни месяца -->
                     {% for day in days %}
@@ -586,7 +585,7 @@
                         <div class="cell-content">{{ forloop.counter }}</div>
                     </td>
                     <td class="col-name">
-                        <div class="cell-content text-left">{{ row.employee.full_name|default:row.employee.user.get_full_name }}</div>
+                        <div class="cell-content text-left">{{ row.formatted_fio|default:row.employee.full_name }}</div>
                     </td>
                     <td class="col-position">
                         <div class="cell-content text-left">{{ row.employee.position|default:"-" }}</div>

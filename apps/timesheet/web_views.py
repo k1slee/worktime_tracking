@@ -18,7 +18,40 @@ from apps.users.permissions import IsMaster, IsPlanner
 
 
 # ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
-
+def get_formatted_fio(user):
+    """
+    Преобразует ФИО пользователя в формат 'Фамилия И.О.'
+    
+    Args:
+        user: Объект User
+    
+    Returns:
+        str: ФИО в формате 'Фамилия И.О.'
+    """
+    if not user:
+        return ""
+    
+    # Берем фамилию (обязательное поле)
+    last_name = user.last_name or ""
+    
+    # Берем первую букву имени, если есть
+    first_initial = ""
+    if user.first_name:
+        first_initial = f" {user.first_name[0]}."
+    
+    # Берем первую букву отчества, если есть
+    middle_initial = ""
+    if user.middle_name:
+        middle_initial = f"{user.middle_name[0]}."
+    
+    # Формируем результат
+    result = f"{last_name}{first_initial}{middle_initial}"
+    
+    # Если фамилии нет, возвращаем полное имя
+    if not last_name and user.get_full_name():
+        return user.get_full_name()
+    
+    return result.strip()
 def get_day_value(day_date):
     """Получение кода дня для автозаполнения с правильной логикой предпраздничных дней"""
     # Проверяем, является ли день праздником
@@ -298,6 +331,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     for employee in employees:
         employee_id = employee.id
         employee_timesheets = timesheet_dict.get(employee_id, {})
+        formatted_fio = get_formatted_fio(employee.user)
         #выходные дни
         weekday = day_date.weekday()
         is_saturday = weekday == 5
@@ -353,6 +387,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         
         table_data.append({
             'employee': employee,
+            'formatted_fio': formatted_fio, 
             'days': day_cells,
             'employee_id': employee_id,
             'row_status': 'has_data' if row_has_timesheets else 'empty',
