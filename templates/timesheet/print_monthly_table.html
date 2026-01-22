@@ -502,9 +502,9 @@
                 <!-- Первая строка заголовков -->
                 <tr>
                     <th rowspan="3" class="col-number">№ п/п</th>
-                    <th rowspan="3" class="col-name">Фамилия, И.О.</th>
-                    <th rowspan="3" class="col-position">Профессия, должность</th>
-                    <th rowspan="3" class="col-employee-id vertical-header"><div class="vertical-text">Табельный №</div></th>
+                    <th rowspan="3" class="col-name"style="font-family: 'Times New Roman', serif; font-size: 11pt;"><b>Фамилия, И.О.</b></th>
+                    <th rowspan="3" class="col-position"style="font-family: 'Times New Roman', serif; font-size: 8pt;"><b>Профессия, должность</b></th>
+                    <th rowspan="3" class="col-employee-id vertical-header"style="font-family: 'Times New Roman', serif; font-size: 7pt;"><div class="vertical-text"><b>Табельный №</b></div></th>
                     
                     <!-- Числа месяца -->
                     <th colspan="{{ days|length }}" style="text-align: center; height: 4.2mm !important; font-size: 6.5pt; font-weight: normal;">Числа месяца</th>
@@ -585,13 +585,15 @@
                         <div class="cell-content">{{ forloop.counter }}</div>
                     </td>
                     <td class="col-name">
-                        <div class="cell-content text-left">{{ row.formatted_fio|default:row.employee.full_name }}</div>
+                        <div class="cell-content text-left"style="font-family: 'Times New Roman', serif; font-size: 11pt;">
+                            {{ row.formatted_fio|default:row.employee.full_name }}</div>
                     </td>
                     <td class="col-position">
-                        <div class="cell-content text-left">{{ row.employee.position|default:"-" }}</div>
+                        <div class="cell-content text-left"style="font-family: 'Times New Roman', serif; font-size: 8pt;">
+                            {{ row.employee.position|default:"-" }}</div>
                     </td>
                     <td class="col-employee-id">
-                        <div class="cell-content">{{ row.employee.employee_id|default:row.employee.id }}</div>
+                        <div class="cell-content"style="font-family: 'Times New Roman', serif; font-size: 9pt;"><b>{{ row.employee.employee_id|default:row.employee.id }}</b></div>
                     </td>
                     
                     <!-- Дни месяца -->
