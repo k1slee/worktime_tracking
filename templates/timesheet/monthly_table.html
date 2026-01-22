@@ -764,51 +764,29 @@
                                 data-day="{{ forloop.counter }}"
                                 data-employee-id="{{ row.employee.id }}"
                                 data-employee-name="{{ row.employee.full_name }}"
-                                {% if day_data.id %}data-timesheet-id="{{ day_data.id }}"{% endif %}
+                                {% if day_data.timesheet_id %}data-timesheet-id="{{ day_data.timesheet_id }}"{% endif %}
                                 data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ forloop.counter|stringformat:'02d' }}"
                                 data-value="{{ day_data.value }}"
                                 data-status="{{ day_data.status }}"
                                 onclick="editCell(this)">
-                                
+
                                 {% if day_data.display_value %}
                                 <span class="cell-value">{{ day_data.display_value }}</span>
-                                
-                                <!-- Иконки статуса -->
                                 {% if day_data.status == 'submitted' %}
-                                <i class="bi bi-send-check text-info" style="font-size: 0.7rem;" 
-                                   title="Сдан мастером"></i>
+                                    <i class="bi bi-send-check text-info" style="font-size: 0.7rem;" title="Сдан мастером"></i>
                                 {% elif day_data.status == 'approved' %}
-                                <i class="bi bi-check-circle text-success" style="font-size: 0.7rem;"
-                                   title="Утвержден"></i>
+                                    <i class="bi bi-check-circle text-success" style="font-size: 0.7rem;" title="Утвержден"></i>
                                 {% endif %}
-                                
                                 {% endif %}
-                                
-                                <!-- Индикатор точки статуса -->
+
                                 {% if day_data.status %}
                                 <div class="cell-status-indicator cell-status-{{ day_data.status }}"></div>
                                 {% endif %}
-                                
-                                <!-- Всплывающая подсказка -->
-                                <div class="cell-tooltip">
-                                    <strong>{{ row.employee.full_name }}</strong><br>
-                                    {{ year }}-{{ month|stringformat:'02d' }}-{{ forloop.counter|stringformat:'02d' }}<br>
-                                    {% if day_data.value %}
-                                    Значение: {{ day_data.display_value }}<br>
-                                    Статус: 
-                                    {% if day_data.status == 'draft' %}
-                                    Черновик
-                                    {% elif day_data.status == 'submitted' %}
-                                    Сдан мастером
-                                    {% elif day_data.status == 'approved' %}
-                                    Утвержден
-                                    {% endif %}
-                                    {% else %}
-                                    Нет данных
-                                    {% endif %}
-                                </div>
                             </td>
                             {% endfor %}
+
+
+
                             
                             <!-- Колонка дней явок -->
                             <td class="attendance-col">
