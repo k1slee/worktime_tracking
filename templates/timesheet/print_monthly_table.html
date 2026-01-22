@@ -23,57 +23,87 @@
         print-color-adjust: exact;
     }
     /* ===== ШАПКА ДОКУМЕНТА ===== */
+   /* Стили для печатной формы */
     .header {
-        width: 100%;
-        margin-bottom: 0mm;
-        text-align: left;
-    }
-    
-    .org-name {
-        font-size: 8pt;
-        font-weight: bold;
-        margin-bottom: 0.2mm;
-        text-align: left;
-        padding-left: 5mm; /* ← Сдвиг вправо */
-        margin-top: 10mm; /* Прижми к верху */
-    }
-    
-    .org-details {
-        font-size: 6.5pt;
-        margin-bottom: 0.5mm;
-        font-style: italic;
-        text-align: left;
-        padding-left: 5mm; /* ← Сдвиг вправо */
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0;
+        min-height: 80px; /* Уменьшили из-за меньших шрифтов */
     }
 
-    .department-line {
-        font-size: 8pt;
-        font-weight: bold;
-        margin-bottom: 0.2mm;
-        text-align: left;
-        padding-left: 5mm; /* ← Сдвиг вправо */
-        margin-top: 0mm;
+    .left-section {
+        width: 45%;
+        padding-left: 10mm;
+        padding-top: 5mm;
     }
 
-    .department-details {
-        font-size: 6.5pt;
-        margin-bottom: 1mm;
-        font-style: italic;
-        text-align: left;
-        padding-left: 5mm; /* ← Сдвиг вправо */
-    }
-    
-    .main-title {
+    .right-section {
+        width: 55%;
+        padding-top: 6mm; /* Уменьшили отступ сверху */
         text-align: center;
-        font-size: 11pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin: 1mm 0 1mm 0;
-        padding-bottom: 0.5mm;
-        border-bottom: 1pt solid #000;
-        letter-spacing: 0.5pt;
     }
-    
+
+    .line-group {
+        margin-bottom: 6px; /* Уменьшили отступ между группами */
+    }
+
+    .text-line {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 1px;
+        white-space: nowrap;
+    }
+
+    .org-text {
+        font-size: 11pt; /* Уменьшено с 13pt */
+    }
+
+    .workshop-text {
+        font-size: 10pt; /* Уменьшено с 11pt */
+        text-transform: uppercase;
+    }
+
+    .title-text {
+        font-size: 11pt; /* Уменьшено с 13pt */
+        text-transform: uppercase;
+    }
+
+    .underline-line {
+        height: 1px;
+        background-color: #000;
+        margin: 0 auto 1px auto;
+    }
+
+    .subtext {
+        font-size: 8pt; /* Уменьшено с 9pt */
+        color: #555;
+        font-style: italic;
+        text-align: center;
+        margin-top: 0;
+    }
+    .title-tight {
+        position: absolute;
+        left: 50%;
+        bottom: -5px; /* Выдвигаем за пределы блока вниз */
+        transform: translateX(-50%);
+        text-align: center;
+        width: 55%;
+    }
+    @media print {
+        .org-text,
+        .title-text {
+            font-size: 12pt; /* Немного больше при печати */
+        }
+        
+        .workshop-text {
+            font-size: 11pt; /* Немного больше при печати */
+        }
+        
+        .header {
+            margin-bottom: 4mm;
+        }
+    }
     /* ===== ТАБЛИЦА ===== */
     .table-container {
         width: 100%;
@@ -431,21 +461,37 @@
     </style>
 </head>
 <body>
-    <!-- ===== ШАПКА ДОКУМЕНТА ===== -->
     <div class="header">
-        <div class="org-name">Унитарное предприятие "Цветлит"</div>
-        <div class="org-details">(наименование организации)</div>
+        <!-- Левый блок - МАКСИМАЛЬНО ЛЕВЕЕ -->
+        <div class="left-section" style="position: absolute; left: 0; width: 30%; padding-left: 2mm;">
+            <div class="line-group">
+                <div class="text-line org-text" style="font-size: 11pt; text-align: left;">Унитарное предприятие "Цветлит"</div>
+                <div class="underline-line" style="width: 80%; margin-left: 0;"></div>
+                <div class="subtext" style="font-size: 8pt; text-align: left;">(наименование организации)</div>
+            </div>
+            
+            {% if is_master %}
+            <div class="line-group">
+                <div class="text-line workshop-text" style="font-size: 10pt; text-align: left;">
+                    {% if user.department %}{{ user.department.name|upper }}{% else %}(ЦЕХ НЕ УКАЗАН){% endif %} {{ composer_fio|default:"" }}
+                </div>
+                <div class="underline-line" style="width: 65%; margin-left: 0;"></div>
+                <div class="subtext" style="font-size: 8pt; text-align: left;">
+                    <span>Цех (отдел), участок</span>
+                    <span style="margin-left: 10px;">мастер</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
         
-        {% if is_master %}
-        <div class="department-line">{{ user.get_full_name|default:user.username }}</div>
-        {% endif %}
-        
-        <div class="department-details">Цех (отдел), участок</div>
-        
-        <div class="main-title">
-            Табель учета рабочего времени за 
-            {% if month == 1 %}январь{% elif month == 2 %}февраль{% elif month == 3 %}март{% elif month == 4 %}апрель{% elif month == 5 %}май{% elif month == 6 %}июнь{% elif month == 7 %}июль{% elif month == 8 %}август{% elif month == 9 %}сентябрь{% elif month == 10 %}октябрь{% elif month == 11 %}ноябрь{% elif month == 12 %}декабрь{% endif %}
-            {{ year }} года
+        <!-- Заголовок табеля -->
+        <div class="title-tight">
+            <div class="text-line title-text" style="font-size: 11pt; margin: 0;">
+                Табель учета рабочего времени за 
+                {% if month == 1 %}Январь{% elif month == 2 %}февраль{% elif month == 3 %}март{% elif month == 4 %}апрель{% elif month == 5 %}май{% elif month == 6 %}июнь{% elif month == 7 %}июль{% elif month == 8 %}август{% elif month == 9 %}сентябрь{% elif month == 10 %}октябрь{% elif month == 11 %}ноябрь{% elif month == 12 %}декабрь{% endif %}
+                {{ year }} года
+            </div>
+            <div class="underline-line" style="width: 95%; height: 1.5px; margin: 1px auto 0 auto;"></div>
         </div>
     </div>
     
