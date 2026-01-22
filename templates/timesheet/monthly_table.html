@@ -5,6 +5,34 @@
 
 {% block extra_css %}
 <style>
+    /* Стили для субботы */
+    .saturday {
+        background-color: #e8f4fd !important;  /* Светло-голубой */
+        border-left: 2px solid #bee5eb !important;
+    }
+
+    /* Стили для воскресенья */
+    .sunday {
+        background-color: #f8f0fc !important;  /* Светло-фиолетовый */
+        border-left: 2px solid #e0b3f2 !important;
+    }
+
+    /* Стили для заголовков выходных дней */
+    .day-header.saturday {
+        background-color: #d1ecf1 !important;
+        color: #0c5460 !important;
+    }
+
+    .day-header.sunday {
+        background-color: #e2d9f3 !important;
+        color: #6610f2 !important;
+    }
+
+    /* Если хотите изменить цвет текста в выходных */
+    .saturday .cell-value,
+    .sunday .cell-value {
+        font-weight: bold;
+    }
     .timesheet-table {
         font-size: 0.85rem;
     }
@@ -712,7 +740,7 @@
             </div>
         </div>
     </div>
-{% endif %}
+    {% endif %}
     
     <!-- Основная таблица -->
     <div class="row">
@@ -724,12 +752,16 @@
                             <th class="employee-col">Сотрудник</th>
                             {% for day in days %}
                             {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
-                            <th class="day-header {% if day_date|slice:"-2:"|add:0 >= 5 %}day-weekend{% endif %}">
+                            {% with weekday=day_date|date:"w" %}
+                            <th class="day-header 
+                                {% if weekday == '6' %}saturday-header{% endif %}
+                                {% if weekday == '0' %}sunday-header{% endif %}">
                                 <div>{{ day }}</div>
                                 <small class="text-muted">
                                     {{ day_date|date:"D"|slice:":2" }}
                                 </small>
                             </th>
+                            {% endwith %}
                             {% endwith %}
                             {% endfor %}
                             <th class="attendance-col">Дни явок</th>
@@ -760,12 +792,16 @@
                             
                             <!-- Ячейки с днями -->
                             {% for day_data in row.days %}
-                            <td class="day-cell cell-{{ day_data.css_class }}" 
+                            {% with day_num=forloop.counter %}
+                            {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day_num|stringformat:"02d" %}
+                            {% with weekday=day_date|date:"w" %}
+                            <td class="day-cell cell-{{ day_data.css_class }} 
+                                {% if weekday == '6' %} saturday {% elif weekday == '0' %} sunday {% endif %}" 
                                 data-day="{{ forloop.counter }}"
                                 data-employee-id="{{ row.employee.id }}"
                                 data-employee-name="{{ row.employee.full_name }}"
                                 {% if day_data.timesheet_id %}data-timesheet-id="{{ day_data.timesheet_id }}"{% endif %}
-                                data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ forloop.counter|stringformat:'02d' }}"
+                                data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ day_num|stringformat:'02d' }}"
                                 data-value="{{ day_data.value }}"
                                 data-status="{{ day_data.status }}"
                                 onclick="editCell(this)">
@@ -783,11 +819,11 @@
                                 <div class="cell-status-indicator cell-status-{{ day_data.status }}"></div>
                                 {% endif %}
                             </td>
-                            {% endfor %}
+                            {% endwith %}
+                            {% endwith %}
+                            {% endwith %}
+                            {% endfor %} 
 
-
-
-                            
                             <!-- Колонка дней явок -->
                             <td class="attendance-col">
                                 <div class="attendance-count">
@@ -889,7 +925,7 @@
             </div>
         </div>
     </div>
-</div>
+    </div>
 
 <!-- Модальное окно для редактирования -->
 <div class="modal fade" id="editModal" tabindex="-1">

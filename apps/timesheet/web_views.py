@@ -298,7 +298,10 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     for employee in employees:
         employee_id = employee.id
         employee_timesheets = timesheet_dict.get(employee_id, {})
-        
+        #выходные дни
+        weekday = day_date.weekday()
+        is_saturday = weekday == 5
+        is_sunday = weekday = 6
         # Ячейки дней
         day_cells = []
         for day in days:
@@ -321,6 +324,8 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'status': ts_data.get('status', 'draft'),
                     'can_edit': ts_data.get('can_edit', False),
                     'css_class': ts_data.get('css_class', 'draft'),
+                    'is_saturday':is_saturday,
+                    'is_sunday':is_sunday,
                 })
             else:
                 display_value = holiday_value or default_table.get(day, "")
@@ -332,6 +337,8 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'status': 'empty',
                     'can_edit': request.user.is_master,
                     'css_class': 'empty',
+                    'is_saturday':is_saturday,
+                    'is_sunday':is_sunday,
                 })
             
             # Подсчет статистики для этого дня
