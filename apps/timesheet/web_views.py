@@ -1120,3 +1120,118 @@ def submit_month(request):
         
     except (ValueError, TypeError) as e:
         return JsonResponse({'error': 'Ошибка в параметрах месяца'}, status=400)
+
+@login_required
+def get_statistics_view(request):
+    """
+    Возвращает JSON с статистикой по табелям за месяц
+    """
+    try:
+        year = int(request.GET.get('year', timezone.now().year))
+        month = int(request.GET.get('month', timezone.now().month))
+        
+        # Получаем данные
+        data = get_monthly_data(request, year, month, print_mode=False)
+        
+        if not data['employees'].exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Нет данных за этот период'
+            })
+        
+        # Обрабатываем данные табелей для подсчета статистики
+        processed_data = process_timesheet_data(request, year, month, data['employees'], data['timesheets'])
+        
+        # Подсчет общей статистики
+        total_employees = len(processed_data['table_data'])
+        
+        # Инициализация статистики
+        stats = {
+            'total_employees': total_employees,
+            'working_days': 0,
+            'weekend_days': 0,
+            'total_hours': 0,
+            'attendance_days': 0,
+            'vacation_days': 0,
+            'illness_days': 0,
+            'other_absence_days': 0,
+            'absence_days': 0,
+            'downtime_days': 0,
+            'evening_hours': 0,
+            'night_hours': 0,
+            'overtime_hours': 0,
+            'weekend_hours': 0,
+            'draft_count': 0,
+            'submitted_count': 0,
+            'approved_count': 0,
+        }
+        
+        # Подсчет рабочих и выходных дней
+        import calendar
+        cal = calendar.monthcalendar(year, month)
+        for week in cal:
+            for day in week[:5]:  # Понедельник-Пятница
+                if day != 0:
+                    stats['working_days'] += 1
+            for day in week[5:]:  # Суббота-Воскресенье
+                if day != 0:
+                    stats['weekend_days'] += 1
+        
+        # Собираем данные из таблицы
+        for row in processed_data['table_data']:
+            stats['total_hours'] += row['total_hours']
+            stats['evening_hours'] += row['evening_hours']
+            stats['night_hours'] += row['night_hours']
+            stats['overtime_hours'] += row['overtime_hours']
+            stats['weekend_hours'] += row['weekend_hours']
+            stats['attendance_days'] += row['attendance_days']
+            stats['downtime_days'] += row['downtime_days']
+            stats['vacation_days'] += row['vacation_days']
+            stats['illness_days'] += row['illness_days']
+            stats['other_absence_days'] += row['other_absence_days']
+            stats['absence_days'] += row['absence_days']
+            
+            # Подсчет статусов табелей сотрудника
+            for day in row['days']:
+                if day['timesheet_id']:
+                    if day['status'] == 'draft':
+                        stats['draft_count'] += 1
+                    elif day['status'] == 'submitted':
+                        stats['submitted_count'] += 1
+                    elif day['status'] == 'approved':
+                        stats['approved_count'] += 1
+        
+        # Дополнительные расчеты
+        if stats['total_employees'] > 0:
+            avg_hours = stats['total_hours'] / stats['total_employees']
+            stats['avg_hours_per_employee'] = round(avg_hours, 1)
+        else:
+            stats['avg_hours_per_employee'] = 0
+        
+        # Процент утвержденных
+        total_timesheets = stats['draft_count'] + stats['submitted_count'] + stats['approved_count']
+        if total_timesheets > 0:
+            stats['approved_percentage'] = round((stats['approved_count'] / total_timesheets) * 100, 1)
+        else:
+            stats['approved_percentage'] = 0
+        
+        # Округляем значения
+        stats['total_hours'] = round(stats['total_hours'], 1)
+        stats['evening_hours'] = round(stats['evening_hours'], 1)
+        stats['night_hours'] = round(stats['night_hours'], 1)
+        stats['overtime_hours'] = round(stats['overtime_hours'], 1)
+        stats['weekend_hours'] = round(stats['weekend_hours'], 1)
+        
+        return JsonResponse({
+            'success': True,
+            'statistics': stats
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in get_statistics_view: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

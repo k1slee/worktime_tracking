@@ -7,13 +7,13 @@
 <style>
     /* Стили для субботы */
     .saturday {
-        background-color: #e8f4fd !important;  /* Светло-голубой */
+        background-color: #e8f4fd !important;
         border-left: 2px solid #bee5eb !important;
     }
 
     /* Стили для воскресенья */
     .sunday {
-        background-color: #f8f0fc !important;  /* Светло-фиолетовый */
+        background-color: #f8f0fc !important;
         border-left: 2px solid #e0b3f2 !important;
     }
 
@@ -33,6 +33,7 @@
     .sunday .cell-value {
         font-weight: bold;
     }
+    
     .timesheet-table {
         font-size: 0.85rem;
     }
@@ -271,193 +272,165 @@
         text-align: center;
     }
 
-    /* ОБЩИЕ стили для ВСЕХ статистических столбцов */
-    .attendance-col,
-    .downtime-col,
-    .vacation-col,
-    .illness-col,
-    .other-absence-col,
-    .admin-permission-col,
-    .absence-col,
-    .evening-hours-col,
-    .total-hours-col {
+    /* Стили для статистических колонок */
+    .stats-table .stats-header {
         background-color: #f8f9fa;
-        font-weight: bold;
+        font-weight: 600;
         text-align: center;
-        vertical-align: middle;
-        min-width: 80px;
+        vertical-align: middle !important;
+        height: 60px;
         position: sticky;
-        z-index: 4;
-        box-shadow: -2px 0 2px rgba(0,0,0,0.1);
-        border-left: 1px solid #dee2e6;
-    }
-
-    /* ПРАВИЛЬНЫЕ ПОЗИЦИИ для каждого столбца (в порядке от левого к правому) */
-    /* Всего 9 статистических столбцов после дней месяца */
-    
-    /* 1. Дни явок (самый левый из sticky) */
-    .attendance-col {
-        right: 640px;  /* 8 столбцов * 80px = 640px */
-        color: #0d6efd;  /* Синий цвет */
+        top: 0;
+        z-index: 10;
     }
     
-    /* 2. Целосменные простои */
-    .downtime-col {
-        right: 560px;  /* 7 столбцов * 80px = 560px */
-        color: #dc3545;  /* Красный цвет */
-    }
-    
-    /* 3. Очередной отпуск */
-    .vacation-col {
-        right: 480px;  /* 6 столбцов * 80px = 480px */
-        color: #198754;  /* Зеленый цвет */
-    }
-    
-    /* 4. Болезнь */
-    .illness-col {
-        right: 400px;  /* 5 столбцов * 80px = 400px */
-        color: #fd7e14;  /* Оранжевый цвет */
-    }
-    
-    /* 5. Прочие неявки */
-    .other-absence-col {
-        right: 320px;  /* 4 столбца * 80px = 320px */
-        color: #6c757d;  /* Серый цвет */
-    }
-    
-    /* 6. Разрешения администрации */
-    .admin-permission-col {
-        right: 240px;  /* 3 столбца * 80px = 240px */
-        color: #6610f2;  /* Фиолетовый цвет */
-    }
-    
-    /* 7. Прогул */
-    .absence-col {
-        right: 160px;  /* 2 столбца * 80px = 160px */
-        color: #dc3545;  /* Красный цвет */
-    }
-    
-    /* 8. Вечерние часы */
-    .evening-hours-col {
-        right: 80px;   /* 1 столбец * 80px = 80px */
-        color: #6f42c1;  /* Фиолетовый цвет */
-    }
-    
-    /* 9. Всего часов (самый правый sticky) */
-    .total-hours-col {
-        right: 0;      /* 0 столбцов * 80px = 0px */
-        color: #0d6efd;  /* Синий цвет */
-    }
-
-    /* Стили для чисел внутри ячеек */
-    .attendance-count,
-    .downtime-count,
-    .vacation-count,
-    .illness-count,
-    .other-absence-count,
-    .admin-permission-count,
-    .absence-count,
-    .evening-hours-count,
-    .total-hours-count {
-        font-size: 1.1rem;
-        font-weight: bold;
-    }
-    .night-hours-col {
-        background-color: #f8f9fa;
-        font-weight: bold;
+    .stats-table .stats-cell {
         text-align: center;
+        vertical-align: middle !important;
+        font-weight: 500;
         min-width: 80px;
+        padding: 8px 4px !important;
     }
-
-    .night-hours-count {
+    
+    .stats-table .employee-col {
+        position: sticky;
+        left: 0;
+        background-color: white;
+        z-index: 5;
+        min-width: 200px;
+        box-shadow: 2px 0 2px rgba(0,0,0,0.1);
+        text-align: left !important;
+        padding-left: 15px !important;
+    }
+    
+    /* Цвета для статистических колонок */
+    .stats-cell.attendance { color: #0d6efd; }  /* Синий - Дни явок */
+    .stats-cell.downtime { color: #dc3545; }    /* Красный - Простои */
+    .stats-cell.vacation { color: #198754; }    /* Зеленый - Отпуск */
+    .stats-cell.illness { color: #fd7e14; }     /* Оранжевый - Болезнь */
+    .stats-cell.other-absence { color: #6c757d; } /* Серый - Прочие неявки */
+    .stats-cell.admin-permission { color: #6610f2; } /* Фиолетовый - Разрешения адм. */
+    .stats-cell.absence { color: #dc3545; }     /* Красный - Прогул */
+    .stats-cell.total-hours { color: #0d6efd; } /* Синий - Всего часов */
+    .stats-cell.evening-hours { color: #6f42c1; } /* Индиго - Вечерние часы */
+    .stats-cell.night-hours { color: #343a40; } /* Темный - Ночные часы */
+    .stats-cell.weekend-hours { color: #856404; } /* Коричневый - Выходные часы */
+    .stats-cell.overtime { color: #721c24; }    /* Темно-красный - Сверхурочно */
+    
+    /* Стили для статистических заголовков */
+    .stats-header.attendance { background-color: #e8f4fd; border-bottom: 2px solid #0d6efd; }
+    .stats-header.downtime { background-color: #f8e9ea; border-bottom: 2px solid #dc3545; }
+    .stats-header.vacation { background-color: #e8f5e8; border-bottom: 2px solid #198754; }
+    .stats-header.illness { background-color: #ffe8d4; border-bottom: 2px solid #fd7e14; }
+    .stats-header.other-absence { background-color: #f8f9fa; border-bottom: 2px solid #6c757d; }
+    .stats-header.admin-permission { background-color: #f0e6ff; border-bottom: 2px solid #6610f2; }
+    .stats-header.absence { background-color: #f8e9ea; border-bottom: 2px solid #dc3545; }
+    .stats-header.total-hours { background-color: #e8f4fd; border-bottom: 2px solid #0d6efd; }
+    .stats-header.evening-hours { background-color: #f0e6ff; border-bottom: 2px solid #6f42c1; }
+    .stats-header.night-hours { background-color: #e9ecef; border-bottom: 2px solid #343a40; }
+    .stats-header.weekend-hours { background-color: #fff3cd; border-bottom: 2px solid #856404; }
+    .stats-header.overtime { background-color: #f8d7da; border-bottom: 2px solid #721c24; }
+    
+    /* Анимация переключения */
+    .timesheet-table, .stats-table {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .timesheet-table.hidden {
+        opacity: 0;
+        transform: translateX(-100%);
+        display: none;
+    }
+    
+    .stats-table.hidden {
+        opacity: 0;
+        transform: translateX(100%);
+        display: none;
+    }
+    
+    .stats-table {
+        width: 100%;
+        opacity: 0;
+        transform: translateX(100%);
+        display: none;
+    }
+    
+    .stats-table.visible {
+        opacity: 1;
+        transform: translateX(0);
+        display: table;
+    }
+    
+    /* Стили для чисел внутри ячеек статистики */
+    .stats-value {
         font-size: 1.1rem;
-        color: #343a40;
-    }
-    .weekend-hours-col {
-        background-color: #fff3cd;
         font-weight: bold;
-        text-align: center;
-        min-width: 90px;
-        border-left: 2px solid #ffc107;
+        margin-bottom: 2px;
     }
-
-    .weekend-hours-count {
+    
+    .stats-label {
+        font-size: 0.7rem;
+        color: #6c757d;
+        display: block;
+    }
+    
+    /* Кнопка переключения режима */
+    .mode-toggle-btn {
+        transition: all 0.2s;
+    }
+    
+    .mode-toggle-btn.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+        border-color: #0d6efd !important;
+    }
+    
+    .mode-toggle-btn.stats-mode {
+        background-color: #6610f2 !important;
+        color: white !important;
+        border-color: #6610f2 !important;
+    }
+    
+    /* Легенда */
+    .legend-table {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+    
+    .legend-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .legend-table td {
+        padding: 0.4rem 0.5rem;
+        vertical-align: middle;
+    }
+    
+    .legend-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .legend-table strong {
         font-size: 1.1rem;
-        color: #856404;
-        font-weight: bold;
+        color: #495057;
     }
-    .overtime-hours-col {
-        background-color: #f8d7da;
-        font-weight: bold;
-        text-align: center;
-        min-width: 90px;
-        border-left: 2px solid #dc3545;
+    
+    .collapsible-panel {
+        display: none;
     }
-
-    .overtime-hours-count {
-        font-size: 1.1rem;
-        color: #721c24;
-        font-weight: bold;
+    
+    .collapsible-panel.show {
+        display: block;
     }
-
-    .overtime-hours-col small {
+    
+    /* Подсказка для кнопки */
+    .mode-indicator {
         font-size: 0.75rem;
-        opacity: 0.8;
+        color: #6c757d;
+        margin-top: 5px;
     }
-</style>
-<style>
-.legend-table {
-    font-size: 0.85rem;
-    margin-bottom: 0;
-}
-
-.legend-table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.legend-table td {
-    padding: 0.4rem 0.5rem;
-    vertical-align: middle;
-}
-
-.legend-table tr:hover {
-    background-color: #f8f9fa;
-}
-
-.legend-table strong {
-    font-size: 1.1rem;
-    color: #495057;
-}
-
-.card-header {
-    padding: 0.75rem 1.25rem;
-}
-
-.card-header h5 {
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.alert-info {
-    background-color: #e8f4fd;
-    border-color: #bee5eb;
-    color: #0c5460;
-}
-
-.alert-info small {
-    color: #0c5460;
-}
-
-/* Стили для скрытой панели условных обозначений */
-.collapsible-panel {
-    display: none;
-}
-
-.collapsible-panel.show {
-    display: block;
-}
 </style>
 {% endblock %}
 
@@ -518,17 +491,24 @@
                                 Нет сотрудников для отображения
                                 {% endif %}
                             </small>
+                            <div class="mode-indicator" id="modeIndicator">
+                                <i class="bi bi-calendar-check"></i> Режим: Заполнение табеля
+                            </div>
                         </div>
                         <div class="btn-group">
-                            <!-- Одна кнопка "Сдать табель" -->
-                            <button type="button" class="btn btn-success btn-sm" 
-                                    onclick="submitEntireMonth()">
+                            <!-- Кнопка переключения режима -->
+                            <button type="button" class="btn btn-outline-info btn-sm mode-toggle-btn" id="toggleModeBtn" onclick="toggleViewMode()">
+                                <i class="bi bi-bar-chart" id="modeBtnIcon"></i> 
+                                <span id="modeBtnText">Показать статистику</span>
+                            </button>
+                            
+                            <!-- Кнопка сдачи табеля -->
+                            <button type="button" class="btn btn-success btn-sm" onclick="submitEntireMonth()">
                                 <i class="bi bi-send-check-fill"></i> Сдать табель
                             </button>
                             
                             <!-- Кнопка для показа условных обозначений -->
-                            <button type="button" class="btn btn-outline-info btn-sm" 
-                                    onclick="toggleLegend()">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleLegend()">
                                 <i class="bi bi-info-circle"></i> Условные обозначения
                             </button>
                         </div>
@@ -647,12 +627,6 @@
                                         <td class="text-center"><strong>ДМ</strong></td>
                                         <td>Дополнительный свободный от работы день матери (отца)</td>
                                     </tr>
-                                    <!-- Можно добавить пояснение для числовых значений -->
-                                    <tr class="bg-light">
-                                        <td colspan="2" class="small text-muted">
-                                            <i class="bi bi-info-circle"></i> Числовые значения (8, 7/2, 4 и т.д.) - количество отработанных часов
-                                        </td>
-                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -742,11 +716,11 @@
     </div>
     {% endif %}
     
-    <!-- Основная таблица -->
+    <!-- Основная таблица с днями (изначально видима) -->
     <div class="row">
         <div class="col-12">
-            <div class="table-container">
-                <table class="table table-bordered table-sm timesheet-table">
+            <div class="table-container" id="mainTableContainer">
+                <table class="table table-bordered table-sm timesheet-table" id="timesheetTable">
                     <thead>
                         <tr>
                             <th class="employee-col">Сотрудник</th>
@@ -764,18 +738,6 @@
                             {% endwith %}
                             {% endwith %}
                             {% endfor %}
-                            <th class="attendance-col">Дни явок</th>
-                            <th class="downtime-col">Целосменные простои</th>
-                            <th class="vacation-col">Очередной отпуск</th>
-                            <th class="illness-col">Болезнь</th>
-                            <th class="other-absence-col">Прочие неявки</th>
-                            <th class="admin-permission-col">Разрешения адм.</th>
-                            <th class="absence-col">Прогул</th>
-                            <th class="total-hours-col">Всего часов</th>
-                            <th class="evening-hours-col">Вечерние часы</th>
-                            <th class="night-hours-col">Ночные часы</th>
-                            <th class="weekend-hours-col">Выходные часы</th>
-                            <th class="overtime-hours-col">Сверхурочно</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -823,91 +785,10 @@
                             {% endwith %}
                             {% endwith %}
                             {% endfor %} 
-
-                            <!-- Колонка дней явок -->
-                            <td class="attendance-col">
-                                <div class="attendance-count">
-                                    {{ row.attendance_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <!-- Колонка простоев -->
-                            <td class="downtime-col">
-                                <div class="downtime-count">
-                                    {{ row.downtime_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <!-- Колонка отпуска -->
-                            <td class="vacation-col">
-                                <div class="vacation-count">
-                                    {{ row.vacation_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <!-- Колонка Болезни -->
-                            <td class="illness-col">
-                                <div class="illness-count">
-                                    {{ row.illness_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <td class="other-absence-col">
-                                <div class="other-absence-count">
-                                    {{ row.other_absence_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <!-- С разрешения Администрации -->
-                            <td class="admin-permission-col">
-                                <div class="admin-permission-count">
-                                    {{ row.admin_permission_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <!-- Прогул -->
-                            <td class="absence-col">
-                                <div class="absence-count">
-                                    {{ row.absence_days }}
-                                </div>
-                                <small class="text-muted">дней</small>
-                            </td>
-                            <!-- Вcего часов -->
-                            <td class="total-hours-col">
-                                <div class="total-hours-count">
-                                    {{ row.total_hours }}
-                                </div>
-                                <small class="text-muted">часов</small>
-                            </td>
-                            <!-- Вечерние часы -->
-                            <td class="evening-hours-col">
-                                <div class="evening-hours-count">
-                                    {{ row.evening_hours }}
-                                </div>
-                                <small class="text-muted">часов</small>
-                            </td>
-                            <td class="night-hours-col">
-                                <div class="night-hours-count">
-                                    {{ row.night_hours }}
-                                </div>
-                                <small class="text-muted">часов</small>
-                            </td>
-                            <td class="weekend-hours-col">
-                                <div class="weekend-hours-count">
-                                    {{ row.weekend_hours }}
-                                </div>
-                                <small class="text-muted">часов</small>
-                            </td>
-                            <td class="overtime-hours-col">
-                                <div class="overtime-hours-count">
-                                    {{ row.overtime_hours }}
-                                </div>
-                                <small class="text-muted">часов</small>
-                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="{{ days|length|add:11 }}" class="text-center py-4">
+                            <td colspan="{{ days|length|add:1 }}" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
                                     <h5 class="mt-2">Нет данных за этот период</h5>
@@ -922,10 +803,95 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                
+                <!-- Таблица статистики (изначально скрыта) -->
+                <table class="table table-bordered table-sm stats-table hidden" id="statsTable">
+                    <thead>
+                        <tr>
+                            <th class="employee-col stats-header">Сотрудник</th>
+                            <th class="stats-header attendance">Дни явок</th>
+                            <th class="stats-header downtime">Целосменные простои</th>
+                            <th class="stats-header vacation">Очередной отпуск</th>
+                            <th class="stats-header illness">Болезнь</th>
+                            <th class="stats-header other-absence">Прочие неявки</th>
+                            <th class="stats-header admin-permission">Разрешения адм.</th>
+                            <th class="stats-header absence">Прогул</th>
+                            <th class="stats-header total-hours">Всего часов</th>
+                            <th class="stats-header evening-hours">Вечерние часы</th>
+                            <th class="stats-header night-hours">Ночные часы</th>
+                            <th class="stats-header weekend-hours">Выходные часы</th>
+                            <th class="stats-header overtime">Сверхурочно</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table_data %}
+                        <tr>
+                            <!-- Колонка с информацией о сотруднике -->
+                            <td class="employee-col">
+                                <div class="employee-info">
+                                    <div class="employee-id">{{ row.employee.employee_id }}</div>
+                                    <div class="employee-name">{{ row.formatted_fio }}</div>
+                                    <div class="employee-position">{{ row.employee.position }}</div>
+                                </div>
+                            </td>
+                            
+                            <!-- Статистические колонки -->
+                            <td class="stats-cell attendance">
+                                <div class="stats-value">{{ row.attendance_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell downtime">
+                                <div class="stats-value">{{ row.downtime_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell vacation">
+                                <div class="stats-value">{{ row.vacation_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell illness">
+                                <div class="stats-value">{{ row.illness_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell other-absence">
+                                <div class="stats-value">{{ row.other_absence_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell admin-permission">
+                                <div class="stats-value">{{ row.admin_permission_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell absence">
+                                <div class="stats-value">{{ row.absence_days }}</div>
+                                <span class="stats-label">дней</span>
+                            </td>
+                            <td class="stats-cell total-hours">
+                                <div class="stats-value">{{ row.total_hours }}</div>
+                                <span class="stats-label">часов</span>
+                            </td>
+                            <td class="stats-cell evening-hours">
+                                <div class="stats-value">{{ row.evening_hours }}</div>
+                                <span class="stats-label">часов</span>
+                            </td>
+                            <td class="stats-cell night-hours">
+                                <div class="stats-value">{{ row.night_hours }}</div>
+                                <span class="stats-label">часов</span>
+                            </td>
+                            <td class="stats-cell weekend-hours">
+                                <div class="stats-value">{{ row.weekend_hours }}</div>
+                                <span class="stats-label">часов</span>
+                            </td>
+                            <td class="stats-cell overtime">
+                                <div class="stats-value">{{ row.overtime_hours }}</div>
+                                <span class="stats-label">часов</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    </div>
+</div>
 
 <!-- Модальное окно для редактирования -->
 <div class="modal fade" id="editModal" tabindex="-1">
@@ -1010,11 +976,67 @@
     // Текущая редактируемая ячейка
     let currentCell = null;
     
-    // Функция для редактирования ячейки
+    // Режим отображения: 'timesheet' - табель, 'stats' - статистика
+    let currentMode = 'timesheet';
+    
+    // Функция для переключения режима отображения
+    function toggleViewMode() {
+        const timesheetTable = document.getElementById('timesheetTable');
+        const statsTable = document.getElementById('statsTable');
+        const toggleBtn = document.getElementById('toggleModeBtn');
+        const btnIcon = document.getElementById('modeBtnIcon');
+        const btnText = document.getElementById('modeBtnText');
+        const modeIndicator = document.getElementById('modeIndicator');
+        
+        if (currentMode === 'timesheet') {
+            // Переключаемся на статистику
+            currentMode = 'stats';
+            
+            // Анимируем переход
+            timesheetTable.classList.add('hidden');
+            setTimeout(() => {
+                statsTable.classList.remove('hidden');
+                statsTable.classList.add('visible');
+            }, 300);
+            
+            // Обновляем кнопку
+            btnIcon.className = 'bi bi-calendar-check';
+            btnText.textContent = 'Показать табель';
+            toggleBtn.classList.add('stats-mode');
+            modeIndicator.innerHTML = '<i class="bi bi-bar-chart"></i> Режим: Статистика';
+            
+        } else {
+            // Переключаемся на табель
+            currentMode = 'timesheet';
+            
+            // Анимируем переход
+            statsTable.classList.remove('visible');
+            statsTable.classList.add('hidden');
+            setTimeout(() => {
+                timesheetTable.classList.remove('hidden');
+            }, 300);
+            
+            // Обновляем кнопку
+            btnIcon.className = 'bi bi-bar-chart';
+            btnText.textContent = 'Показать статистику';
+            toggleBtn.classList.remove('stats-mode');
+            modeIndicator.innerHTML = '<i class="bi bi-calendar-check"></i> Режим: Заполнение табеля';
+        }
+    }
+    
+    // Переключение отображения условных обозначений
+    function toggleLegend() {
+        const legendPanel = document.getElementById('legendPanel');
+        legendPanel.classList.toggle('show');
+    }
+    
+    // Остальные функции (editCell, saveBtn, deleteBtn и т.д.)
     function editCell(cell) {
+        // Работает только в режиме табеля
+        if (currentMode !== 'timesheet') return;
+        
         currentCell = cell;
         
-        // Заполняем модальное окно данными
         const employeeName = cell.getAttribute('data-employee-name');
         const date = cell.getAttribute('data-date');
         const value = cell.getAttribute('data-value');
@@ -1025,7 +1047,6 @@
         document.getElementById('modalDate').value = date;
         document.getElementById('modalValue').value = value;
         
-        // Статус
         let statusText = 'Нет данных';
         if (status === 'draft') statusText = 'Черновик';
         else if (status === 'submitted') statusText = 'Сдан мастером';
@@ -1033,7 +1054,6 @@
         
         document.getElementById('modalStatus').value = statusText;
         
-        // Показываем/скрываем кнопку удаления
         const deleteBtn = document.getElementById('deleteBtn');
         if (timesheetId && status === 'draft') {
             deleteBtn.style.display = 'block';
@@ -1041,7 +1061,6 @@
             deleteBtn.style.display = 'none';
         }
         
-        // Фокус на поле ввода
         const modal = new bootstrap.Modal(document.getElementById('editModal'));
         modal.show();
         
@@ -1058,12 +1077,10 @@
         
         if (!cell) return;
         
-        // Валидация значения
         if (value && !validateTimesheetValue(value)) {
             return;
         }
         
-        // Отправляем данные на сервер
         const formData = new FormData();
         formData.append('timesheet_id', cell.getAttribute('data-timesheet-id') || '');
         formData.append('date', cell.getAttribute('data-date'));
@@ -1078,14 +1095,14 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Обновляем ячейку
                 updateCellAfterSave(cell, value, data);
-                
-                // Закрываем модальное окно
                 bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-                
-                // Показываем уведомление
                 showNotification('Табель успешно сохранен', 'success');
+                
+                // Перезагружаем страницу для обновления статистики
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
                 
             } else {
                 alert('Ошибка: ' + data.error);
@@ -1106,7 +1123,6 @@
         
         if (!timesheetId) return;
         
-        // Отправляем запрос на удаление
         const formData = new FormData();
         formData.append('timesheet_id', timesheetId);
         formData.append('action', 'delete');
@@ -1119,14 +1135,15 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Очищаем ячейку
                 clearCell(cell);
-                
-                // Закрываем модальное окно
                 bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-                
-                // Показываем уведомление
                 showNotification('Табель успешно удален', 'success');
+                
+                // Перезагружаем страницу для обновления статистики
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+                
             } else {
                 alert('Ошибка: ' + data.error);
             }
@@ -1137,7 +1154,7 @@
         });
     });
     
-    // Сдача всего месяца (просто показывает модальное окно)
+    // Сдача всего месяца
     function submitEntireMonth() {
         const modal = new bootstrap.Modal(document.getElementById('submitConfirmModal'));
         modal.show();
@@ -1145,12 +1162,10 @@
     
     // Подтвержденная сдача месяца
     function submitMonthConfirmed() {
-        // Закрываем модальное окно
         bootstrap.Modal.getInstance(document.getElementById('submitConfirmModal')).hide();
         
         const url = `{% url 'timesheet:submit_month' %}?year={{ year }}&month={{ month }}`;
         
-        // Показываем индикатор загрузки
         showNotification('Отправка табелей...', 'info');
         
         fetch(url, {
@@ -1164,7 +1179,6 @@
         .then(data => {
             if (data.success) {
                 showNotification(data.message || 'Табели успешно сданы', 'success');
-                // Перезагружаем страницу через 2 секунды
                 setTimeout(() => location.reload(), 2000);
             } else {
                 showNotification(data.error || 'Ошибка при сдаче табелей', 'danger');
@@ -1176,30 +1190,21 @@
         });
     }
     
-    // Переключение отображения условных обозначений
-    function toggleLegend() {
-        const legendPanel = document.getElementById('legendPanel');
-        legendPanel.classList.toggle('show');
-    }
-    
     // Вспомогательные функции
     function validateTimesheetValue(value) {
         if (value) {
-            // Проверка на числовые форматы
             const numericPatterns = [
-                /^\d+$/,                     // 8, 7, 10
-                /^\d+\.\d+$/,                // 7.5, 3.5
-                /^\d+,\d+$/,                 // 7,5, 3,5
-                /^\d+\/\d+$/,                // 7/2, 8/2, 7/3
+                /^\d+$/,
+                /^\d+\.\d+$/,
+                /^\d+,\d+$/,
+                /^\d+\/\d+$/,
             ];
             
-            // Проверяем все числовые паттерны
             const isNumeric = numericPatterns.some(pattern => pattern.test(value));
             
             if (isNumeric) {
                 return true;
             } else {
-                // Проверка на допустимые коды
                 const allowedCodes = ['В', 'К', 'О', 'Б', 'Р', 'ОЖ', 'М', 'Т', 'Н', 'ОС', 'П', 'ЦП', 'Ч', 'Г', 'ДМ', 'А'];
                 if (!allowedCodes.includes(value)) {
                     alert('Недопустимое условное обозначение. Допустимые: ' + allowedCodes.join(', ') + ' или числовые форматы (7/2, 8, 3,5)');
@@ -1209,19 +1214,17 @@
         }
         return true;
     }
-        
+    
     function updateCellAfterSave(cell, value, data) {
         cell.setAttribute('data-value', value);
         cell.setAttribute('data-status', data.is_approved ? 'approved' : 'draft');
         
         if (value) {
-            // Определяем отображаемое значение
             let displayValue = value;
             if (/^\d+$/.test(value)) {
                 displayValue = value + 'ч';
             }
             
-            // Обновляем содержимое ячейки
             let html = `<span class="cell-value">${displayValue}</span>`;
             
             if (data.is_approved) {
@@ -1237,9 +1240,7 @@
             
             cell.innerHTML = html;
             
-            // Обновляем классы
             updateCellClasses(cell, data.is_approved ? 'approved' : 'draft');
-            
         } else {
             clearCell(cell);
         }
@@ -1250,7 +1251,6 @@
         cell.setAttribute('data-value', '');
         cell.setAttribute('data-status', '');
         
-        // Возвращаем к исходному виду (выходной или пустая)
         const date = new Date(cell.getAttribute('data-date'));
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
         
@@ -1266,13 +1266,11 @@
     }
     
     function updateCellClasses(cell, statusClass) {
-        // Удаляем все классы статусов
         cell.className = cell.className.replace(/cell-\w+/g, '');
         cell.classList.add('day-cell', `cell-${statusClass}`);
     }
     
     function showNotification(message, type = 'info') {
-        // Создаем уведомление
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
         alert.style.top = '20px';
@@ -1286,7 +1284,6 @@
         
         document.body.appendChild(alert);
         
-        // Автоматически скрываем через 3 секунды
         setTimeout(() => {
             if (alert.parentNode) {
                 alert.remove();
@@ -1296,7 +1293,7 @@
     
     // Инициализация при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
-        // Показываем подсказки при наведении
+        // Показываем подсказки при наведении (только в режиме табеля)
         const cells = document.querySelectorAll('.day-cell');
         cells.forEach(cell => {
             cell.addEventListener('mouseenter', function(e) {
@@ -1321,15 +1318,22 @@
         document.addEventListener('keydown', function(e) {
             const modal = document.getElementById('editModal');
             if (modal.classList.contains('show')) {
-                // Enter - сохранить
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     document.getElementById('saveBtn').click();
                 }
-                // Escape - отмена
                 if (e.key === 'Escape') {
                     bootstrap.Modal.getInstance(modal).hide();
                 }
+            }
+        });
+        
+        // Горячие клавиши для переключения режима
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S для переключения режима
+            if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
+                e.preventDefault();
+                toggleViewMode();
             }
         });
     });
