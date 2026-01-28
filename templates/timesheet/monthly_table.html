@@ -5,6 +5,44 @@
 
 {% block extra_css %}
 <style>
+    /* Контейнер на весь экран */
+    body {
+        overflow-x: hidden;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .full-width-container {
+        width: 100vw;
+        max-width: 100vw;
+        margin: 0;
+        padding: 0;
+        overflow-x: auto;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+    }
+    
+    /* Основной контент без ограничений по ширине */
+    .content-wrapper {
+        min-width: 1200px;
+        width: 100%;
+        margin: 0;
+        padding: 0 15px;
+    }
+    
+    /* Убираем стандартные отступы Bootstrap */
+    .container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+    
     /* Стили для субботы */
     .saturday {
         background-color: #e8f4fd !important;
@@ -36,6 +74,8 @@
     
     .timesheet-table {
         font-size: 0.85rem;
+        width: 100% !important;
+        min-width: fit-content;
     }
     
     .timesheet-table th {
@@ -51,6 +91,8 @@
         background-color: white;
         z-index: 5;
         min-width: 200px;
+        max-width: 200px;
+        width: 200px;
         box-shadow: 2px 0 2px rgba(0,0,0,0.1);
     }
     
@@ -156,12 +198,24 @@
         height: 45px;
     }
     
-    /* Скролл для таблицы */
+    /* Скролл для таблицы - убираем боковые отступы */
     .table-container {
         max-height: calc(100vh - 300px);
         overflow: auto;
         border: 1px solid #dee2e6;
         border-radius: 4px;
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
+        padding: 0;
+    }
+    
+    /* Убираем левые и правые отступы у таблицы внутри контейнера */
+    .table-container > table {
+        margin-left: 0;
+        margin-right: 0;
+        border-left: none;
+        border-right: none;
     }
     
     /* Стили для навигации */
@@ -298,6 +352,8 @@
         background-color: white;
         z-index: 5;
         min-width: 200px;
+        max-width: 200px;
+        width: 200px;
         box-shadow: 2px 0 2px rgba(0,0,0,0.1);
         text-align: left !important;
         padding-left: 15px !important;
@@ -350,6 +406,7 @@
     
     .stats-table {
         width: 100%;
+        min-width: fit-content;
         opacity: 0;
         transform: translateX(100%);
         display: none;
@@ -431,463 +488,500 @@
         color: #6c757d;
         margin-top: 5px;
     }
+    
+    /* Широкие секции - убираем боковые отступы */
+    .wide-section {
+        margin-left: -15px;
+        margin-right: -15px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Для табличного контейнера - убираем все боковые отступы */
+    .wide-table-section {
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
+        padding-left: 0;
+        padding-right: 0;
+        width: 100vw;
+    }
+    
+    /* Верхние секции с отступами */
+    .top-section {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Убираем скругления углов таблицы */
+    .table-container table {
+        border-radius: 0 !important;
+        margin-bottom: 0;
+    }
+    
+    /* Убираем боковые границы у контейнера таблицы */
+    .table-container {
+        border-left: none;
+        border-right: none;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Заголовок и навигация -->
-    <div class="row mb-3">
-        <div class="col-md-8">
-            <h2 class="mb-1">{{ month_name }}</h2>
-            <nav aria-label="Навигация по месяцам">
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item">
-                        <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
-                            &laquo; {{ prev_month|stringformat:"02d" }}.{{ prev_year }}
-                        </a>
-                    </li>
-                    <li class="page-item active">
-                        <span class="page-link">{{ month|stringformat:"02d" }}.{{ year }}</span>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
-                            {{ next_month|stringformat:"02d" }}.{{ next_year }} &raquo;
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-        <div class="col-md-4 text-end">
-            <div class="btn-group">
-                <a href="{% url 'users:employee_list' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-users me-2"></i>
-                    Мои сотрудники
-                </a>
-                <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master_id={{ request.user.id }}{% endif %}"
-                    class="btn btn-primary" target="_blank">
-                        <i class="bi bi-printer-fill"></i> Печатная форма
-                    </a>
-                    <button onclick="window.print()" class="btn btn-outline-primary">
-                        <i class="bi bi-printer"></i> Быстрая печать
-                    </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Панель управления для мастера -->
-    {% if is_master %}
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body py-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">Управление табелями за {{ month_name }}</h6>
-                            <small class="text-muted">
-                                {% if total_employees > 0 %}
-                                Всего сотрудников: {{ total_employees }}
-                                {% else %}
-                                Нет сотрудников для отображения
-                                {% endif %}
-                            </small>
-                            <div class="mode-indicator" id="modeIndicator">
-                                <i class="bi bi-calendar-check"></i> Режим: Заполнение табеля
-                            </div>
-                        </div>
-                        <div class="btn-group">
-                            <!-- Кнопка переключения режима -->
-                            <button type="button" class="btn btn-outline-info btn-sm mode-toggle-btn" id="toggleModeBtn" onclick="toggleViewMode()">
-                                <i class="bi bi-bar-chart" id="modeBtnIcon"></i> 
-                                <span id="modeBtnText">Показать статистику</span>
-                            </button>
-                            
-                            <!-- Кнопка сдачи табеля -->
-                            <button type="button" class="btn btn-success btn-sm" onclick="submitEntireMonth()">
-                                <i class="bi bi-send-check-fill"></i> Сдать табель
-                            </button>
-                            
-                            <!-- Кнопка для показа условных обозначений -->
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleLegend()">
-                                <i class="bi bi-info-circle"></i> Условные обозначения
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Секция с условными обозначениями (скрыта по умолчанию) -->
-    <div class="row mt-2 collapsible-panel" id="legendPanel">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi bi-info-circle"></i> Условные обозначения
-                        </h5>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleLegend()">
-                            <i class="bi bi-x"></i> Скрыть
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <!-- Колонка 1 -->
-                        <div class="col-md-6">
-                            <table class="table table-sm legend-table">
-                                <thead>
-                                    <tr>
-                                        <th width="40">Код</th>
-                                        <th>Описание</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="text-center"><strong>В</strong></td>
-                                        <td>Выходные и праздничные дни</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>К</strong></td>
-                                        <td>Командировки служебные</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>О</strong></td>
-                                        <td>Очередные и дополнительные отпуска</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Б</strong></td>
-                                        <td>Нетрудоспособность (болезнь, карантин и т.п.)</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Р</strong></td>
-                                        <td>Отпуск по беременности и родам</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>ОЖ</strong></td>
-                                        <td>Социальный отпуск по уходу за ребенком до 3 лет</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>М</strong></td>
-                                        <td>Льготные часы кормящих матерей</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Л</strong></td>
-                                        <td>Льготные часы подростков до 18 лет</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Д</strong></td>
-                                        <td>Льготные часы рабочих с вредными условиями</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <!-- Колонка 2 -->
-                        <div class="col-md-6">
-                            <table class="table table-sm legend-table">
-                                <thead>
-                                    <tr>
-                                        <th width="40">Код</th>
-                                        <th>Описание</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="text-center"><strong>ОС</strong></td>
-                                        <td>Отсутствие по справке</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>ЦП</strong></td>
-                                        <td>Простои целосменные</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Ч</strong></td>
-                                        <td>Простои внутрисменные</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>П</strong></td>
-                                        <td>Прогулы</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Н</strong></td>
-                                        <td>Опоздания и преждевременный уход с работы</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>Г</strong></td>
-                                        <td>Неявки, разрешенные законом (выполнение гос.обязанностей)</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>А</strong></td>
-                                        <td>Неявки с разрешения администрации</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-center"><strong>ДМ</strong></td>
-                                        <td>Дополнительный свободный от работы день матери (отца)</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Дополнительная информация о специальных форматах -->
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <div class="alert alert-info py-2">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <small><strong>Форматы часов:</strong></small><br>
-                                        <small><strong>8</strong> - 8 часов работы</small><br>
-                                        <small><strong>7/2</strong> - 7 часов работы (вечерняя смена)</small><br>
-                                        <small><strong>8/3</strong> - 8 часов работы (ночная смена)</small>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small><strong>Вечерние часы:</strong></small><br>
-                                        <small><strong>8/2, 7/2, 9/2, 10/2, 6/2</strong></small><br>
-                                        <small><i>Учитываются в колонке "Вечерние часы"</i></small>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <small><strong>Ночные часы:</strong></small><br>
-                                        <small><strong>7/3 (7ч), 8/2 (1.5ч), 9/2 (1.5ч), 10/2 (1.5ч)</strong></small><br>
-                                        <small><i>Учитываются в колонке "Ночные часы"</i></small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Фильтры (для плановиков и администраторов) -->
-    {% if is_planner or is_admin %}
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card filters-card">
-                <div class="card-body py-2">
-                    <form method="get" class="row g-2">
-                        <!-- Добавляем фильтр по мастеру -->
-                        <div class="col-md-4">
-                            <label class="form-label">Мастер:</label>
-                            <select name="master" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="">Все мастера</option>
-                                {% for master in masters %}
-                                <option value="{{ master.id }}" {% if request.GET.master == master.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ master.get_full_name }} ({{ master.employee_id }})
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label">Год:</label>
-                            <input type="number" name="year" value="{{ year }}" min="2023" max="2030" 
-                                   class="form-control form-control-sm" onchange="this.form.submit()">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Месяц:</label>
-                            <select name="month" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="1" {% if month == 1 %}selected{% endif %}>Январь</option>
-                                <option value="2" {% if month == 2 %}selected{% endif %}>Февраль</option>
-                                <option value="3" {% if month == 3 %}selected{% endif %}>Март</option>
-                                <option value="4" {% if month == 4 %}selected{% endif %}>Апрель</option>
-                                <option value="5" {% if month == 5 %}selected{% endif %}>Май</option>
-                                <option value="6" {% if month == 6 %}selected{% endif %}>Июнь</option>
-                                <option value="7" {% if month == 7 %}selected{% endif %}>Июль</option>
-                                <option value="8" {% if month == 8 %}selected{% endif %}>Август</option>
-                                <option value="9" {% if month == 9 %}selected{% endif %}>Сентябрь</option>
-                                <option value="10" {% if month == 10 %}selected{% endif %}>Октябрь</option>
-                                <option value="11" {% if month == 11 %}selected{% endif %}>Ноябрь</option>
-                                <option value="12" {% if month == 12 %}selected{% endif %}>Декабрь</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <a href="?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary btn-sm">
-                                Сбросить фильтры
+<div class="full-width-container">
+    <div class="content-wrapper">
+        <!-- Заголовок и навигация -->
+        <div class="row mb-3 top-section">
+            <div class="col-md-8">
+                <h2 class="mb-1">{{ month_name }}</h2>
+                <nav aria-label="Навигация по месяцам">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item">
+                            <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
+                                &laquo; {{ prev_month|stringformat:"02d" }}.{{ prev_year }}
                             </a>
-                        </div>
-                    </form>
+                        </li>
+                        <li class="page-item active">
+                            <span class="page-link">{{ month|stringformat:"02d" }}.{{ year }}</span>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
+                                {{ next_month|stringformat:"02d" }}.{{ next_year }} &raquo;
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="btn-group">
+                    <a href="{% url 'users:employee_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-users me-2"></i>
+                        Мои сотрудники
+                    </a>
+                    <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master_id={{ request.user.id }}{% endif %}"
+                        class="btn btn-primary" target="_blank">
+                            <i class="bi bi-printer-fill"></i> Печатная форма
+                        </a>
+                        <button onclick="window.print()" class="btn btn-outline-primary">
+                            <i class="bi bi-printer"></i> Быстрая печать
+                        </button>
                 </div>
             </div>
         </div>
-    </div>
-    {% endif %}
-    
-    <!-- Основная таблица с днями (изначально видима) -->
-    <div class="row">
-        <div class="col-12">
-            <div class="table-container" id="mainTableContainer">
-                <table class="table table-bordered table-sm timesheet-table" id="timesheetTable">
-                    <thead>
-                        <tr>
-                            <th class="employee-col">Сотрудник</th>
-                            {% for day in days %}
-                            {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
-                            {% with weekday=day_date|date:"w" %}
-                            <th class="day-header 
-                                {% if weekday == '6' %}saturday-header{% endif %}
-                                {% if weekday == '0' %}sunday-header{% endif %}">
-                                <div>{{ day }}</div>
+        
+        <!-- Панель управления для мастера -->
+        {% if is_master %}
+        <div class="row mb-3 top-section">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Управление табелями за {{ month_name }}</h6>
                                 <small class="text-muted">
-                                    {{ day_date|date:"D"|slice:":2" }}
-                                </small>
-                            </th>
-                            {% endwith %}
-                            {% endwith %}
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in table_data %}
-                        <tr>
-                            <!-- Колонка с информацией о сотруднике -->
-                            <td class="employee-col">
-                                <div class="employee-info">
-                                    <div class="employee-id">{{ row.employee.employee_id }}</div>
-                                    <div class="employee-name">{{ row.formatted_fio }}</div>
-                                    <div class="employee-position">{{ row.employee.position }}</div>
-                                </div>
-                            </td>
-                            
-                            <!-- Ячейки с днями -->
-                            {% for day_data in row.days %}
-                            {% with day_num=forloop.counter %}
-                            {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day_num|stringformat:"02d" %}
-                            {% with weekday=day_date|date:"w" %}
-                            <td class="day-cell cell-{{ day_data.css_class }} 
-                                {% if weekday == '6' %} saturday {% elif weekday == '0' %} sunday {% endif %}" 
-                                data-day="{{ forloop.counter }}"
-                                data-employee-id="{{ row.employee.id }}"
-                                data-employee-name="{{ row.employee.full_name }}"
-                                {% if day_data.timesheet_id %}data-timesheet-id="{{ day_data.timesheet_id }}"{% endif %}
-                                data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ day_num|stringformat:'02d' }}"
-                                data-value="{{ day_data.value }}"
-                                data-status="{{ day_data.status }}"
-                                onclick="editCell(this)">
-
-                                {% if day_data.display_value %}
-                                <span class="cell-value">{{ day_data.display_value }}</span>
-                                {% if day_data.status == 'submitted' %}
-                                    <i class="bi bi-send-check text-info" style="font-size: 0.7rem;" title="Сдан мастером"></i>
-                                {% elif day_data.status == 'approved' %}
-                                    <i class="bi bi-check-circle text-success" style="font-size: 0.7rem;" title="Утвержден"></i>
-                                {% endif %}
-                                {% endif %}
-
-                                {% if day_data.status %}
-                                <div class="cell-status-indicator cell-status-{{ day_data.status }}"></div>
-                                {% endif %}
-                            </td>
-                            {% endwith %}
-                            {% endwith %}
-                            {% endwith %}
-                            {% endfor %} 
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="{{ days|length|add:1 }}" class="text-center py-4">
-                                <div class="text-muted">
-                                    <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
-                                    <h5 class="mt-2">Нет данных за этот период</h5>
-                                    {% if is_master %}
-                                    <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success mt-2">
-                                        Создать табели на месяц
-                                    </a>
+                                    {% if total_employees > 0 %}
+                                    Всего сотрудников: {{ total_employees }}
+                                    {% else %}
+                                    Нет сотрудников для отображения
                                     {% endif %}
+                                </small>
+                                <div class="mode-indicator" id="modeIndicator">
+                                    <i class="bi bi-calendar-check"></i> Режим: Заполнение табеля
                                 </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                
-                <!-- Таблица статистики (изначально скрыта) -->
-                <table class="table table-bordered table-sm stats-table hidden" id="statsTable">
-                    <thead>
-                        <tr>
-                            <th class="employee-col stats-header">Сотрудник</th>
-                            <th class="stats-header attendance">Дни явок</th>
-                            <th class="stats-header downtime">Целосменные простои</th>
-                            <th class="stats-header vacation">Очередной отпуск</th>
-                            <th class="stats-header illness">Болезнь</th>
-                            <th class="stats-header other-absence">Прочие неявки</th>
-                            <th class="stats-header admin-permission">Разрешения адм.</th>
-                            <th class="stats-header absence">Прогул</th>
-                            <th class="stats-header total-hours">Всего часов</th>
-                            <th class="stats-header evening-hours">Вечерние часы</th>
-                            <th class="stats-header night-hours">Ночные часы</th>
-                            <th class="stats-header weekend-hours">Выходные часы</th>
-                            <th class="stats-header overtime">Сверхурочно</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in table_data %}
-                        <tr>
-                            <!-- Колонка с информацией о сотруднике -->
-                            <td class="employee-col">
-                                <div class="employee-info">
-                                    <div class="employee-id">{{ row.employee.employee_id }}</div>
-                                    <div class="employee-name">{{ row.formatted_fio }}</div>
-                                    <div class="employee-position">{{ row.employee.position }}</div>
-                                </div>
-                            </td>
+                            </div>
+                            <div class="btn-group">
+                                <!-- Кнопка переключения режима -->
+                                <button type="button" class="btn btn-outline-info btn-sm mode-toggle-btn" id="toggleModeBtn" onclick="toggleViewMode()">
+                                    <i class="bi bi-bar-chart" id="modeBtnIcon"></i> 
+                                    <span id="modeBtnText">Показать статистику</span>
+                                </button>
+                                
+                                <!-- Кнопка сдачи табеля -->
+                                <button type="button" class="btn btn-success btn-sm" onclick="submitEntireMonth()">
+                                    <i class="bi bi-send-check-fill"></i> Сдать табель
+                                </button>
+                                
+                                <!-- Кнопка для показа условных обозначений -->
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleLegend()">
+                                    <i class="bi bi-info-circle"></i> Условные обозначения
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Секция с условными обозначениями (скрыта по умолчанию) -->
+        <div class="row mt-2 top-section collapsible-panel" id="legendPanel">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Условные обозначения
+                            </h5>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleLegend()">
+                                <i class="bi bi-x"></i> Скрыть
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Колонка 1 -->
+                            <div class="col-md-6">
+                                <table class="table table-sm legend-table">
+                                    <thead>
+                                        <tr>
+                                            <th width="40">Код</th>
+                                            <th>Описание</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-center"><strong>В</strong></td>
+                                            <td>Выходные и праздничные дни</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>К</strong></td>
+                                            <td>Командировки служебные</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>О</strong></td>
+                                            <td>Очередные и дополнительные отпуска</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Б</strong></td>
+                                            <td>Нетрудоспособность (болезнь, карантин и т.п.)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Р</strong></td>
+                                            <td>Отпуск по беременности и родам</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>ОЖ</strong></td>
+                                            <td>Социальный отпуск по уходу за ребенком до 3 лет</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>М</strong></td>
+                                            <td>Льготные часы кормящих матерей</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Л</strong></td>
+                                            <td>Льготные часы подростков до 18 лет</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Д</strong></td>
+                                            <td>Льготные часы рабочих с вредными условиями</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                             
-                            <!-- Статистические колонки -->
-                            <td class="stats-cell attendance">
-                                <div class="stats-value">{{ row.attendance_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell downtime">
-                                <div class="stats-value">{{ row.downtime_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell vacation">
-                                <div class="stats-value">{{ row.vacation_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell illness">
-                                <div class="stats-value">{{ row.illness_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell other-absence">
-                                <div class="stats-value">{{ row.other_absence_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell admin-permission">
-                                <div class="stats-value">{{ row.admin_permission_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell absence">
-                                <div class="stats-value">{{ row.absence_days }}</div>
-                                <span class="stats-label">дней</span>
-                            </td>
-                            <td class="stats-cell total-hours">
-                                <div class="stats-value">{{ row.total_hours }}</div>
-                                <span class="stats-label">часов</span>
-                            </td>
-                            <td class="stats-cell evening-hours">
-                                <div class="stats-value">{{ row.evening_hours }}</div>
-                                <span class="stats-label">часов</span>
-                            </td>
-                            <td class="stats-cell night-hours">
-                                <div class="stats-value">{{ row.night_hours }}</div>
-                                <span class="stats-label">часов</span>
-                            </td>
-                            <td class="stats-cell weekend-hours">
-                                <div class="stats-value">{{ row.weekend_hours }}</div>
-                                <span class="stats-label">часов</span>
-                            </td>
-                            <td class="stats-cell overtime">
-                                <div class="stats-value">{{ row.overtime_hours }}</div>
-                                <span class="stats-label">часов</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            <!-- Колонка 2 -->
+                            <div class="col-md-6">
+                                <table class="table table-sm legend-table">
+                                    <thead>
+                                        <tr>
+                                            <th width="40">Код</th>
+                                            <th>Описание</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-center"><strong>ОС</strong></td>
+                                            <td>Отсутствие по справке</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>ЦП</strong></td>
+                                            <td>Простои целосменные</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Ч</strong></td>
+                                            <td>Простои внутрисменные</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>П</strong></td>
+                                            <td>Прогулы</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Н</strong></td>
+                                            <td>Опоздания и преждевременный уход с работы</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>Г</strong></td>
+                                            <td>Неявки, разрешенные законом (выполнение гос.обязанностей)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>А</strong></td>
+                                            <td>Неявки с разрешения администрации</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-center"><strong>ДМ</strong></td>
+                                            <td>Дополнительный свободный от работы день матери (отца)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Дополнительная информация о специальных форматах -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="alert alert-info py-2">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small><strong>Форматы часов:</strong></small><br>
+                                            <small><strong>8</strong> - 8 часов работы</small><br>
+                                            <small><strong>7/2</strong> - 7 часов работы (вечерняя смена)</small><br>
+                                            <small><strong>8/3</strong> - 8 часов работы (ночная смена)</small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small><strong>Вечерние часы:</strong></small><br>
+                                            <small><strong>8/2, 7/2, 9/2, 10/2, 6/2</strong></small><br>
+                                            <small><i>Учитываются в колонке "Вечерние часы"</i></small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small><strong>Ночные часы:</strong></small><br>
+                                            <small><strong>7/3 (7ч), 8/2 (1.5ч), 9/2 (1.5ч), 10/2 (1.5ч)</strong></small><br>
+                                            <small><i>Учитываются в колонке "Ночные часы"</i></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Фильтры (для плановиков и администраторов) -->
+        {% if is_planner or is_admin %}
+        <div class="row mb-3 top-section">
+            <div class="col-12">
+                <div class="card filters-card">
+                    <div class="card-body py-2">
+                        <form method="get" class="row g-2">
+                            <!-- Добавляем фильтр по мастеру -->
+                            <div class="col-md-4">
+                                <label class="form-label">Мастер:</label>
+                                <select name="master" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <option value="">Все мастера</option>
+                                    {% for master in masters %}
+                                    <option value="{{ master.id }}" {% if request.GET.master == master.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ master.get_full_name }} ({{ master.employee_id }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Год:</label>
+                                <input type="number" name="year" value="{{ year }}" min="2023" max="2030" 
+                                       class="form-control form-control-sm" onchange="this.form.submit()">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Месяц:</label>
+                                <select name="month" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <option value="1" {% if month == 1 %}selected{% endif %}>Январь</option>
+                                    <option value="2" {% if month == 2 %}selected{% endif %}>Февраль</option>
+                                    <option value="3" {% if month == 3 %}selected{% endif %}>Март</option>
+                                    <option value="4" {% if month == 4 %}selected{% endif %}>Априль</option>
+                                    <option value="5" {% if month == 5 %}selected{% endif %}>Май</option>
+                                    <option value="6" {% if month == 6 %}selected{% endif %}>Июнь</option>
+                                    <option value="7" {% if month == 7 %}selected{% endif %}>Июль</option>
+                                    <option value="8" {% if month == 8 %}selected{% endif %}>Август</option>
+                                    <option value="9" {% if month == 9 %}selected{% endif %}>Сентябрь</option>
+                                    <option value="10" {% if month == 10 %}selected{% endif %}>Октябрь</option>
+                                    <option value="11" {% if month == 11 %}selected{% endif %}>Ноябрь</option>
+                                    <option value="12" {% if month == 12 %}selected{% endif %}>Декабрь</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <a href="?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary btn-sm">
+                                    Сбросить фильтры
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Основная таблица с днями (изначально видима) - широкая секция без отступов -->
+        <div class="row wide-table-section">
+            <div class="col-12 px-0">
+                <div class="table-container" id="mainTableContainer">
+                    <table class="table table-bordered table-sm timesheet-table" id="timesheetTable">
+                        <thead>
+                            <tr>
+                                <th class="employee-col">Сотрудник</th>
+                                {% for day in days %}
+                                {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day|stringformat:"02d" %}
+                                {% with weekday=day_date|date:"w" %}
+                                <th class="day-header 
+                                    {% if weekday == '6' %}saturday-header{% endif %}
+                                    {% if weekday == '0' %}sunday-header{% endif %}">
+                                    <div>{{ day }}</div>
+                                    <small class="text-muted">
+                                        {{ day_date|date:"D"|slice:":2" }}
+                                    </small>
+                                </th>
+                                {% endwith %}
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table_data %}
+                            <tr>
+                                <!-- Колонка с информацией о сотруднике -->
+                                <td class="employee-col">
+                                    <div class="employee-info">
+                                        <div class="employee-id">{{ row.employee.employee_id }}</div>
+                                        <div class="employee-name">{{ row.formatted_fio }}</div>
+                                        <div class="employee-position">{{ row.employee.position }}</div>
+                                    </div>
+                                </td>
+                                
+                                <!-- Ячейки с днями -->
+                                {% for day_data in row.days %}
+                                {% with day_num=forloop.counter %}
+                                {% with day_date=year|stringformat:"s"|add:"-"|add:month|stringformat:"02d"|add:"-"|add:day_num|stringformat:"02d" %}
+                                {% with weekday=day_date|date:"w" %}
+                                <td class="day-cell cell-{{ day_data.css_class }} 
+                                    {% if weekday == '6' %} saturday {% elif weekday == '0' %} sunday {% endif %}" 
+                                    data-day="{{ forloop.counter }}"
+                                    data-employee-id="{{ row.employee.id }}"
+                                    data-employee-name="{{ row.employee.full_name }}"
+                                    {% if day_data.timesheet_id %}data-timesheet-id="{{ day_data.timesheet_id }}"{% endif %}
+                                    data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ day_num|stringformat:'02d' }}"
+                                    data-value="{{ day_data.value }}"
+                                    data-status="{{ day_data.status }}"
+                                    onclick="editCell(this)">
+
+                                    {% if day_data.display_value %}
+                                    <span class="cell-value">{{ day_data.display_value }}</span>
+                                    {% if day_data.status == 'submitted' %}
+                                        <i class="bi bi-send-check text-info" style="font-size: 0.7rem;" title="Сдан мастером"></i>
+                                    {% elif day_data.status == 'approved' %}
+                                        <i class="bi bi-check-circle text-success" style="font-size: 0.7rem;" title="Утвержден"></i>
+                                    {% endif %}
+                                    {% endif %}
+
+                                    {% if day_data.status %}
+                                    <div class="cell-status-indicator cell-status-{{ day_data.status }}"></div>
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                                {% endwith %}
+                                {% endwith %}
+                                {% endfor %} 
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{{ days|length|add:1 }}" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                                        <h5 class="mt-2">Нет данных за этот период</h5>
+                                        {% if is_master %}
+                                        <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success mt-2">
+                                            Создать табели на месяц
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <!-- Таблица статистики (изначально скрыта) -->
+                    <table class="table table-bordered table-sm stats-table hidden" id="statsTable">
+                        <thead>
+                            <tr>
+                                <th class="employee-col stats-header">Сотрудник</th>
+                                <th class="stats-header attendance">Дни явок</th>
+                                <th class="stats-header downtime">Целосменные простои</th>
+                                <th class="stats-header vacation">Очередной отпуск</th>
+                                <th class="stats-header illness">Болезнь</th>
+                                <th class="stats-header other-absence">Прочие неявки</th>
+                                <th class="stats-header admin-permission">Разрешения адм.</th>
+                                <th class="stats-header absence">Прогул</th>
+                                <th class="stats-header total-hours">Всего часов</th>
+                                <th class="stats-header evening-hours">Вечерные часы</th>
+                                <th class="stats-header night-hours">Ночные часы</th>
+                                <th class="stats-header weekend-hours">Выходные часы</th>
+                                <th class="stats-header overtime">Сверхурочно</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table_data %}
+                            <tr>
+                                <!-- Колонка с информацией о сотруднике -->
+                                <td class="employee-col">
+                                    <div class="employee-info">
+                                        <div class="employee-id">{{ row.employee.employee_id }}</div>
+                                        <div class="employee-name">{{ row.formatted_fio }}</div>
+                                        <div class="employee-position">{{ row.employee.position }}</div>
+                                    </div>
+                                </td>
+                                
+                                <!-- Статистические колонки -->
+                                <td class="stats-cell attendance">
+                                    <div class="stats-value">{{ row.attendance_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell downtime">
+                                    <div class="stats-value">{{ row.downtime_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell vacation">
+                                    <div class="stats-value">{{ row.vacation_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell illness">
+                                    <div class="stats-value">{{ row.illness_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell other-absence">
+                                    <div class="stats-value">{{ row.other_absence_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell admin-permission">
+                                    <div class="stats-value">{{ row.admin_permission_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell absence">
+                                    <div class="stats-value">{{ row.absence_days }}</div>
+                                    <span class="stats-label">дней</span>
+                                </td>
+                                <td class="stats-cell total-hours">
+                                    <div class="stats-value">{{ row.total_hours }}</div>
+                                    <span class="stats-label">часов</span>
+                                </td>
+                                <td class="stats-cell evening-hours">
+                                    <div class="stats-value">{{ row.evening_hours }}</div>
+                                    <span class="stats-label">часов</span>
+                                </td>
+                                <td class="stats-cell night-hours">
+                                    <div class="stats-value">{{ row.night_hours }}</div>
+                                    <span class="stats-label">часов</span>
+                                </td>
+                                <td class="stats-cell weekend-hours">
+                                    <div class="stats-value">{{ row.weekend_hours }}</div>
+                                    <span class="stats-label">часов</span>
+                                </td>
+                                <td class="stats-cell overtime">
+                                    <div class="stats-value">{{ row.overtime_hours }}</div>
+                                    <span class="stats-label">часов</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
