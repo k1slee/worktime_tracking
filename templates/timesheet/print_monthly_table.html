@@ -129,11 +129,12 @@
         font-weight: normal;
     }
     
-    /* Специальные колонки */
+   /* Колонка п/п - 4 мм с вертикальным текстом */
     .col-number { 
-        width: 6mm; 
-        min-width: 6mm;
-        max-width: 6mm;
+        width: 4mm !important; 
+        min-width: 4mm !important;
+        max-width: 4mm !important;
+        padding: 0 !important;
     }
     
     .col-name { 
@@ -495,7 +496,11 @@
             <thead>
                 <!-- Первая строка заголовков -->
                 <tr>
-                    <th rowspan="3" class="col-number">№ п/п</th>
+                    <th rowspan="3" class="col-number vertical-header">
+                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                            <div style="transform: rotate(-90deg); transform-origin: center; font-size: 8pt; text-align: center; line-height: 1.1; white-space: nowrap; font-family: 'Times New Roman', serif;"><b>№ п/п</b></div>
+                        </div>
+                    </th>
                     <th rowspan="3" class="col-name"style="font-family: 'Times New Roman', serif; font-size: 11pt;"><b>Фамилия, И.О.</b></th>
                     <th rowspan="3" class="col-position"style="font-family: 'Times New Roman', serif; font-size: 8pt;"><b>Профессия, должность</b></th>
                     <th rowspan="3" class="col-employee-id vertical-header"style="font-family: 'Times New Roman', serif; font-size: 7pt;"><div class="vertical-text"><b>Табельный №</b></div></th>
