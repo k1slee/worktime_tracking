@@ -156,8 +156,8 @@
     
     .col-employee-id { 
         width: 8mm !important; 
-        min-width: 12mm !important;
-        max-width: 12mm !important;
+        min-width: 8mm !important;
+        max-width: 8mm !important;
     }
     
     /* Колонки с днями - узкие */
@@ -338,7 +338,6 @@
     .legend {
         margin-top: 1.5mm;
         font-size: 6pt;
-        border-top: 0.5pt solid #000;
         padding-top: 0.5mm;
     }
     
@@ -377,7 +376,6 @@
         display: flex;
         justify-content: space-between;
         font-size: 7pt;
-        border-top: 0.5pt solid #000;
         padding-top: 1.5mm;
     }
     
@@ -501,7 +499,7 @@
                             <div style="transform: rotate(-90deg); transform-origin: center; font-size: 8pt; text-align: center; line-height: 1.1; white-space: nowrap; font-family: 'Times New Roman', serif;"><b>№ п/п</b></div>
                         </div>
                     </th>
-                    <th rowspan="3" class="col-name"style="font-family: 'Times New Roman', serif; font-size: 11pt;"><b>Фамилия, И.О.</b></th>
+                    <th rowspan="3" class="col-name"style="font-family: 'Times New Roman', serif; font-size: 11pt;"><b>Фамилия И.О.</b></th>
                     <th rowspan="3" class="col-position"style="font-family: 'Times New Roman', serif; font-size: 8pt;"><b>Профессия, должность</b></th>
                     <th rowspan="3" class="col-employee-id vertical-header"style="font-family: 'Times New Roman', serif; font-size: 7pt;"><div class="vertical-text"><b>Табельный №</b></div></th>
                     
@@ -602,10 +600,10 @@
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ forloop.counter }}</div>
                     </td>
                     <td class="col-name">
-                        <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 11pt;">{{ row.formatted_fio|default:row.employee.full_name }}</div>
+                        <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 11pt; font-weight: bold;">{{ row.formatted_fio|default:row.employee.full_name }}</div>
                     </td>
                     <td class="col-position">
-                        <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 8pt;">{{ row.employee.position|default:"-" }}</div>
+                        <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 8pt; font-weight: bold;">{{ row.employee.position|default:"-" }}</div>
                     </td>
                     <td class="col-employee-id">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;"><b>{{ row.employee.employee_id|default:row.employee.id }}</b></div>
