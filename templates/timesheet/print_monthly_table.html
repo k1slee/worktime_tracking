@@ -602,10 +602,10 @@
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ forloop.counter }}</div>
                     </td>
                     <td class="col-name">
-                        <div class="cell-content text-left">{{ row.formatted_fio|default:row.employee.full_name }}</div>
+                        <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 11pt;">{{ row.formatted_fio|default:row.employee.full_name }}</div>
                     </td>
                     <td class="col-position">
-                        <div class="cell-content text-left">{{ row.employee.position|default:"-" }}</div>
+                        <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 8pt;">{{ row.employee.position|default:"-" }}</div>
                     </td>
                     <td class="col-employee-id">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;"><b>{{ row.employee.employee_id|default:row.employee.id }}</b></div>
@@ -645,7 +645,7 @@
 
                     <!--Отработано часов-->
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.total_hours}}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.total_hours|floatformat:0 }}</div>
                     </td>
                     <td class="col-stats col-weekend-hours">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.weekend_hours|floatformat:0|default:"0" }}</div>
@@ -674,7 +674,7 @@
                     
                     <!-- Колонка "всего" -->
                     <td class="col-stats col-total-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ table_data|sum_attr_any:"total_hours"}}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ table_data|sum_attr_any:"total_hours"|floatformat:0}}</div>
                     </td>
                     
                     <!-- ПУСТЫЕ ЯЧЕЙКИ для остальных колонок "Отработано часов" -->
