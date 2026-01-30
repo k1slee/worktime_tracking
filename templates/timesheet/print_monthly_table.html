@@ -459,7 +459,10 @@
     .weekend {
         background-color: #f0f0f0 !important;
     }
-
+    .letter-v {
+        font-weight: bold !important;
+        color: rgb(17, 2, 2) !important; /* Красный цвет текста */
+    }
     .holiday { /* Добавьте этот класс */
         background-color: #ffe6e6 !important; /* Светло-красный фон для праздников */
     }
@@ -628,8 +631,11 @@
                     
                     <!-- Дни месяца -->
                     {% for day_data in row.days %}
-                    <td class="day-col {% if weekend_days|get_item:day_data.day %}weekend{% endif %} {% if day_data.display_value == 'В' %}holiday{% endif %}">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ day_data.display_value| only_number}}</div>
+                    <td class="day-col {% if weekend_days|get_item:day_data.day %}weekend{% endif %}">
+                        <div class="cell-content {% if day_data.display_value == 'В' %}letter-v{% endif %}" 
+                            style="font-family: 'Times New Roman', serif; font-size: 9pt;">
+                            {{ day_data.display_value|only_number }}
+                        </div>
                     </td>
                     {% endfor %}
                     
