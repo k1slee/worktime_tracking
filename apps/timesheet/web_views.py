@@ -251,6 +251,7 @@ def update_statistics(stats, employee_id, day, value_str, is_weekend,
     # Маппинг категорий
     category_map = {
         'ЦП': 'downtime',
+        'К': 'business_trip',
         'О': 'vacation',
         'Б': 'illness',
         'Р': 'illness',
@@ -288,6 +289,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     stats = {
         'attendance': {},
         'downtime': {},
+        'business_trip': {},
         'vacation': {},
         'illness': {},
         'other_absence': {},
@@ -393,6 +395,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
             'row_status': 'has_data' if row_has_timesheets else 'empty',
             'attendance_days': stats.get('attendance', {}).get(employee_id, 0),
             'downtime_days': stats.get('downtime', {}).get(employee_id, 0),
+            'business_trip_days': stats.get('business_trip', {}).get(employee_id, 0),
             'vacation_days': stats.get('vacation', {}).get(employee_id, 0),
             'illness_days': stats.get('illness', {}).get(employee_id, 0),
             'other_absence_days': stats.get('other_absence', {}).get(employee_id, 0),
@@ -1157,6 +1160,7 @@ def get_statistics_view(request):
             'other_absence_days': 0,
             'absence_days': 0,
             'downtime_days': 0,
+            'business_trip_days': 0,
             'evening_hours': 0,
             'night_hours': 0,
             'overtime_hours': 0,
