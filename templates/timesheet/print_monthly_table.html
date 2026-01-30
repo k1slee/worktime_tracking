@@ -635,46 +635,47 @@
                     
                     <!-- Дни явок -->
                     <td class="col-stats col-days-work" style="background-color: #817d7d !important;">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.attendance_days }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.attendance_days|hide_zero_int }}</div>
                     </td>
                     <td class="col-stats col-days-downtime">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.downtime_days }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.downtime_days|hide_zero_int }}</div>
                     </td>
                     <td class="col-stats col-business-trip">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.business_trip_days|default:"0" }}</div>
-                    </td>
-                    <!-- Дни неявок -->
-                    <td class="col-stats col-vacation">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.vacation_days }}</div>
-                    </td>
-                    <td class="col-stats col-illness">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.illness_days }}</div>
-                    </td>
-                    <td class="col-stats col-other-absences">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.other_absence_days|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-admin-permission">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.admin_permission_days|default:"0" }}</div>
-                    </td>
-                    <td class="col-stats col-absence">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.absence_days }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.business_trip_days|hide_zero_int }}</div>
                     </td>
 
-                    <!--Отработано часов-->
+                    <!-- Дни неявок -->
+                    <td class="col-stats col-vacation">
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.vacation_days|hide_zero_int }}</div>
+                    </td>
+                    <td class="col-stats col-illness">
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.illness_days|hide_zero_int }}</div>
+                    </td>
+                    <td class="col-stats col-other-absences">
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.other_absence_days|hide_zero_int }}</div>
+                    </td>
+                    <td class="col-stats col-admin-permission">
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.admin_permission_days|hide_zero_int }}</div>
+                    </td>
+                    <td class="col-stats col-absence">
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.absence_days|hide_zero_int }}</div>
+                    </td>
+
+                    <!-- Отработано часов -->
                     <td class="col-stats col-total-hours" style="background-color: #817d7d !important;">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.total_hours|floatformat:0 }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.total_hours|hide_zero_float:0 }}</div>
                     </td>
                     <td class="col-stats col-evening-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.evening_hours|floatformat:0|default:"0" }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.evening_hours|hide_zero_float:0 }}</div>
                     </td>
                     <td class="col-stats col-night-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.night_hours|floatformat:0|default:"0" }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.night_hours|hide_zero_float:0 }}</div>
                     </td>
                     <td class="col-stats col-weekend-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.weekend_hours|floatformat:0|default:"0" }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.weekend_hours|hide_zero_float:0 }}</div>
                     </td>
                     <td class="col-stats col-overtime">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.overtime_hours|floatformat:0|default:"0" }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.overtime_hours|hide_zero_float:0 }}</div>
                     </td>
                 </tr>
                 {% endfor %}

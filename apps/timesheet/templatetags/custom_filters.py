@@ -1,5 +1,5 @@
 from django import template
-
+from django.template.defaultfilters import floatformat
 register = template.Library()
 
 
@@ -108,3 +108,38 @@ def only_number(value):
     if cleaned.isdigit():
         return int(cleaned)
     return value
+@register.filter
+def hide_zero(value):
+    """Возвращает пустую строку если значение равно 0"""
+    if value is None:
+        return ""
+    try:
+        if float(value) == 0:
+            return ""
+        return str(value)
+    except (ValueError, TypeError):
+        return value
+
+@register.filter
+def hide_zero_float(value, decimal_places=0):
+    """Возвращает пустую строку если значение равно 0, иначе форматирует число"""
+    if value is None:
+        return ""
+    try:
+        if float(value) == 0:
+            return ""
+        return floatformat(value, decimal_places)
+    except (ValueError, TypeError):
+        return value
+
+@register.filter
+def hide_zero_int(value):
+    """Возвращает пустую строку если целое значение равно 0"""
+    if value is None:
+        return ""
+    try:
+        if int(value) == 0:
+            return ""
+        return str(value)
+    except (ValueError, TypeError):
+        return value
