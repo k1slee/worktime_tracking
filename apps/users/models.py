@@ -141,22 +141,6 @@ class Employee(models.Model):
         """Полное ФИО сотрудника"""
         if self.user:
             return self.user.get_full_name()
-class EmployeeAssignment(models.Model):
-    """Назначение сотрудника мастеру в периоде"""
-    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, related_name='assignments', verbose_name='Сотрудник')
-    master = models.ForeignKey(User, on_delete=models.CASCADE, related_name='employee_assignments', verbose_name='Мастер', limit_choices_to={'role': 'master'})
-    start_date = models.DateField('Дата начала')
-    end_date = models.DateField('Дата окончания', null=True, blank=True)
-    class Meta:
-        verbose_name = 'Назначение сотрудника'
-        verbose_name_plural = 'Назначения сотрудников'
-        indexes = [
-            models.Index(fields=['master', 'start_date', 'end_date']),
-            models.Index(fields=['employee', 'start_date', 'end_date']),
-        ]
-    def __str__(self):
-        end = self.end_date.strftime('%d.%m.%Y') if self.end_date else 'по наст. время'
-        return f"{self.employee} → {self.master} ({self.start_date.strftime('%d.%m.%Y')} - {end})"
         parts = [self.last_name, self.first_name, self.middle_name]
         return " ".join([p for p in parts if p]).strip()
     
@@ -174,3 +158,20 @@ class EmployeeAssignment(models.Model):
     def department(self):
         """Отдел сотрудника"""
         return self.user.department if self.user else self.department_own
+
+class EmployeeAssignment(models.Model):
+    """Назначение сотрудника мастеру в периоде"""
+    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, related_name='assignments', verbose_name='Сотрудник')
+    master = models.ForeignKey(User, on_delete=models.CASCADE, related_name='employee_assignments', verbose_name='Мастер', limit_choices_to={'role': 'master'})
+    start_date = models.DateField('Дата начала')
+    end_date = models.DateField('Дата окончания', null=True, blank=True)
+    class Meta:
+        verbose_name = 'Назначение сотрудника'
+        verbose_name_plural = 'Назначения сотрудников'
+        indexes = [
+            models.Index(fields=['master', 'start_date', 'end_date']),
+            models.Index(fields=['employee', 'start_date', 'end_date']),
+        ]
+    def __str__(self):
+        end = self.end_date.strftime('%d.%m.%Y') if self.end_date else 'по наст. время'
+        return f"{self.employee} → {self.master} ({self.start_date.strftime('%d.%m.%Y')} - {end})"
