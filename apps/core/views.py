@@ -24,8 +24,16 @@ def dashboard_view(request):
         # Данные для мастера
         from apps.timesheet.models import Timesheet
         from apps.users.models import Employee
-        
-        managed_employees = Employee.objects.filter(master=user, is_active=True).count()
+        from django.utils import timezone
+        from django.db.models import Q
+        today = timezone.now().date()
+        managed_employees = Employee.objects.filter(
+            is_active=True,
+            assignments__master=user,
+            assignments__start_date__lte=today
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)
+        ).distinct().count()
         recent_timesheets = Timesheet.objects.filter(master=user).order_by('-date')[:10]
         
         context = {

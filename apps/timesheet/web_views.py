@@ -142,25 +142,27 @@ def get_monthly_data(request, year, month, print_mode=False):
         master_user = request.user
         department_id = request.user.department_id
 
-        # Получаем или создаем запись мастера как сотрудника
-        Employee.objects.get_or_create(
-            user=request.user,
-            defaults={
-                'master': request.user,
-                'hire_date': request.user.date_joined.date() if request.user.date_joined else date.today(),
-                'is_active': True
-            }
-        )
+        # Получаем сотрудников, назначенных текущему мастеру на выбранный месяц
+        month_start = date(year, month, 1)
+        if month == 12:
+            next_month_start = date(year + 1, 1, 1)
+        else:
+            next_month_start = date(year, month + 1, 1)
+        month_end = next_month_start - timedelta(days=1)
 
         employees = Employee.objects.filter(
-            Q(master=request.user) | Q(user=request.user),
-            is_active=True
+            is_active=True,
+            assignments__master=request.user
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
+            assignments__start_date__lte=month_end
         ).distinct()
 
         timesheets = Timesheet.objects.filter(
             date__year=year,
             date__month=month,
-            employee__in=employees
+            employee__in=employees,
+            master=request.user
         ).select_related('employee', 'employee__user', 'master')
 
     # === ЛОГИКА ДЛЯ ПЛАНОВИКА И АДМИНИСТРАТОРА ===

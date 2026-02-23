@@ -65,9 +65,22 @@ class MonthlyTimesheetForm(forms.Form):
         default_value = self.cleaned_data['default_value']
         include_weekends = self.cleaned_data['include_weekends']
         
-        # Получаем сотрудников мастера
-        from apps.users.models import Employee
-        employees = Employee.objects.filter(master=self.user, is_active=True)
+        # Получаем сотрудников, назначенных этому мастеру в выбранном месяце
+        from apps.users.models import Employee, EmployeeAssignment
+        from django.db.models import Q
+        month_start = month
+        year = month.year
+        month_num = month.month
+        import calendar
+        _, last_day = calendar.monthrange(year, month_num)
+        month_end = datetime(year, month_num, last_day).date()
+        employees = Employee.objects.filter(
+            is_active=True,
+            assignments__master=self.user
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
+            assignments__start_date__lte=month_end
+        ).distinct()
         
         if not employees.exists():
             raise ValueError('У вас нет активных сотрудников')
@@ -92,6 +105,15 @@ class MonthlyTimesheetForm(forms.Form):
                 
                 # Проверяем, не существует ли уже табель
                 if not Timesheet.objects.filter(date=date, employee=employee).exists():
+                    # Проверяем назначение на эту дату
+                    assigned = EmployeeAssignment.objects.filter(
+                        employee=employee, master=self.user
+                    ).filter(
+                        Q(end_date__isnull=True) | Q(end_date__gte=date),
+                        start_date__lte=date
+                    ).exists()
+                    if not assigned:
+                        continue
                     try:
                         Timesheet.objects.create(
                             date=date,
@@ -170,8 +192,14 @@ class BulkTimesheetForm(forms.Form):
         # Получаем ID сотрудников
         ids = [int(id) for id in employee_ids.split(',') if id]
         
-        from apps.users.models import Employee
-        employees = Employee.objects.filter(id__in=ids, master=self.user)
+        from apps.users.models import Employee, EmployeeAssignment
+        from django.db.models import Q
+        employees = Employee.objects.filter(id__in=ids).filter(
+            assignments__master=self.user
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date),
+            assignments__start_date__lte=date
+        ).distinct()
         
         updated_count = 0
         
@@ -217,22 +245,39 @@ class TimesheetForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Ограничиваем выбор сотрудников для мастера
+        # Ограничиваем выбор сотрудников для мастера (по текущей дате)
         if self.user and self.user.is_master:
+            from django.utils import timezone
+            from django.db.models import Q
+            today = timezone.now().date()
             self.fields['employee'].queryset = Employee.objects.filter(
-                master=self.user, is_active=True
-            ).select_related('user')
+                is_active=True,
+                assignments__master=self.user,
+                assignments__start_date__lte=today
+            ).filter(
+                Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)
+            ).select_related('user').distinct()
     
     def clean(self):
         cleaned_data = super().clean()
         
-        # Мастер может создавать табели только для своих сотрудников
+        # Мастер может создавать табели только для сотрудников, назначенных ему на указанную дату
         if self.user and self.user.is_master:
+            from django.db.models import Q
+            from apps.users.models import EmployeeAssignment
             employee = cleaned_data.get('employee')
-            if employee and employee.master != self.user:
-                raise forms.ValidationError(
-                    'Вы можете создавать табели только для своих сотрудников'
-                )
+            date = cleaned_data.get('date')
+            if employee and date:
+                assigned = EmployeeAssignment.objects.filter(
+                    employee=employee, master=self.user
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=date),
+                    start_date__lte=date
+                ).exists()
+                if not assigned:
+                    raise forms.ValidationError(
+                        'Сотрудник не назначен вам на эту дату'
+                    )
         
         return cleaned_data
     

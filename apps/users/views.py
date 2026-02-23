@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from .models import Employee
-from .forms import AddEmployeeForm, CreateEmployeeForm, EmployeeFilterForm
+from .forms import AddEmployeeForm, CreateEmployeeForm, EmployeeFilterForm, EmployeeAssignmentForm
 
 class MasterMixin(UserPassesTestMixin):
     """Миксин для проверки, что пользователь мастер"""
@@ -27,7 +27,15 @@ class EmployeeListView(MasterMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = Employee.objects.filter(master=self.request.user)
+        from django.utils import timezone
+        today = timezone.now().date()
+        queryset = Employee.objects.filter(
+            is_active=True,
+            assignments__master=self.request.user,
+            assignments__start_date__lte=today
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)
+        ).distinct()
         
         search = self.request.GET.get('search')
         is_active = self.request.GET.get('is_active')
@@ -179,6 +187,41 @@ def employee_detail(request, pk):
     })
 
 @login_required
+def assignment_add(request, pk):
+    """Добавить назначение сотрудника мастеру на период"""
+    employee = get_object_or_404(Employee, pk=pk)
+    if not (request.user.is_master or request.user.is_planner or request.user.is_administrator):
+        messages.error(request, 'Недостаточно прав для назначения мастера')
+        return redirect('users:employee_detail', pk=pk)
+    if request.method == 'POST':
+        form = EmployeeAssignmentForm(request.POST, employee=employee, current_user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Назначение успешно добавлено')
+            return redirect('users:employee_detail', pk=pk)
+    else:
+        form = EmployeeAssignmentForm(employee=employee, current_user=request.user)
+    return render(request, 'users/assignment_form.html', {
+        'form': form,
+        'employee': employee,
+        'title': 'Назначение мастера'
+    })
+
+@login_required
+def assignment_close(request, assignment_id):
+    """Закрыть назначение (установить дату окончания сегодня)"""
+    from .models import EmployeeAssignment
+    assignment = get_object_or_404(EmployeeAssignment, pk=assignment_id)
+    if not (request.user.is_master or request.user.is_planner or request.user.is_administrator):
+        messages.error(request, 'Недостаточно прав для изменения назначения')
+        return redirect('users:employee_detail', pk=assignment.employee_id)
+    from django.utils import timezone
+    assignment.end_date = timezone.now().date()
+    assignment.save()
+    messages.success(request, 'Назначение закрыто')
+    return redirect('users:employee_detail', pk=assignment.employee_id)
+
+@login_required
 def search_users_api(request):
     """API для поиска пользователей без отдела"""
     if not request.user.is_master:
@@ -230,8 +273,17 @@ def profile_view(request):
     }
     
     if user.is_master:
-        context['employee_count'] = Employee.objects.filter(master=user).count()
-        context['active_employee_count'] = Employee.objects.filter(master=user, is_active=True).count()
+        from django.db.models import Q
+        from django.utils import timezone
+        today = timezone.now().date()
+        base_qs = Employee.objects.filter(
+            assignments__master=user,
+            assignments__start_date__lte=today
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)
+        ).distinct()
+        context['employee_count'] = base_qs.count()
+        context['active_employee_count'] = base_qs.filter(is_active=True).count()
         # Статистика по табелям за последний месяц
         from apps.timesheet.models import Timesheet
         from django.utils import timezone

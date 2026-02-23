@@ -49,20 +49,33 @@ class AddEmployeeForm(forms.ModelForm):
         return employee_user
     
     def save(self, commit=True):
-        from .models import Employee
+        from .models import Employee, EmployeeAssignment
         
-        # Создаем профиль сотрудника
-        employee = Employee.objects.create(
+        employee, created = Employee.objects.get_or_create(
             user=self.cleaned_data['employee'],
-            master=self.master,
-            hire_date=self.cleaned_data.get('hire_date'),
-            is_active=True
+            defaults={
+                'hire_date': self.cleaned_data.get('hire_date'),
+                'is_active': True
+            }
         )
+        if not created:
+            if self.cleaned_data.get('hire_date') and not employee.hire_date:
+                employee.hire_date = self.cleaned_data['hire_date']
+                employee.save()
         
         # Привязываем пользователя к отделу мастера
         if self.master.department:
             employee.user.department = self.master.department
             employee.user.save()
+        
+        # Создаем назначение сотрудника мастеру
+        from datetime import date
+        EmployeeAssignment.objects.create(
+            employee=employee,
+            master=self.master,
+            start_date=self.cleaned_data.get('hire_date') or date.today(),
+            end_date=None
+        )
         
         return employee
     
@@ -121,6 +134,62 @@ class CreateEmployeeForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     
+class EmployeeAssignmentForm(forms.Form):
+    """Форма назначения сотрудника мастеру на период"""
+    master = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='master'),
+        label='Мастер',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    start_date = forms.DateField(
+        label='Дата начала',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        label='Дата окончания',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    def __init__(self, *args, **kwargs):
+        self.employee = kwargs.pop('employee', None)
+        self.current_user = kwargs.pop('current_user', None)
+        super().__init__(*args, **kwargs)
+        if self.current_user and getattr(self.current_user, 'is_master', False):
+            # Мастер может выбирать любого мастера (для простоты)
+            self.fields['master'].queryset = User.objects.filter(role='master')
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_date')
+        end = cleaned.get('end_date')
+        if end and end < start:
+            raise ValidationError('Дата окончания не может быть раньше даты начала')
+        if self.employee and start:
+            from .models import EmployeeAssignment
+            from django.db.models import Q
+            qs = EmployeeAssignment.objects.filter(employee=self.employee)
+            # Проверяем пересечения периодов
+            # Новый период [start, end_or_inf)
+            if end:
+                conflict = qs.filter(
+                    Q(end_date__isnull=True, start_date__lte=end) |
+                    Q(end_date__isnull=False, start_date__lte=end, end_date__gte=start)
+                ).exists()
+            else:
+                conflict = qs.filter(
+                    Q(end_date__isnull=True) |
+                    Q(end_date__isnull=False, end_date__gte=start)
+                ).exists()
+            if conflict:
+                raise ValidationError('Период пересекается с существующим назначением')
+        return cleaned
+    def save(self):
+        from .models import EmployeeAssignment
+        return EmployeeAssignment.objects.create(
+            employee=self.employee,
+            master=self.cleaned_data['master'],
+            start_date=self.cleaned_data['start_date'],
+            end_date=self.cleaned_data.get('end_date')
+        )
     def __init__(self, *args, **kwargs):
         self.master = kwargs.pop('master', None)
         super().__init__(*args, **kwargs)
@@ -138,12 +207,11 @@ class CreateEmployeeForm(forms.Form):
         return employee_id
     
     def save(self, commit=True):
-        from .models import Employee
+        from .models import Employee, EmployeeAssignment
         from datetime import date
         # Создаем сотрудника без учетной записи
         employee = Employee(
             user=None,
-            master=self.master,
             hire_date=self.cleaned_data.get('hire_date') or date.today(),
             is_active=True,
             last_name=self.cleaned_data['last_name'],
@@ -156,6 +224,13 @@ class CreateEmployeeForm(forms.Form):
         if commit:
             employee.full_clean()
             employee.save()
+            if self.master:
+                EmployeeAssignment.objects.create(
+                    employee=employee,
+                    master=self.master,
+                    start_date=employee.hire_date or date.today(),
+                    end_date=None
+                )
         return employee
 
 class EmployeeFilterForm(forms.Form):

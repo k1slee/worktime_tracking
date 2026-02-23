@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 class Department(models.Model):
     """Отдел предприятия"""
@@ -70,12 +71,18 @@ class User(AbstractUser):
         return self.role == 'planner'
     
     def get_managed_employees(self):
-        """Получить сотрудников, которыми управляет мастер"""
-        if self.is_master:
-            from django.apps import apps
-            Employee = apps.get_model('users', 'Employee')
-            return Employee.objects.filter(master=self)
-        return Employee.objects.none()
+        """Получить сотрудников, назначенных мастеру на текущую дату"""
+        if not self.is_master:
+            return Employee.objects.none()
+        from django.utils import timezone
+        today = timezone.now().date()
+        return Employee.objects.filter(
+            is_active=True,
+            assignments__master=self
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today),
+            assignments__start_date__lte=today
+        ).distinct()
 
 class Employee(models.Model):
     """Сотрудник"""
@@ -134,6 +141,22 @@ class Employee(models.Model):
         """Полное ФИО сотрудника"""
         if self.user:
             return self.user.get_full_name()
+class EmployeeAssignment(models.Model):
+    """Назначение сотрудника мастеру в периоде"""
+    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, related_name='assignments', verbose_name='Сотрудник')
+    master = models.ForeignKey(User, on_delete=models.CASCADE, related_name='employee_assignments', verbose_name='Мастер', limit_choices_to={'role': 'master'})
+    start_date = models.DateField('Дата начала')
+    end_date = models.DateField('Дата окончания', null=True, blank=True)
+    class Meta:
+        verbose_name = 'Назначение сотрудника'
+        verbose_name_plural = 'Назначения сотрудников'
+        indexes = [
+            models.Index(fields=['master', 'start_date', 'end_date']),
+            models.Index(fields=['employee', 'start_date', 'end_date']),
+        ]
+    def __str__(self):
+        end = self.end_date.strftime('%d.%m.%Y') if self.end_date else 'по наст. время'
+        return f"{self.employee} → {self.master} ({self.start_date.strftime('%d.%m.%Y')} - {end})"
         parts = [self.last_name, self.first_name, self.middle_name]
         return " ".join([p for p in parts if p]).strip()
     

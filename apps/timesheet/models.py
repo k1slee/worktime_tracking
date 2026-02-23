@@ -28,8 +28,23 @@ class MonthlyTimesheet(models.Model):
         year = self.month.year
         month = self.month.month
         
-        # Сотрудники мастера
-        employees = Employee.objects.filter(master=self.master, is_active=True)
+        # Сотрудники, назначенные этому мастеру в выбранном месяце
+        from apps.users.models import EmployeeAssignment, Employee
+        from django.db.models import Q
+        month_start = datetime(year, month, 1).date()
+        # Compute last day of month
+        if month == 12:
+            next_month_start = datetime(year + 1, 1, 1).date()
+        else:
+            next_month_start = datetime(year, month + 1, 1).date()
+        month_end = next_month_start - timedelta(days=1)
+        employees = Employee.objects.filter(
+            is_active=True,
+            assignments__master=self.master
+        ).filter(
+            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
+            assignments__start_date__lte=month_end
+        ).distinct()
         
         # Создаем записи для каждого дня месяца
         days_created = 0
@@ -44,13 +59,22 @@ class MonthlyTimesheet(models.Model):
                 
                 # Проверяем, не существует ли уже запись
                 if not Timesheet.objects.filter(date=date, employee=employee).exists():
-                    Timesheet.objects.create(
-                        date=date,
+                    # Проверяем, назначен ли сотрудник этому мастеру на эту дату
+                    assigned = EmployeeAssignment.objects.filter(
                         employee=employee,
-                        master=self.master,
-                        value=default_value,
-                        status='draft'
-                    )
+                        master=self.master
+                    ).filter(
+                        Q(end_date__isnull=True) | Q(end_date__gte=date),
+                        start_date__lte=date
+                    ).exists()
+                    if assigned:
+                        Timesheet.objects.create(
+                            date=date,
+                            employee=employee,
+                            master=self.master,
+                            value=default_value,
+                            status='draft'
+                        )
                     days_created += 1
                 
                 day += 1

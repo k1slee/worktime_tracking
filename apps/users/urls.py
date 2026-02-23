@@ -11,6 +11,8 @@ urlpatterns = [
     path('employees/<int:pk>/', views.employee_detail, name='employee_detail'),
     path('employees/<int:pk>/toggle/', views.toggle_employee_status, name='toggle_employee'),
     path('employees/<int:pk>/remove/', views.remove_employee, name='remove_employee'),
+    path('employees/<int:pk>/assignments/add/', views.assignment_add, name='assignment_add'),
+    path('assignments/<int:assignment_id>/close/', views.assignment_close, name='assignment_close'),
     
     # API
     path('api/search-users/', views.search_users_api, name='search_users_api'),

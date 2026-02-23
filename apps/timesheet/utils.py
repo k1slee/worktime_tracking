@@ -61,10 +61,17 @@ def get_timesheet_stats(queryset):
 def create_monthly_timesheets(master, year, month, default_value='В', include_weekends=True):
     """Создать табели на весь месяц для всех сотрудников мастера"""
     from .models import Timesheet
-    from apps.users.models import Employee
+    from apps.users.models import Employee, EmployeeAssignment
+    from django.db.models import Q
     import calendar
     
-    employees = Employee.objects.filter(master=master, is_active=True)
+    employees = Employee.objects.filter(
+        is_active=True,
+        assignments__master=master
+    ).filter(
+        Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=datetime(year, month, 1).date()),
+        assignments__start_date__lte=datetime(year, month, 1).date()
+    ).distinct()
     _, last_day = calendar.monthrange(year, month)
     
     created_count = 0
@@ -79,22 +86,36 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
             
             # Создаем табель, если еще не существует
             if not Timesheet.objects.filter(date=date, employee=employee).exists():
-                Timesheet.objects.create(
-                    date=date,
-                    employee=employee,
-                    master=master,
-                    value=default_value,
-                    status='draft'
-                )
-                created_count += 1
+                assigned = EmployeeAssignment.objects.filter(
+                    employee=employee, master=master
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=date),
+                    start_date__lte=date
+                ).exists()
+                if assigned:
+                    Timesheet.objects.create(
+                        date=date,
+                        employee=employee,
+                        master=master,
+                        value=default_value,
+                        status='draft'
+                    )
+                    created_count += 1
     
     return created_count
 
 def get_master_employees_with_timesheets(master, date):
     """Получить сотрудников мастера с информацией о табелях на дату"""
-    from apps.users.models import Employee
+    from apps.users.models import Employee, EmployeeAssignment
+    from django.db.models import Q
     
-    employees = Employee.objects.filter(master=master, is_active=True)
+    employees = Employee.objects.filter(
+        is_active=True,
+        assignments__master=master
+    ).filter(
+        Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date),
+        assignments__start_date__lte=date
+    ).distinct()
     result = []
     
     for employee in employees:
