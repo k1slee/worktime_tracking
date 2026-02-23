@@ -36,7 +36,11 @@ class EmployeeListView(MasterMixin, ListView):
             queryset = queryset.filter(
                 Q(user__first_name__icontains=search) |
                 Q(user__last_name__icontains=search) |
-                Q(user__employee_id__icontains=search)
+                Q(user__employee_id__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(middle_name__icontains=search) |
+                Q(employee_id_own__icontains=search)
             )
         
         if is_active == 'active':
@@ -44,7 +48,7 @@ class EmployeeListView(MasterMixin, ListView):
         elif is_active == 'inactive':
             queryset = queryset.filter(is_active=False)
         
-        return queryset.select_related('user').order_by('user__last_name')
+        return queryset.select_related('user').order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -71,7 +75,7 @@ class AddEmployeeView(MasterMixin, View):
         form = AddEmployeeForm(request.POST, master=request.user)
         if form.is_valid():
             employee = form.save()
-            messages.success(request, f'Сотрудник {employee.user.get_full_name()} успешно добавлен')
+            messages.success(request, f'Сотрудник {employee.full_name} успешно добавлен')
             return redirect('users:employee_list')
         
         return render(request, self.template_name, {'form': form, 'action': 'add'})
@@ -88,7 +92,7 @@ class CreateEmployeeView(MasterMixin, View):
         form = CreateEmployeeForm(request.POST, master=request.user)
         if form.is_valid():
             employee = form.save()
-            messages.success(request, f'Новый сотрудник {employee.user.get_full_name()} успешно создан')
+            messages.success(request, f'Новый сотрудник {employee.full_name} успешно создан')
             return redirect('users:employee_list')
         
         return render(request, self.template_name, {'form': form, 'action': 'create'})
@@ -111,7 +115,7 @@ def toggle_employee_status(request, pk):
     
     employee.save()
     
-    messages.success(request, f'Сотрудник {employee.user.get_full_name()} {action}')
+    messages.success(request, f'Сотрудник {employee.full_name} {action}')
     return redirect('users:employee_list')
 
 @login_required
@@ -122,10 +126,10 @@ def remove_employee(request, pk):
         return redirect('timesheet:list')
     
     employee = get_object_or_404(Employee, pk=pk, master=request.user)
-    employee_name = employee.user.get_full_name()
+    employee_name = employee.full_name
     
-    # Удаляем связь сотрудника с отделом
-    if employee.user.department == request.user.department:
+    # Удаляем связь сотрудника с отделом (для сотрудников с учеткой)
+    if employee.user and employee.user.department == request.user.department:
         employee.user.department = None
         employee.user.save()
     

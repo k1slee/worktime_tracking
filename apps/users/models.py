@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
 
 class Department(models.Model):
     """Отдел предприятия"""
@@ -78,43 +79,75 @@ class User(AbstractUser):
 
 class Employee(models.Model):
     """Сотрудник"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, 
-                               related_name='employee_profile', verbose_name='Пользователь')
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='employee_profile',
+        verbose_name='Пользователь',
+        null=True,
+        blank=True,
+    )
     master = models.ForeignKey(User, on_delete=models.SET_NULL, 
                              null=True, blank=True, 
                              related_name='managed_employees', 
                              verbose_name='Мастер', limit_choices_to={'role': 'master'})
     hire_date = models.DateField('Дата приема', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
+    # Поля для сотрудников без учетной записи
+    last_name = models.CharField('Фамилия', max_length=150, blank=True)
+    first_name = models.CharField('Имя', max_length=150, blank=True)
+    middle_name = models.CharField('Отчество', max_length=150, blank=True)
+    employee_id_own = models.CharField('Табельный номер', max_length=50, blank=True, unique=False)
+    position_own = models.CharField('Должность', max_length=200, blank=True)
+    department_own = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Отдел (сотрудник без учетной записи)',
+        related_name='employees_without_user'
+    )
     class Meta:
         verbose_name = 'Сотрудник'
         verbose_name_plural = 'Сотрудники'
-        ordering = ['user__last_name', 'user__first_name']
+        ordering = ['last_name', 'first_name', 'user__last_name', 'user__first_name']
     
     def __str__(self):
-        return str(self.user)
+        return self.full_name or (str(self.user) if self.user else 'Сотрудник')
+    
+    def clean(self):
+        """Гарантируем уникальность табельного номера среди пользователей и сотрудников без учетной записи"""
+        emp_id = self.employee_id
+        if emp_id:
+            # Конфликт с пользователем
+            if User.objects.filter(employee_id=emp_id).exists():
+                # Допустим, если привязан к этому же пользователю с таким employee_id — ок
+                if not (self.user and self.user.employee_id == emp_id):
+                    raise ValidationError({'employee_id_own': 'Табельный номер уже используется пользователем системы'})
+            # Конфликт среди сотрудников без учетной записи
+            qs = Employee.objects.filter(user__isnull=True).exclude(pk=self.pk)
+            if qs.filter(employee_id_own=emp_id).exists():
+                raise ValidationError({'employee_id_own': 'Табельный номер уже используется другим сотрудником'})
     
     @property
     def full_name(self):
         """Полное ФИО сотрудника"""
-        return self.user.get_full_name()
+        if self.user:
+            return self.user.get_full_name()
+        parts = [self.last_name, self.first_name, self.middle_name]
+        return " ".join([p for p in parts if p]).strip()
     
     @property
     def employee_id(self):
         """Табельный номер сотрудника"""
-        return self.user.employee_id
+        return self.user.employee_id if self.user else self.employee_id_own
     
     @property
     def position(self):
         """Должность сотрудника"""
-        return self.user.position
+        return self.user.position if self.user else self.position_own
     
     @property
     def department(self):
         """Отдел сотрудника"""
-        return self.user.department
-    
-    @property
-    def middle_name(self):
-        """Отчество сотрудника"""
-        return self.user.middle_name
+        return self.user.department if self.user else self.department_own

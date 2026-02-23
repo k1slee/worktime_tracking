@@ -48,7 +48,7 @@ def get_formatted_fio(user):
     result = f"{last_name}{first_initial}{middle_initial}"
     
     # Если фамилии нет, возвращаем полное имя
-    if not last_name and user.get_full_name():
+    if not last_name and hasattr(user, "get_full_name") and user.get_full_name():
         return user.get_full_name()
     
     return result.strip()
@@ -200,7 +200,7 @@ def get_monthly_data(request, year, month, print_mode=False):
                 department_id = master_user.department_id if master_user else None
 
     # Упорядочиваем сотрудников
-    employees = employees.order_by('user__last_name', 'user__first_name')
+    employees = employees.order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
 
     return {
         'employees': employees,
@@ -333,7 +333,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     for employee in employees:
         employee_id = employee.id
         employee_timesheets = timesheet_dict.get(employee_id, {})
-        formatted_fio = get_formatted_fio(employee.user)
+        formatted_fio = get_formatted_fio(employee.user) or (employee.full_name or "")
         #выходные дни
         weekday = day_date.weekday()
         is_saturday = weekday == 5

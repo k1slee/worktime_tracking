@@ -119,7 +119,13 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_filter = ('master', 'is_active', 'hire_date')
     fieldsets = (
         (None, {
-            'fields' : ('user', 'master', 'is_active')
+            'fields' : (
+                'user', 
+                'last_name', 'first_name', 'middle_name',
+                'employee_id_own', 'position_own', 'department_own',
+                'master', 
+                'is_active'
+            )
         }),
         ('Дополнительно', {
             'fields': ('hire_date',),
@@ -128,24 +134,27 @@ class EmployeeAdmin(admin.ModelAdmin):
     )
 
 
-    search_fields = ('user__last_name', 'user__first_name', 'user__employee_id', 'user__middle_name')
+    search_fields = (
+        'user__last_name', 'user__first_name', 'user__employee_id', 'user__middle_name',
+        'last_name', 'first_name', 'middle_name', 'employee_id_own'
+    )
     raw_id_fields = ('user', 'master')
-    ordering = ('user__last_name', 'user__first_name')
+    ordering = ('last_name', 'first_name', 'user__last_name', 'user__first_name')
     
     def get_full_name(self, obj):
         return obj.full_name
     get_full_name.short_description = 'ФИО'
-    get_full_name.admin_order_field = 'user__last_name'
+    get_full_name.admin_order_field = 'last_name'
     
     def employee_id(self, obj):
         return obj.employee_id
     employee_id.short_description = 'Табельный номер'
-    employee_id.admin_order_field = 'user__employee_id'
+    employee_id.admin_order_field = 'employee_id_own'
     
     def department(self, obj):
         return obj.department
     department.short_description = 'Отдел'
-    department.admin_order_field = 'user__department'
+    department.admin_order_field = 'department_own'
 
 # Регистрируем модели
 admin.site.register(User, CustomUserAdmin)
