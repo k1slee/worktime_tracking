@@ -156,6 +156,32 @@ class EmployeeAdmin(admin.ModelAdmin):
     department.short_description = 'Отдел'
     department.admin_order_field = 'department_own'
 
+    def save_model(self, request, obj, form, change):
+        """При сохранении сотрудника в админке: если указан мастер — создать назначение на текущую дату"""
+        super().save_model(request, obj, form, change)
+        from .models import EmployeeAssignment
+        from django.db.models import Q
+        from django.utils import timezone
+        today = timezone.now().date()
+        if obj.master:
+            has_overlap = EmployeeAssignment.objects.filter(
+                employee=obj, master=obj.master
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=today),
+                start_date__lte=today
+            ).exists()
+            if not has_overlap:
+                EmployeeAssignment.objects.create(
+                    employee=obj,
+                    master=obj.master,
+                    start_date=obj.hire_date or today,
+                    end_date=None
+                )
+            # Привязка отдела пользователя к отделу мастера (если есть учетная запись)
+            if obj.user and obj.master.department and obj.user.department != obj.master.department:
+                obj.user.department = obj.master.department
+                obj.user.save()
+
 # Регистрируем модели
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Department, DepartmentAdmin)
