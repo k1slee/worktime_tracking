@@ -74,12 +74,13 @@ class MonthlyTimesheetForm(forms.Form):
         import calendar
         _, last_day = calendar.monthrange(year, month_num)
         month_end = datetime(year, month_num, last_day).date()
-        employees = Employee.objects.filter(
-            is_active=True,
-            assignments__master=self.user
-        ).filter(
-            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
-            assignments__start_date__lte=month_end
+        # Основной способ: по назначениям; плюс обратная совместимость: поле master
+        employees = Employee.objects.filter(is_active=True).filter(
+            (
+                Q(assignments__master=self.user) &
+                (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                Q(assignments__start_date__lte=month_end)
+            ) | Q(master=self.user)
         ).distinct()
         
         if not employees.exists():
@@ -105,14 +106,14 @@ class MonthlyTimesheetForm(forms.Form):
                 
                 # Проверяем, не существует ли уже табель
                 if not Timesheet.objects.filter(date=date, employee=employee).exists():
-                    # Проверяем назначение на эту дату
+                    # Проверяем назначение на эту дату (или legacy-связь master)
                     assigned = EmployeeAssignment.objects.filter(
                         employee=employee, master=self.user
                     ).filter(
                         Q(end_date__isnull=True) | Q(end_date__gte=date),
                         start_date__lte=date
                     ).exists()
-                    if not assigned:
+                    if not assigned and getattr(employee, 'master_id', None) != getattr(self.user, 'id', None):
                         continue
                     try:
                         Timesheet.objects.create(
@@ -194,11 +195,13 @@ class BulkTimesheetForm(forms.Form):
         
         from apps.users.models import Employee, EmployeeAssignment
         from django.db.models import Q
-        employees = Employee.objects.filter(id__in=ids).filter(
-            assignments__master=self.user
-        ).filter(
-            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date),
-            assignments__start_date__lte=date
+        # По назначениям на дату или legacy master
+        employees = Employee.objects.filter(id__in=ids, is_active=True).filter(
+            (
+                Q(assignments__master=self.user) &
+                (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &
+                Q(assignments__start_date__lte=date)
+            ) | Q(master=self.user)
         ).distinct()
         
         updated_count = 0
@@ -250,12 +253,12 @@ class TimesheetForm(forms.ModelForm):
             from django.utils import timezone
             from django.db.models import Q
             today = timezone.now().date()
-            self.fields['employee'].queryset = Employee.objects.filter(
-                is_active=True,
-                assignments__master=self.user,
-                assignments__start_date__lte=today
-            ).filter(
-                Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)
+            self.fields['employee'].queryset = Employee.objects.filter(is_active=True).filter(
+                (
+                    Q(assignments__master=self.user) &
+                    Q(assignments__start_date__lte=today) &
+                    (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today))
+                ) | Q(master=self.user)
             ).select_related('user').distinct()
     
     def clean(self):
@@ -274,7 +277,7 @@ class TimesheetForm(forms.ModelForm):
                     Q(end_date__isnull=True) | Q(end_date__gte=date),
                     start_date__lte=date
                 ).exists()
-                if not assigned:
+                if not assigned and getattr(employee, 'master_id', None) != getattr(self.user, 'id', None):
                     raise forms.ValidationError(
                         'Сотрудник не назначен вам на эту дату'
                     )

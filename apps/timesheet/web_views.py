@@ -150,12 +150,13 @@ def get_monthly_data(request, year, month, print_mode=False):
             next_month_start = date(year, month + 1, 1)
         month_end = next_month_start - timedelta(days=1)
 
-        employees = Employee.objects.filter(
-            is_active=True,
-            assignments__master=request.user
-        ).filter(
-            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
-            assignments__start_date__lte=month_end
+        # Основной способ: по назначениям; плюс обратная совместимость: поле master
+        employees = Employee.objects.filter(is_active=True).filter(
+            (
+                Q(assignments__master=request.user) &
+                (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                Q(assignments__start_date__lte=month_end)
+            ) | Q(master=request.user)
         ).distinct()
 
         timesheets = Timesheet.objects.filter(
@@ -336,14 +337,14 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         employee_id = employee.id
         employee_timesheets = timesheet_dict.get(employee_id, {})
         formatted_fio = get_formatted_fio(employee.user) or (employee.full_name or "")
-        #выходные дни
-        weekday = day_date.weekday()
-        is_saturday = weekday == 5
-        is_sunday = weekday = 6
         # Ячейки дней
         day_cells = []
         for day in days:
             day_date = date(year, month, day)
+            # выходные дни
+            weekday = day_date.weekday()
+            is_saturday = (weekday == 5)
+            is_sunday = (weekday == 6)
             ts_data = employee_timesheets.get(day)
             holiday_value = get_day_value(day_date)
             

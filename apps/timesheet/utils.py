@@ -65,12 +65,14 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
     from django.db.models import Q
     import calendar
     
-    employees = Employee.objects.filter(
-        is_active=True,
-        assignments__master=master
-    ).filter(
-        Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=datetime(year, month, 1).date()),
-        assignments__start_date__lte=datetime(year, month, 1).date()
+    month_start = datetime(year, month, 1).date()
+    # По назначениям на месяц или legacy master
+    employees = Employee.objects.filter(is_active=True).filter(
+        (
+            Q(assignments__master=master) &
+            (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+            Q(assignments__start_date__lte=month_start)
+        ) | Q(master=master)
     ).distinct()
     _, last_day = calendar.monthrange(year, month)
     
@@ -92,7 +94,7 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
                     Q(end_date__isnull=True) | Q(end_date__gte=date),
                     start_date__lte=date
                 ).exists()
-                if assigned:
+                if assigned or getattr(employee, 'master_id', None) == getattr(master, 'id', None):
                     Timesheet.objects.create(
                         date=date,
                         employee=employee,
@@ -109,12 +111,12 @@ def get_master_employees_with_timesheets(master, date):
     from apps.users.models import Employee, EmployeeAssignment
     from django.db.models import Q
     
-    employees = Employee.objects.filter(
-        is_active=True,
-        assignments__master=master
-    ).filter(
-        Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date),
-        assignments__start_date__lte=date
+    employees = Employee.objects.filter(is_active=True).filter(
+        (
+            Q(assignments__master=master) &
+            (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &
+            Q(assignments__start_date__lte=date)
+        ) | Q(master=master)
     ).distinct()
     result = []
     
