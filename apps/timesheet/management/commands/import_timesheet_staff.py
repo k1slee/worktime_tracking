@@ -132,6 +132,8 @@ class Command(BaseCommand):
         if filename.lower().endswith(".xls"):
             engine = "xlrd"
         try:
+            if sheet_name is None:
+                sheet_name = 0
             df = pd.read_excel(filename, header=header, sheet_name=sheet_name, engine=engine)
         except Exception as e:
             raise CommandError(f"Не удалось прочитать файл: {e}")
