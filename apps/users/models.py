@@ -159,6 +159,23 @@ class Employee(models.Model):
         """Отдел сотрудника"""
         return self.user.department if self.user else self.department_own
 
+    @property
+    def short_fio(self):
+        if self.user:
+            last = self.user.last_name or ""
+            fi = f" {self.user.first_name[0]}." if self.user.first_name else ""
+            mi = f"{self.user.middle_name[0]}." if getattr(self.user, 'middle_name', '') else ""
+            res = f"{last}{fi}{mi}".strip()
+            return res if last else self.user.get_full_name()
+        last = self.last_name or ""
+        fi = f" {self.first_name[0]}." if self.first_name else ""
+        mi = f"{self.middle_name[0]}." if self.middle_name else ""
+        res = f"{last}{fi}{mi}".strip()
+        if last:
+            return res
+        parts = [self.last_name, self.first_name, self.middle_name]
+        return " ".join([p for p in parts if p]).strip()
+
 class EmployeeAssignment(models.Model):
     """Назначение сотрудника мастеру в периоде"""
     employee = models.ForeignKey('Employee', on_delete=models.CASCADE, related_name='assignments', verbose_name='Сотрудник')

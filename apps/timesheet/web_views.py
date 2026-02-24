@@ -336,7 +336,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     for employee in employees:
         employee_id = employee.id
         employee_timesheets = timesheet_dict.get(employee_id, {})
-        formatted_fio = get_formatted_fio(employee.user) or (employee.full_name or "")
+        formatted_fio = employee.short_fio or (employee.full_name or "")
         # Ячейки дней
         day_cells = []
         for day in days:
