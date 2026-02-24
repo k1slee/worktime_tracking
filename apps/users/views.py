@@ -29,12 +29,15 @@ class EmployeeListView(MasterMixin, ListView):
     def get_queryset(self):
         from django.utils import timezone
         today = timezone.now().date()
-        queryset = Employee.objects.filter(
-            is_active=True,
+        # Современный способ: по назначениям на текущую дату
+        by_assignments = Q(
             assignments__master=self.request.user,
             assignments__start_date__lte=today
-        ).filter(
-            Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)
+        ) & (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today))
+        # Обратная совместимость: если сотруднику выставлен master напрямую
+        legacy_master = Q(master=self.request.user)
+        queryset = Employee.objects.filter(is_active=True).filter(
+            by_assignments | legacy_master
         ).distinct()
         
         search = self.request.GET.get('search')
@@ -56,7 +59,7 @@ class EmployeeListView(MasterMixin, ListView):
         elif is_active == 'inactive':
             queryset = queryset.filter(is_active=False)
         
-        return queryset.select_related('user').order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
+        return queryset.select_related('user').prefetch_related('assignments').order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
