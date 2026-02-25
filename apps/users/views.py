@@ -5,7 +5,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, V
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 
 from .models import Employee
 from .forms import AddEmployeeForm, CreateEmployeeForm, EmployeeFilterForm, EmployeeAssignmentForm, EmployeeMasterEditForm
@@ -152,84 +152,8 @@ def remove_employee(request, pk):
 
 @login_required
 def employee_detail(request, pk):
-    """Просмотр деталей сотрудника"""
-    if not request.user.is_master:
-        messages.error(request, 'Только мастера могут просматривать детали сотрудников')
-        return redirect('timesheet:list')
-    
-    # Доступ мастеру по прямой привязке или по активному назначению на сегодня
-    from django.utils import timezone
-    from django.db.models import Q
-    today = timezone.now().date()
-    employee = get_object_or_404(
-        Employee.objects.filter(
-            Q(master=request.user) |
-            (Q(assignments__master=request.user) &
-             Q(assignments__start_date__lte=today) &
-             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)))
-        ).distinct(),
-        pk=pk
-    )
-    
-    # Получаем статистику по табелям
-    from apps.timesheet.models import Timesheet
-    from datetime import date as _date
-    import calendar
-    
-    # Разбор года/месяца из query-параметров, по умолчанию – текущий месяц
-    try:
-        year = int(request.GET.get('year', today.year))
-        month = int(request.GET.get('month', today.month))
-    except (TypeError, ValueError):
-        year, month = today.year, today.month
-    
-    _, last_day = calendar.monthrange(year, month)
-    month_start = _date(year, month, 1)
-    month_end = _date(year, month, last_day)
-    
-    qs = Timesheet.objects.filter(
-        employee=employee,
-        date__gte=month_start,
-        date__lte=month_end
-    )
-    
-    # Подсчет часов: учитываем числа, десятичные и форматы вида 7/2; коды считаем как 0 часов
-    def parse_hours(v: str) -> float:
-        if not v:
-            return 0.0
-        v = str(v).strip()
-        if '/' in v:
-            a, b = v.split('/', 1)
-            if a.replace('.', '', 1).isdigit() and b.replace('.', '', 1).isdigit():
-                try:
-                    return float(a) / float(b)
-                except ZeroDivisionError:
-                    return 0.0
-        v_norm = v.replace(',', '.')
-        if v_norm.replace('.', '', 1).isdigit():
-            try:
-                return float(v_norm)
-            except ValueError:
-                return 0.0
-        return 0.0
-    
-    total_hours = 0.0
-    for t in qs.only('value'):
-        total_hours += parse_hours(t.value or '')
-    
-    timesheet_stats = {
-        'total_this_month': qs.count(),
-        'approved_this_month': qs.filter(status='approved').count(),
-        'submitted_this_month': qs.filter(status='submitted').count(),
-        'total_hours_this_month': round(total_hours, 1),
-    }
-    
-    return render(request, 'users/employee_detail.html', {
-        'employee': employee,
-        'timesheet_stats': timesheet_stats,
-        'year': year,
-        'month': month,
-    })
+    """Карточка сотрудника временно недоступна"""
+    raise Http404("Страница временно недоступна")
 
 @login_required
 def employee_edit_master(request, pk):

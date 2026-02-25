@@ -87,11 +87,7 @@
                                 {% for employee in employees %}
                                 <tr>
                                     <td><strong>{{ employee.employee_id }}</strong></td>
-                                    <td>
-                                        <a href="{% url 'users:employee_detail' employee.pk %}">
-                                            <strong>{{ employee.full_name }}</strong>
-                                        </a>
-                                    </td>
+                                    <td><strong>{{ employee.full_name }}</strong></td>
                                     <td>{{ employee.position|default:"-" }}</td>
                                     <td>
                                         {% if employee.hire_date %}
