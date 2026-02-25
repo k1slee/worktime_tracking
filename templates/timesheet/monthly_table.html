@@ -1011,6 +1011,11 @@
                             Коды: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А, ОЖ
                         </div>
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label">Протянуть до даты:</label>
+                        <input type="date" id="fillToDate" class="form-control">
+                        <div class="form-text">Скопировать это значение во все дни от текущей даты до выбранной.</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Статус:</label>
                         <input type="text" id="modalStatus" class="form-control" readonly>
@@ -1022,6 +1027,7 @@
                 <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;">
                     Удалить
                 </button>
+                <button type="button" class="btn btn-outline-primary" id="fillBtn">Протянуть</button>
                 <button type="button" class="btn btn-primary" id="saveBtn">Сохранить</button>
             </div>
         </div>
@@ -1202,6 +1208,45 @@
         .catch(error => {
             console.error('Error:', error);
             alert('Ошибка при сохранении');
+        });
+    });
+    
+    document.getElementById('fillBtn').addEventListener('click', function () {
+        const cell = currentCell;
+        if (!cell) return;
+        const value = document.getElementById('modalValue').value.trim();
+        if (value && !validateTimesheetValue(value)) {
+            return;
+        }
+        const dateFrom = cell.getAttribute('data-date');
+        const dateTo = document.getElementById('fillToDate').value;
+        if (!dateTo) {
+            alert('Выберите дату окончания протяжки');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('employee_id', cell.getAttribute('data-employee-id'));
+        formData.append('date_from', dateFrom);
+        formData.append('date_to', dateTo);
+        formData.append('value', value);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fetch('{% url "timesheet:fill_range" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                showNotification(`Заполнено дней: ${data.filled}`, 'success');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                alert('Ошибка: ' + (data.error || 'Не удалось выполнить протяжку'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Ошибка при протяжке');
         });
     });
     

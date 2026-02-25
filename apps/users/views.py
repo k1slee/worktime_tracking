@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from .models import Employee
-from .forms import AddEmployeeForm, CreateEmployeeForm, EmployeeFilterForm, EmployeeAssignmentForm
+from .forms import AddEmployeeForm, CreateEmployeeForm, EmployeeFilterForm, EmployeeAssignmentForm, EmployeeMasterEditForm
 
 class MasterMixin(UserPassesTestMixin):
     """Миксин для проверки, что пользователь мастер"""
@@ -157,7 +157,19 @@ def employee_detail(request, pk):
         messages.error(request, 'Только мастера могут просматривать детали сотрудников')
         return redirect('timesheet:list')
     
-    employee = get_object_or_404(Employee, pk=pk, master=request.user)
+    # Доступ мастеру по прямой привязке или по активному назначению на сегодня
+    from django.utils import timezone
+    from django.db.models import Q
+    today = timezone.now().date()
+    employee = get_object_or_404(
+        Employee.objects.filter(
+            Q(master=request.user) |
+            (Q(assignments__master=request.user) &
+             Q(assignments__start_date__lte=today) &
+             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)))
+        ).distinct(),
+        pk=pk
+    )
     
     # Получаем статистику по табелям
     from apps.timesheet.models import Timesheet
@@ -187,6 +199,38 @@ def employee_detail(request, pk):
     return render(request, 'users/employee_detail.html', {
         'employee': employee,
         'timesheet_stats': timesheet_stats
+    })
+
+@login_required
+def employee_edit_master(request, pk):
+    """Редактирование сотрудника мастером (должность, дата приема)"""
+    if not request.user.is_master:
+        messages.error(request, 'Недостаточно прав')
+        return redirect('timesheet:list')
+    from django.utils import timezone
+    from django.db.models import Q
+    today = timezone.now().date()
+    employee = get_object_or_404(
+        Employee.objects.filter(
+            Q(master=request.user) |
+            (Q(assignments__master=request.user) &
+             Q(assignments__start_date__lte=today) &
+             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)))
+        ).distinct(),
+        pk=pk
+    )
+    if request.method == 'POST':
+        form = EmployeeMasterEditForm(request.POST, employee=employee)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Данные сотрудника обновлены')
+            return redirect('users:employee_detail', pk=pk)
+    else:
+        form = EmployeeMasterEditForm(employee=employee)
+    return render(request, 'users/employee_edit.html', {
+        'form': form,
+        'employee': employee,
+        'title': 'Редактирование сотрудника'
     })
 
 @login_required

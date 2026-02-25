@@ -4,6 +4,42 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+class EmployeeMasterEditForm(forms.Form):
+    """Форма редактирования сотрудника для мастера (минимально: должность, дата приема)"""
+    position = forms.CharField(
+        max_length=200,
+        label='Должность',
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Должность'})
+    )
+    hire_date = forms.DateField(
+        required=False,
+        label='Дата приема на работу',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    def __init__(self, *args, **kwargs):
+        self.employee = kwargs.pop('employee', None)
+        super().__init__(*args, **kwargs)
+        if self.employee:
+            self.fields['position'].initial = self.employee.position or ''
+            self.fields['hire_date'].initial = self.employee.hire_date
+    def save(self):
+        emp = self.employee
+        if not emp:
+            raise ValidationError('Сотрудник не найден')
+        position = self.cleaned_data.get('position', '').strip()
+        hire_date = self.cleaned_data.get('hire_date')
+        if emp.user:
+            # У сотрудника есть учетная запись — обновляем должность в User
+            emp.user.position = position
+            emp.user.save(update_fields=['position'])
+        else:
+            emp.position_own = position
+        emp.hire_date = hire_date
+        emp.full_clean()
+        emp.save()
+        return emp
+
 class AddEmployeeForm(forms.ModelForm):
     """Форма добавления сотрудника для мастера"""
     employee = forms.ModelChoiceField(

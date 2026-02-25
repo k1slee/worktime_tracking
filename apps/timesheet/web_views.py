@@ -15,6 +15,7 @@ from .models import MonthlyTimesheet, Timesheet, Holiday
 from .forms import MonthlyTimesheetForm, BulkTimesheetForm, TimesheetForm
 from apps.users.models import Employee, Department, User
 from apps.users.permissions import IsMaster, IsPlanner
+from datetime import datetime, date, timedelta
 
 
 # ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
@@ -1048,6 +1049,60 @@ def quick_edit_timesheet(request):
         import traceback
         return JsonResponse({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
+@login_required
+def fill_range(request):
+    """Протяжка значения по диапазону дней для одного сотрудника"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Неверный запрос'}, status=400)
+    employee_id = request.POST.get('employee_id')
+    date_from = request.POST.get('date_from')
+    date_to = request.POST.get('date_to')
+    value = request.POST.get('value', '').strip()
+    if not (employee_id and date_from and date_to):
+        return JsonResponse({'error': 'Не указаны параметры'}, status=400)
+    try:
+        emp = Employee.objects.get(id=int(employee_id))
+        df = datetime.strptime(date_from, '%Y-%m-%d').date()
+        dt = datetime.strptime(date_to, '%Y-%m-%d').date()
+        if dt < df:
+            df, dt = dt, df
+        # Права: мастер должен иметь назначение на каждую дату или быть legacy-мастером
+        from apps.users.models import EmployeeAssignment
+        from django.db.models import Q
+        legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)
+        filled = 0
+        day = df
+        while day <= dt:
+            has_assignment = EmployeeAssignment.objects.filter(
+                employee=emp, master=request.user
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=day),
+                start_date__lte=day
+            ).exists()
+            if request.user.is_master and (legacy_ok or has_assignment):
+                ts, created = Timesheet.objects.get_or_create(
+                    date=day,
+                    employee=emp,
+                    defaults={
+                        'master': request.user,
+                        'value': value,
+                        'status': 'draft'
+                    }
+                )
+                if not created:
+                    if ts.can_edit:
+                        ts.value = value
+                        if ts.master is None:
+                            ts.master = request.user
+                        ts.save()
+                filled += 1
+            day += timedelta(days=1)
+        return JsonResponse({'success': True, 'filled': filled})
+    except Employee.DoesNotExist:
+        return JsonResponse({'error': 'Сотрудник не найден'}, status=404)
+    except Exception as e:
+        import traceback
+        return JsonResponse({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 @login_required
 def submit_timesheet(request, pk):
