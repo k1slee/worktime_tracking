@@ -23,6 +23,7 @@ class CustomUserAdmin(UserAdmin):
                 'position',
                 'department',
                 'role',
+                'shop_chief_name_override',
             )
         }),
         (_('Permissions'), {

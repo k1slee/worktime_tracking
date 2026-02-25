@@ -42,6 +42,12 @@ class User(AbstractUser):
     phone = models.CharField('Телефон', max_length=20, blank=True)
     position = models.CharField('Должность', max_length=200, blank=True)
     middle_name = models.CharField('Отчество', max_length=150, blank=True)
+    shop_chief_name_override = models.CharField(
+        'Начальник цеха (ФИО) для печати',
+        max_length=200,
+        blank=True,
+        help_text='Если указано, переопределяет ФИО начальника цеха из отдела в печатной форме'
+    )
     
     class Meta:
         verbose_name = 'Пользователь'

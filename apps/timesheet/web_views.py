@@ -424,6 +424,11 @@ def get_shop_chief_name(request, master_user=None, department_id=None):
     """Получение имени начальника цеха"""
     default_name = "С.В. Ефременко"
     
+    # Переопределение на уровне мастера (если задано)
+    if master_user and getattr(master_user, 'shop_chief_name_override', None):
+        if master_user.shop_chief_name_override:
+            return master_user.shop_chief_name_override
+    
     if master_user and master_user.department and master_user.department.shop_chief_name:
         return master_user.department.shop_chief_name
     
@@ -434,6 +439,11 @@ def get_shop_chief_name(request, master_user=None, department_id=None):
                 return department.shop_chief_name
         except Department.DoesNotExist:
             pass
+    
+    # Фолбэк по текущему пользователю (если он мастер и указал переопределение)
+    if request.user.is_master and getattr(request.user, 'shop_chief_name_override', None):
+        if request.user.shop_chief_name_override:
+            return request.user.shop_chief_name_override
     
     if request.user.is_master and request.user.department and request.user.department.shop_chief_name:
         return request.user.department.shop_chief_name
