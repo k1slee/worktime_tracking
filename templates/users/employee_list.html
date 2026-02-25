@@ -115,12 +115,6 @@
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <button type="button" 
-                                                    class="btn btn-outline-warning" 
-                                                    title="{% if employee.is_active %}Деактивировать{% else %}Активировать{% endif %}"
-                                                    onclick="window.location.href='{% url 'users:toggle_employee' employee.pk %}'">
-                                                <i class="fas {% if employee.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
-                                            </button>
-                                            <button type="button" 
                                                     class="btn btn-outline-danger" 
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#deleteModal{{ employee.pk }}"
