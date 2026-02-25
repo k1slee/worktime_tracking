@@ -1474,6 +1474,43 @@
                 toggleViewMode();
             }
         });
+        
+        // Подсветка выходных (суббота/воскресенье) на весь столбец
+        const table = document.getElementById('timesheetTable');
+        if (table) {
+            const theadRow = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            if (theadRow && tbody && tbody.rows.length) {
+                const bodyRows = Array.from(tbody.rows);
+                const firstRowDayCells = Array.from(bodyRows[0].querySelectorAll('td.day-cell'));
+                firstRowDayCells.forEach((cell, dayIdx) => {
+                    const dateStr = cell.getAttribute('data-date');
+                    if (!dateStr) return;
+                    const d = new Date(dateStr);
+                    if (isNaN(d)) return;
+                    const dow = d.getDay(); // 0=Воскресенье, 6=Суббота
+                    let headerClass = '';
+                    let cellClass = '';
+                    if (dow === 6) {
+                        headerClass = 'saturday-header';
+                        cellClass = 'saturday';
+                    } else if (dow === 0) {
+                        headerClass = 'sunday-header';
+                        cellClass = 'sunday';
+                    } else {
+                        return;
+                    }
+                    const headerCells = Array.from(theadRow.children);
+                    const headerCell = headerCells[1 + dayIdx]; // +1 из-за колонки сотрудника
+                    if (headerCell) headerCell.classList.add(headerClass);
+                    bodyRows.forEach(row => {
+                        const dayCells = row.querySelectorAll('td.day-cell');
+                        const c = dayCells[dayIdx];
+                        if (c) c.classList.add(cellClass);
+                    });
+                });
+            }
+        }
     });
 </script>
 {% endblock %}
