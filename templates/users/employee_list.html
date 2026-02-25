@@ -108,12 +108,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{% url 'users:employee_detail' employee.pk %}" 
-                                               class="btn btn-outline-primary" 
-                                               title="Карточка сотрудника">
-                                                <i class="fas fa-id-card"></i>
-                                            </a>
+                                        <div class="btn-group">
                                             <a href="{% url 'users:employee_edit_master' employee.pk %}" 
                                                class="btn btn-outline-primary" 
                                                title="Редактировать (должность, дата приема)">
