@@ -173,32 +173,62 @@ def employee_detail(request, pk):
     
     # Получаем статистику по табелям
     from apps.timesheet.models import Timesheet
-    from django.utils import timezone
+    from datetime import date as _date
+    import calendar
     
-    today = timezone.now().date()
-    month_start = today.replace(day=1)
+    # Разбор года/месяца из query-параметров, по умолчанию – текущий месяц
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except (TypeError, ValueError):
+        year, month = today.year, today.month
+    
+    _, last_day = calendar.monthrange(year, month)
+    month_start = _date(year, month, 1)
+    month_end = _date(year, month, last_day)
+    
+    qs = Timesheet.objects.filter(
+        employee=employee,
+        date__gte=month_start,
+        date__lte=month_end
+    )
+    
+    # Подсчет часов: учитываем числа, десятичные и форматы вида 7/2; коды считаем как 0 часов
+    def parse_hours(v: str) -> float:
+        if not v:
+            return 0.0
+        v = str(v).strip()
+        if '/' in v:
+            a, b = v.split('/', 1)
+            if a.replace('.', '', 1).isdigit() and b.replace('.', '', 1).isdigit():
+                try:
+                    return float(a) / float(b)
+                except ZeroDivisionError:
+                    return 0.0
+        v_norm = v.replace(',', '.')
+        if v_norm.replace('.', '', 1).isdigit():
+            try:
+                return float(v_norm)
+            except ValueError:
+                return 0.0
+        return 0.0
+    
+    total_hours = 0.0
+    for t in qs.only('value'):
+        total_hours += parse_hours(t.value or '')
     
     timesheet_stats = {
-        'total_this_month': Timesheet.objects.filter(
-            employee=employee,
-            date__gte=month_start
-        ).count(),
-        'approved_this_month': Timesheet.objects.filter(
-            employee=employee,
-            date__gte=month_start,
-            status='approved'
-        ).count(),
-        'submitted_this_month': Timesheet.objects.filter(
-            employee=employee,
-            date__gte=month_start,
-            status='submitted'
-        ).count(),
-        'total_hours_this_month': 0,
+        'total_this_month': qs.count(),
+        'approved_this_month': qs.filter(status='approved').count(),
+        'submitted_this_month': qs.filter(status='submitted').count(),
+        'total_hours_this_month': round(total_hours, 1),
     }
     
     return render(request, 'users/employee_detail.html', {
         'employee': employee,
-        'timesheet_stats': timesheet_stats
+        'timesheet_stats': timesheet_stats,
+        'year': year,
+        'month': month,
     })
 
 @login_required
