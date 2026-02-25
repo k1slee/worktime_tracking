@@ -481,12 +481,11 @@
             {% if is_master %}
             <div class="line-group">
                 <div class="text-line workshop-text" style="font-size: 10pt; text-align: left;">
-                    {% if user.department %}{{ user.department.name|upper }}{% else %}(ЦЕХ НЕ УКАЗАН){% endif %} {{ composer_fio|default:"" }}
+                    {% if user.department %}{{ user.department.name|upper }}{% else %}(ЦЕХ НЕ УКАЗАН){% endif %}
                 </div>
                 <div class="underline-line" style="width: 65%; margin-left: 0;"></div>
                 <div class="subtext" style="font-size: 8pt; text-align: left;">
                     <span>Цех (отдел), участок</span>
-                    <span style="margin-left: 10px;">мастер</span>
                 </div>
             </div>
             {% endif %}
