@@ -88,7 +88,9 @@
                                 <tr>
                                     <td><strong>{{ employee.employee_id }}</strong></td>
                                     <td>
-                                        <strong>{{ employee.full_name }}</strong>
+                                        <a href="{% url 'users:employee_detail' employee.pk %}">
+                                            <strong>{{ employee.full_name }}</strong>
+                                        </a>
                                     </td>
                                     <td>{{ employee.position|default:"-" }}</td>
                                     <td>
@@ -107,6 +109,16 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'users:employee_detail' employee.pk %}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Карточка сотрудника">
+                                                <i class="fas fa-id-card"></i>
+                                            </a>
+                                            <a href="{% url 'users:employee_edit_master' employee.pk %}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Редактировать (должность, дата приема)">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
                                             <button type="button" 
                                                     class="btn btn-outline-warning" 
                                                     title="{% if employee.is_active %}Деактивировать{% else %}Активировать{% endif %}"
