@@ -43,16 +43,20 @@
         max-width: 100%;
     }
     
-    /* Стили для субботы */
-    .saturday {
-        background-color: #e8f4fd !important;
-        border-left: 2px solid #bee5eb !important;
+    /* Стили для субботы (заливка всей колонки) */
+    .timesheet-table td.day-cell.saturday {
+        background-color: #e6f4ff !important;
+    }
+    .timesheet-table td.day-cell.saturday:hover {
+        background-color: #e6f4ff !important;
     }
 
-    /* Стили для воскресенья */
-    .sunday {
-        background-color: #f8f0fc !important;
-        border-left: 2px solid #e0b3f2 !important;
+    /* Стили для воскресенья (заливка всей колонки) */
+    .timesheet-table td.day-cell.sunday {
+        background-color: #f3eaff !important;
+    }
+    .timesheet-table td.day-cell.sunday:hover {
+        background-color: #f3eaff !important;
     }
 
     /* Стили для заголовков выходных дней */
@@ -272,8 +276,9 @@
         font-size: 0;
     }
     
+    /* Скрыть желтую точку (черновик) */
     .cell-status-draft {
-        background-color: #ffc107;
+        display: none !important;
     }
     
     .cell-status-submitted {
