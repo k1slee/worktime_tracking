@@ -922,7 +922,8 @@ def quick_edit_timesheet(request):
     action = request.POST.get('action', 'save')
     
     try:
-        from apps.users.models import Employee
+        from apps.users.models import Employee, EmployeeAssignment
+        from django.db.models import Q
         from .models import MonthlyTimesheet, Timesheet
         
         if action == 'delete':
@@ -936,8 +937,16 @@ def quick_edit_timesheet(request):
             if not timesheet.can_edit:
                 return JsonResponse({'error': 'Нельзя удалить сданный или утвержденный табель'}, status=403)
             
-            if request.user.is_master and timesheet.master != request.user:
-                return JsonResponse({'error': 'Нет прав на удаление этого табеля'}, status=403)
+            if request.user.is_master:
+                # Разрешаем удаление, если табель мастера или есть назначение на эту дату
+                has_assignment = EmployeeAssignment.objects.filter(
+                    employee=timesheet.employee, master=request.user
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=timesheet.date),
+                    start_date__lte=timesheet.date
+                ).exists()
+                if timesheet.master != request.user and not has_assignment:
+                    return JsonResponse({'error': 'Нет прав на удаление этого табеля'}, status=403)
             
             timesheet.delete()
             
@@ -952,8 +961,19 @@ def quick_edit_timesheet(request):
             if not timesheet.can_edit:
                 return JsonResponse({'error': 'Табель сдан или утвержден и не может быть изменен'}, status=403)
             
-            if request.user.is_master and timesheet.master != request.user:
-                return JsonResponse({'error': 'Нет прав на редактирование этого табеля'}, status=403)
+            if request.user.is_master:
+                # Разрешаем правку, если табель мастера или есть назначение на дату табеля
+                has_assignment = EmployeeAssignment.objects.filter(
+                    employee=timesheet.employee, master=request.user
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=timesheet.date),
+                    start_date__lte=timesheet.date
+                ).exists()
+                if timesheet.master != request.user and not has_assignment:
+                    return JsonResponse({'error': 'Нет прав на редактирование этого табеля'}, status=403)
+                # Если табель без мастера, но право подтверждено назначением — проставляем мастера
+                if timesheet.master is None:
+                    timesheet.master = request.user
             
             # Если значение пустое, удаляем запись
             if not value:
@@ -972,8 +992,17 @@ def quick_edit_timesheet(request):
             employee = Employee.objects.get(id=employee_id)
             
             # Проверка прав для мастера
-            if request.user.is_master and employee.master != request.user:
-                return JsonResponse({'error': 'Нет прав на создание табеля для этого сотрудника'}, status=403)
+            if request.user.is_master:
+                has_assignment = EmployeeAssignment.objects.filter(
+                    employee=employee, master=request.user
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=date_obj),
+                    start_date__lte=date_obj
+                ).exists()
+                # legacy: допускаем, если у сотрудника прямо указан мастер
+                legacy_ok = getattr(employee, 'master_id', None) == getattr(request.user, 'id', None)
+                if not (has_assignment or legacy_ok):
+                    return JsonResponse({'error': 'Нет прав на создание табеля для этого сотрудника'}, status=403)
             
             # Если значение пустое, ничего не делаем
             if not value:
@@ -984,7 +1013,9 @@ def quick_edit_timesheet(request):
                 date=date_obj,
                 employee=employee,
                 defaults={
-                    'master': employee.master,
+                    # Проставляем мастера текущего пользователя (если он мастер),
+                    # иначе используем мастера сотрудника
+                    'master': request.user if request.user.is_master else employee.master,
                     'value': value,
                     'status': 'draft'
                 }
@@ -994,6 +1025,9 @@ def quick_edit_timesheet(request):
                 return JsonResponse({'error': 'Запись уже существует и табель сдан или утвержден'}, status=403)
             
             if not created:
+                # Если запись существовала без мастера, но право подтверждено — проставим мастера
+                if timesheet.master is None and request.user.is_master:
+                    timesheet.master = request.user
                 timesheet.value = value
                 timesheet.save()
         
