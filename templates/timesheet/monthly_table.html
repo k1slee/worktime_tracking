@@ -1036,6 +1036,11 @@
                         </div>
                         <div class="form-text">Будет сохранено как десятичные часы (напр. 8.75)</div>
                     </div>
+                    <div class="mb-2" id="minutesTotalInfo" style="display: none;">
+                        <div class="form-text">
+                            Всего минут: <strong id="minutesTotal">0</strong>
+                        </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label">Протянуть до даты:</label>
                         <input type="date" id="fillToDate" class="form-control">
@@ -1188,10 +1193,32 @@
         const minutesInputs = document.getElementById('minutesInputs');
         const hoursInput = document.getElementById('hoursInput');
         const minutesInput = document.getElementById('minutesInput');
+        const minutesTotalInfo = document.getElementById('minutesTotalInfo');
+        const minutesTotal = document.getElementById('minutesTotal');
         minutesMode.checked = false;
         minutesInputs.style.display = 'none';
+        minutesTotalInfo.style.display = 'none';
         hoursInput.value = '';
         minutesInput.value = '';
+        
+        // Если значение было введено как десятичные часы (с минутами) — показать минутную информацию
+        if (value && /^\d+([.,]\d+)?$/.test(value)) {
+            const v = parseFloat(value.replace(',', '.'));
+            if (!isNaN(v)) {
+                const h = Math.floor(v);
+                const m = Math.round((v - h) * 60);
+                const totalM = Math.round(v * 60);
+                if (m > 0) {
+                    minutesMode.checked = true;
+                    minutesInputs.style.display = '';
+                    document.getElementById('modalValue').setAttribute('disabled', 'disabled');
+                    hoursInput.value = h;
+                    minutesInput.value = m;
+                    minutesTotal.textContent = String(totalM);
+                    minutesTotalInfo.style.display = '';
+                }
+            }
+        }
         
         const modal = new bootstrap.Modal(document.getElementById('editModal'));
         modal.show();
@@ -1205,14 +1232,31 @@
     document.getElementById('minutesMode').addEventListener('change', function() {
         const minutesInputs = document.getElementById('minutesInputs');
         const valueInput = document.getElementById('modalValue');
+        const minutesTotalInfo = document.getElementById('minutesTotalInfo');
         if (this.checked) {
             minutesInputs.style.display = '';
             valueInput.setAttribute('disabled', 'disabled');
+            minutesTotalInfo.style.display = '';
+            // Инициализируем итог минут из текущих полей
+            const h = parseInt(document.getElementById('hoursInput').value || '0', 10);
+            const m = parseInt(document.getElementById('minutesInput').value || '0', 10);
+            const totalM = (isNaN(h) || isNaN(m)) ? 0 : (h * 60 + m);
+            document.getElementById('minutesTotal').textContent = String(totalM);
         } else {
             minutesInputs.style.display = 'none';
             valueInput.removeAttribute('disabled');
+            minutesTotalInfo.style.display = 'none';
         }
     });
+    
+    function updateMinutesTotalFromInputs() {
+        const h = parseInt(document.getElementById('hoursInput').value || '0', 10);
+        const m = parseInt(document.getElementById('minutesInput').value || '0', 10);
+        const totalM = (isNaN(h) || isNaN(m)) ? 0 : (h * 60 + m);
+        document.getElementById('minutesTotal').textContent = String(totalM);
+    }
+    document.getElementById('hoursInput').addEventListener('input', updateMinutesTotalFromInputs);
+    document.getElementById('minutesInput').addEventListener('input', updateMinutesTotalFromInputs);
     
     // Сохранение изменений
     document.getElementById('saveBtn').addEventListener('click', function() {
