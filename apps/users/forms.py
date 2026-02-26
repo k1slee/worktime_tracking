@@ -170,6 +170,49 @@ class CreateEmployeeForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     
+    def __init__(self, *args, **kwargs):
+        self.master = kwargs.pop('master', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean_employee_id(self):
+        employee_id = self.cleaned_data.get('employee_id')
+        if not employee_id:
+            raise ValidationError('Укажите табельный номер')
+        # Проверяем, что табельный номер уникален среди пользователей и сотрудников без учетной записи
+        if User.objects.filter(employee_id=employee_id).exists():
+            raise ValidationError('Пользователь с таким табельным номером уже существует')
+        from .models import Employee
+        if Employee.objects.filter(user__isnull=True, employee_id_own=employee_id).exists():
+            raise ValidationError('Сотрудник с таким табельным номером уже существует')
+        return employee_id
+    
+    def save(self, commit=True):
+        from .models import Employee, EmployeeAssignment
+        from datetime import date
+        # Создаем сотрудника без учетной записи
+        employee = Employee(
+            user=None,
+            hire_date=self.cleaned_data.get('hire_date') or date.today(),
+            is_active=True,
+            last_name=self.cleaned_data['last_name'],
+            first_name=self.cleaned_data['first_name'],
+            middle_name=self.cleaned_data.get('middle_name', ''),
+            employee_id_own=self.cleaned_data['employee_id'],
+            position_own=self.cleaned_data['position'],
+            department_own=self.master.department if self.master else None,
+        )
+        if commit:
+            employee.full_clean()
+            employee.save()
+            if self.master:
+                EmployeeAssignment.objects.create(
+                    employee=employee,
+                    master=self.master,
+                    start_date=employee.hire_date or date.today(),
+                    end_date=None
+                )
+        return employee
+    
 class EmployeeAssignmentForm(forms.Form):
     """Форма назначения сотрудника мастеру на период"""
     master = forms.ModelChoiceField(
@@ -226,48 +269,6 @@ class EmployeeAssignmentForm(forms.Form):
             start_date=self.cleaned_data['start_date'],
             end_date=self.cleaned_data.get('end_date')
         )
-    def __init__(self, *args, **kwargs):
-        self.master = kwargs.pop('master', None)
-        super().__init__(*args, **kwargs)
-    
-    def clean_employee_id(self):
-        employee_id = self.cleaned_data.get('employee_id')
-        
-        # Проверяем, что табельный номер уникален среди пользователей и сотрудников без учетной записи
-        if User.objects.filter(employee_id=employee_id).exists():
-            raise ValidationError('Пользователь с таким табельным номером уже существует')
-        from .models import Employee
-        if Employee.objects.filter(user__isnull=True, employee_id_own=employee_id).exists():
-            raise ValidationError('Сотрудник с таким табельным номером уже существует')
-        
-        return employee_id
-    
-    def save(self, commit=True):
-        from .models import Employee, EmployeeAssignment
-        from datetime import date
-        # Создаем сотрудника без учетной записи
-        employee = Employee(
-            user=None,
-            hire_date=self.cleaned_data.get('hire_date') or date.today(),
-            is_active=True,
-            last_name=self.cleaned_data['last_name'],
-            first_name=self.cleaned_data['first_name'],
-            middle_name=self.cleaned_data.get('middle_name', ''),
-            employee_id_own=self.cleaned_data['employee_id'],
-            position_own=self.cleaned_data['position'],
-            department_own=self.master.department if self.master else None,
-        )
-        if commit:
-            employee.full_clean()
-            employee.save()
-            if self.master:
-                EmployeeAssignment.objects.create(
-                    employee=employee,
-                    master=self.master,
-                    start_date=employee.hire_date or date.today(),
-                    end_date=None
-                )
-        return employee
 
 class EmployeeFilterForm(forms.Form):
     """Форма фильтрации сотрудников"""
