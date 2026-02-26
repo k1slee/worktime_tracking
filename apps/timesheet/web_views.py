@@ -1119,6 +1119,46 @@ def fill_range(request):
         return JsonResponse({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 @login_required
+def restore_range(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Неверный запрос'}, status=400)
+    employee_id = request.POST.get('employee_id')
+    date_from = request.POST.get('date_from')
+    date_to = request.POST.get('date_to')
+    if not (employee_id and date_from and date_to):
+        return JsonResponse({'error': 'Не указаны параметры'}, status=400)
+    try:
+        emp = Employee.objects.get(id=int(employee_id))
+        df = datetime.strptime(date_from, '%Y-%m-%d').date()
+        dt = datetime.strptime(date_to, '%Y-%m-%d').date()
+        if dt < df:
+            df, dt = dt, df
+        from apps.users.models import EmployeeAssignment
+        from django.db.models import Q
+        legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)
+        restored = 0
+        day = df
+        while day <= dt:
+            has_assignment = EmployeeAssignment.objects.filter(
+                employee=emp, master=request.user
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=day),
+                start_date__lte=day
+            ).exists()
+            if request.user.is_master and (legacy_ok or has_assignment):
+                ts = Timesheet.objects.filter(date=day, employee=emp).first()
+                if ts and ts.master == request.user and ts.can_edit:
+                    ts.delete()
+                    restored += 1
+            day += timedelta(days=1)
+        return JsonResponse({'success': True, 'restored': restored})
+    except Employee.DoesNotExist:
+        return JsonResponse({'error': 'Сотрудник не найден'}, status=404)
+    except Exception as e:
+        import traceback
+        return JsonResponse({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+
+@login_required
 def submit_timesheet(request, pk):
     """Сдать табель мастером"""
     timesheet = get_object_or_404(Timesheet, pk=pk)
