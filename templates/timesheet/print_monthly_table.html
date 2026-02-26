@@ -668,19 +668,19 @@
 
                     <!-- Отработано часов -->
                     <td class="col-stats col-total-hours" style="background-color: #817d7d !important;">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.total_hours|hide_zero_float:0 }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.total_hours|hide_zero_float:2 }}</div>
                     </td>
                     <td class="col-stats col-evening-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.evening_hours|hide_zero_float:0 }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.evening_hours|hide_zero_float:2 }}</div>
                     </td>
                     <td class="col-stats col-night-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.night_hours|hide_zero_float:0 }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.night_hours|hide_zero_float:2 }}</div>
                     </td>
                     <td class="col-stats col-weekend-hours">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.weekend_hours|hide_zero_float:0 }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.weekend_hours|hide_zero_float:2 }}</div>
                     </td>
                     <td class="col-stats col-overtime">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.overtime_hours|hide_zero_float:0 }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.overtime_hours|hide_zero_float:2 }}</div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -704,7 +704,7 @@
                     
                     <!-- Колонка "всего" -->
                     <td class="col-stats col-total-hours" style="background-color: #817d7d !important;">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ table_data|sum_attr_any:"total_hours"|floatformat:0}}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ table_data|sum_attr_any:"total_hours"|floatformat:2}}</div>
                     </td>
                     
                     <!-- Остальные колонки "Отработано часов" (4 штуки) -->

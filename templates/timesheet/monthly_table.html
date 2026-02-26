@@ -962,7 +962,7 @@
                                     <span class="stats-label">дней</span>
                                 </td>
                                 <td class="stats-cell total-hours">
-                                    <div class="stats-value">{{ row.total_hours|floatformat:0 }}</div>
+                                    <div class="stats-value">{{ row.total_hours|floatformat:2 }}</div>
                                     <span class="stats-label">часов</span>
                                 </td>
                                 <td class="stats-cell evening-hours">
@@ -1017,6 +1017,24 @@
                             Числовые форматы: 7/2, 8, 3,5, 7.5, 8/3<br>
                             Коды: В, К, О, Б, Р, М, Н, ОС, П, ЦП, Ч, Г, ДМ, А, ОЖ
                         </div>
+                    </div>
+                    <div class="mb-2 form-check">
+                        <input class="form-check-input" type="checkbox" id="minutesMode">
+                        <label class="form-check-label" for="minutesMode">
+                            Вводить в часах и минутах
+                        </label>
+                        <div class="form-text">Например: 8 часов 45 минут</div>
+                    </div>
+                    <div class="row g-2 mb-3" id="minutesInputs" style="display: none;">
+                        <div class="col-6">
+                            <label class="form-label">Часы</label>
+                            <input type="number" min="0" max="24" step="1" id="hoursInput" class="form-control" placeholder="часы">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Минуты</label>
+                            <input type="number" min="0" max="59" step="1" id="minutesInput" class="form-control" placeholder="минуты">
+                        </div>
+                        <div class="form-text">Будет сохранено как десятичные часы (напр. 8.75)</div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label">Протянуть до даты:</label>
@@ -1166,6 +1184,15 @@
             deleteBtn.style.display = 'none';
         }
         
+        const minutesMode = document.getElementById('minutesMode');
+        const minutesInputs = document.getElementById('minutesInputs');
+        const hoursInput = document.getElementById('hoursInput');
+        const minutesInput = document.getElementById('minutesInput');
+        minutesMode.checked = false;
+        minutesInputs.style.display = 'none';
+        hoursInput.value = '';
+        minutesInput.value = '';
+        
         const modal = new bootstrap.Modal(document.getElementById('editModal'));
         modal.show();
         
@@ -1175,22 +1202,49 @@
         }, 500);
     }
     
+    document.getElementById('minutesMode').addEventListener('change', function() {
+        const minutesInputs = document.getElementById('minutesInputs');
+        const valueInput = document.getElementById('modalValue');
+        if (this.checked) {
+            minutesInputs.style.display = '';
+            valueInput.setAttribute('disabled', 'disabled');
+        } else {
+            minutesInputs.style.display = 'none';
+            valueInput.removeAttribute('disabled');
+        }
+    });
+    
     // Сохранение изменений
     document.getElementById('saveBtn').addEventListener('click', function() {
         const value = document.getElementById('modalValue').value.trim();
         const cell = currentCell;
         
         if (!cell) return;
-        
-        if (value && !validateTimesheetValue(value)) {
-            return;
+        const minutesMode = document.getElementById('minutesMode').checked;
+        if (!minutesMode) {
+            if (value && !validateTimesheetValue(value)) {
+                return;
+            }
+        } else {
+            const h = parseInt(document.getElementById('hoursInput').value || '0', 10);
+            const m = parseInt(document.getElementById('minutesInput').value || '0', 10);
+            if (isNaN(h) || isNaN(m) || h < 0 || m < 0 || m > 59) {
+                alert('Укажите корректные часы и минуты (минуты 0..59)');
+                return;
+            }
         }
         
         const formData = new FormData();
         formData.append('timesheet_id', cell.getAttribute('data-timesheet-id') || '');
         formData.append('date', cell.getAttribute('data-date'));
         formData.append('employee_id', cell.getAttribute('data-employee-id'));
-        formData.append('value', value);
+        if (minutesMode) {
+            formData.append('minutes_mode', '1');
+            formData.append('hours', document.getElementById('hoursInput').value || '0');
+            formData.append('minutes', document.getElementById('minutesInput').value || '0');
+        } else {
+            formData.append('value', value);
+        }
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         
         fetch('{% url "timesheet:quick_edit" %}', {
@@ -1222,9 +1276,20 @@
     document.getElementById('fillBtn').addEventListener('click', function () {
         const cell = currentCell;
         if (!cell) return;
-        const value = document.getElementById('modalValue').value.trim();
-        if (value && !validateTimesheetValue(value)) {
-            return;
+        const minutesMode = document.getElementById('minutesMode').checked;
+        let value = '';
+        if (!minutesMode) {
+            value = document.getElementById('modalValue').value.trim();
+            if (value && !validateTimesheetValue(value)) {
+                return;
+            }
+        } else {
+            const h = parseInt(document.getElementById('hoursInput').value || '0', 10);
+            const m = parseInt(document.getElementById('minutesInput').value || '0', 10);
+            if (isNaN(h) || isNaN(m) || h < 0 || m < 0 || m > 59) {
+                alert('Укажите корректные часы и минуты (минуты 0..59)');
+                return;
+            }
         }
         const dateFrom = cell.getAttribute('data-date');
         const dateTo = document.getElementById('fillToDate').value;
@@ -1236,7 +1301,13 @@
         formData.append('employee_id', cell.getAttribute('data-employee-id'));
         formData.append('date_from', dateFrom);
         formData.append('date_to', dateTo);
-        formData.append('value', value);
+        if (minutesMode) {
+            formData.append('minutes_mode', '1');
+            formData.append('hours', document.getElementById('hoursInput').value || '0');
+            formData.append('minutes', document.getElementById('minutesInput').value || '0');
+        } else {
+            formData.append('value', value);
+        }
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         fetch('{% url "timesheet:fill_range" %}', {
             method: 'POST',
@@ -1370,6 +1441,17 @@
     
     // Вспомогательные функции
     function validateTimesheetValue(value) {
+        const minutesMode = document.getElementById('minutesMode') && document.getElementById('minutesMode').checked;
+        if (minutesMode) {
+            const h = document.getElementById('hoursInput').value;
+            const m = document.getElementById('minutesInput').value;
+            const hi = parseInt(h || '0', 10);
+            const mi = parseInt(m || '0', 10);
+            if (isNaN(hi) || isNaN(mi) || hi < 0 || mi < 0 || mi > 59) {
+                return false;
+            }
+            return true;
+        }
         if (value) {
             const numericPatterns = [
                 /^\d+$/,

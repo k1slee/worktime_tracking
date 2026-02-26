@@ -409,11 +409,11 @@ def process_timesheet_data(request, year, month, employees, timesheets):
             'other_absence_days': stats.get('other_absence', {}).get(employee_id, 0),
             'admin_permission_days': stats.get('admin_permission', {}).get(employee_id, 0),
             'absence_days': stats.get('absence', {}).get(employee_id, 0),
-            'total_hours': round(stats.get('total_hours', {}).get(employee_id, 0), 1),
-            'evening_hours': round(stats.get('evening_hours', {}).get(employee_id, 0), 1),
-            'night_hours': round(stats.get('night_hours', {}).get(employee_id, 0), 1),
-            'weekend_hours': round(stats.get('weekend_hours', {}).get(employee_id, 0), 1),
-            'overtime_hours': round(stats.get('overtime_hours', {}).get(employee_id, 0), 1),
+            'total_hours': round(stats.get('total_hours', {}).get(employee_id, 0), 2),
+            'evening_hours': round(stats.get('evening_hours', {}).get(employee_id, 0), 2),
+            'night_hours': round(stats.get('night_hours', {}).get(employee_id, 0), 2),
+            'weekend_hours': round(stats.get('weekend_hours', {}).get(employee_id, 0), 2),
+            'overtime_hours': round(stats.get('overtime_hours', {}).get(employee_id, 0), 2),
         })
     
     return {
@@ -935,6 +935,19 @@ def quick_edit_timesheet(request):
     date_str = request.POST.get('date')
     value = request.POST.get('value', '').strip()
     action = request.POST.get('action', 'save')
+    minutes_mode = request.POST.get('minutes_mode') in ['1', 'true', 'True']
+    if minutes_mode:
+        try:
+            h = int(request.POST.get('hours', '0'))
+            m = int(request.POST.get('minutes', '0'))
+            if h < 0 or m < 0 or m > 59:
+                return JsonResponse({'error': 'Некорректные часы/минуты'}, status=400)
+            total_minutes = h * 60 + m
+            hours_decimal = total_minutes / 60.0
+            # Форматируем до двух знаков, убирая лишние нули
+            value = f"{hours_decimal:.2f}".rstrip('0').rstrip('.')
+        except ValueError:
+            return JsonResponse({'error': 'Некорректные часы/минуты'}, status=400)
     
     try:
         from apps.users.models import Employee, EmployeeAssignment
@@ -1072,6 +1085,18 @@ def fill_range(request):
     date_from = request.POST.get('date_from')
     date_to = request.POST.get('date_to')
     value = request.POST.get('value', '').strip()
+    minutes_mode = request.POST.get('minutes_mode') in ['1', 'true', 'True']
+    if minutes_mode:
+        try:
+            h = int(request.POST.get('hours', '0'))
+            m = int(request.POST.get('minutes', '0'))
+            if h < 0 or m < 0 or m > 59:
+                return JsonResponse({'error': 'Некорректные часы/минуты'}, status=400)
+            total_minutes = h * 60 + m
+            hours_decimal = total_minutes / 60.0
+            value = f"{hours_decimal:.2f}".rstrip('0').rstrip('.')
+        except ValueError:
+            return JsonResponse({'error': 'Некорректные часы/минуты'}, status=400)
     if not (employee_id and date_from and date_to):
         return JsonResponse({'error': 'Не указаны параметры'}, status=400)
     try:
