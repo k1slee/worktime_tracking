@@ -135,8 +135,18 @@ def remove_employee(request, pk):
     if not request.user.is_master:
         messages.error(request, 'Только мастера могут удалять сотрудников')
         return redirect('timesheet:list')
-    
-    employee = get_object_or_404(Employee, pk=pk, master=request.user)
+    from django.utils import timezone
+    from django.db.models import Q
+    today = timezone.now().date()
+    employee = get_object_or_404(
+        Employee.objects.filter(
+            Q(master=request.user) |
+            (Q(assignments__master=request.user) &
+             Q(assignments__start_date__lte=today) &
+             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today)))
+        ).distinct(),
+        pk=pk
+    )
     employee_name = employee.full_name
     
     # Удаляем связь сотрудника с отделом (для сотрудников с учеткой)
@@ -149,6 +159,7 @@ def remove_employee(request, pk):
     
     messages.success(request, f'Сотрудник {employee_name} удален из вашего отдела')
     return redirect('users:employee_list')
+
 
 @login_required
 def employee_detail(request, pk):
