@@ -159,6 +159,10 @@ def get_monthly_data(request, year, month, print_mode=False):
                 Q(assignments__start_date__lte=month_end)
             ) | Q(master=request.user)
         ).distinct()
+        
+        # Опция мастера: скрывать самого себя из своего табеля
+        if hasattr(request.user, 'show_self_in_own_timesheet') and not request.user.show_self_in_own_timesheet:
+            employees = employees.exclude(user=request.user)
 
         timesheets = Timesheet.objects.filter(
             date__year=year,

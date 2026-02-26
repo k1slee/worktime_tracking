@@ -48,6 +48,11 @@ class User(AbstractUser):
         blank=True,
         help_text='Если указано, переопределяет ФИО начальника цеха из отдела в печатной форме'
     )
+    show_self_in_own_timesheet = models.BooleanField(
+        'Показывать себя в своём табеле',
+        default=True,
+        help_text='Если выключено — ваша строка не будет отображаться в вашем табеле'
+    )
     
     class Meta:
         verbose_name = 'Пользователь'

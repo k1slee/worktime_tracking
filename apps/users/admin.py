@@ -24,6 +24,7 @@ class CustomUserAdmin(UserAdmin):
                 'department',
                 'role',
                 'shop_chief_name_override',
+                'show_self_in_own_timesheet',
             )
         }),
         (_('Permissions'), {
