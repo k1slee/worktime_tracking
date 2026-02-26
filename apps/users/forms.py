@@ -97,12 +97,17 @@ class AddEmployeeForm(forms.ModelForm):
         if not created:
             if self.cleaned_data.get('hire_date') and not employee.hire_date:
                 employee.hire_date = self.cleaned_data['hire_date']
-                employee.save()
+                employee.save(update_fields=['hire_date'])
         
         # Привязываем пользователя к отделу мастера
         if self.master.department:
             employee.user.department = self.master.department
             employee.user.save()
+        
+        # Устанавливаем legacy-привязку мастера для обратной совместимости
+        if self.master and employee.master_id != self.master.id:
+            employee.master = self.master
+            employee.save(update_fields=['master'])
         
         # Создаем назначение сотрудника мастеру
         from datetime import date
@@ -201,6 +206,8 @@ class CreateEmployeeForm(forms.Form):
             position_own=self.cleaned_data['position'],
             department_own=self.master.department if self.master else None,
         )
+        if self.master:
+            employee.master = self.master
         if commit:
             employee.full_clean()
             employee.save()
