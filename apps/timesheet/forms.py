@@ -100,6 +100,11 @@ class MonthlyTimesheetForm(forms.Form):
             for day in range(1, last_day + 1):
                 date = datetime(year, month_num, day).date()
                 
+                # Пропускаем дни до даты приема сотрудника
+                hire_date = getattr(employee, 'hire_date', None)
+                if hire_date and date < hire_date:
+                    continue
+                
                 # Пропускаем выходные, если не включены
                 if not include_weekends and date.weekday() >= 5:  # 5=суббота, 6=воскресенье
                     continue

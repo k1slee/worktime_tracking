@@ -342,6 +342,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         employee_id = employee.id
         employee_timesheets = timesheet_dict.get(employee_id, {})
         formatted_fio = employee.short_fio or (employee.full_name or "")
+        emp_hire_date = getattr(employee, 'hire_date', None)
         # Ячейки дней
         day_cells = []
         for day in days:
@@ -350,6 +351,21 @@ def process_timesheet_data(request, year, month, employees, timesheets):
             weekday = day_date.weekday()
             is_saturday = (weekday == 5)
             is_sunday = (weekday == 6)
+            # Если дата до даты приема на работу — показываем пустую ячейку и пропускаем статистику
+            if emp_hire_date and day_date < emp_hire_date:
+                day_cells.append({
+                    'day': day,
+                    'timesheet_id': None,
+                    'value': '',
+                    'display_value': '',
+                    'status': 'empty',
+                    'can_edit': False,
+                    'css_class': 'empty',
+                    'is_saturday': is_saturday,
+                    'is_sunday': is_sunday,
+                })
+                # Не считаем статистику для дней до даты приема
+                continue
             ts_data = employee_timesheets.get(day)
             holiday_value = get_day_value(day_date)
             
@@ -989,6 +1005,10 @@ def quick_edit_timesheet(request):
             if not timesheet.can_edit:
                 return JsonResponse({'error': 'Табель сдан или утвержден и не может быть изменен'}, status=403)
             
+            # Запрет на редактирование значений для дат до приема (кроме удаления)
+            if action != 'delete' and timesheet.employee.hire_date and timesheet.date < timesheet.employee.hire_date:
+                return JsonResponse({'error': 'Дата раньше даты приема сотрудника'}, status=400)
+            
             if request.user.is_master:
                 # Разрешаем правку, если табель мастера или есть назначение на дату табеля
                 has_assignment = EmployeeAssignment.objects.filter(
@@ -1018,6 +1038,10 @@ def quick_edit_timesheet(request):
             
             date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
             employee = Employee.objects.get(id=employee_id)
+            
+            # Запрещаем создание записи ранее даты приема сотрудника
+            if employee.hire_date and date_obj < employee.hire_date:
+                return JsonResponse({'error': 'Дата раньше даты приема сотрудника'}, status=400)
             
             # Проверка прав для мастера
             if request.user.is_master:
@@ -1105,6 +1129,8 @@ def fill_range(request):
         dt = datetime.strptime(date_to, '%Y-%m-%d').date()
         if dt < df:
             df, dt = dt, df
+        # Учитываем дату приема: протягиваем только начиная с hire_date
+        hire_date = getattr(emp, 'hire_date', None)
         # Права: мастер должен иметь назначение на каждую дату или быть legacy-мастером
         from apps.users.models import EmployeeAssignment
         from django.db.models import Q
@@ -1112,6 +1138,9 @@ def fill_range(request):
         filled = 0
         day = df
         while day <= dt:
+            if hire_date and day < hire_date:
+                day += timedelta(days=1)
+                continue
             has_assignment = EmployeeAssignment.objects.filter(
                 employee=emp, master=request.user
             ).filter(
@@ -1158,12 +1187,16 @@ def restore_range(request):
         dt = datetime.strptime(date_to, '%Y-%m-%d').date()
         if dt < df:
             df, dt = dt, df
+        hire_date = getattr(emp, 'hire_date', None)
         from apps.users.models import EmployeeAssignment
         from django.db.models import Q
         legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)
         restored = 0
         day = df
         while day <= dt:
+            if hire_date and day < hire_date:
+                day += timedelta(days=1)
+                continue
             has_assignment = EmployeeAssignment.objects.filter(
                 employee=emp, master=request.user
             ).filter(

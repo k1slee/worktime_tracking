@@ -57,6 +57,12 @@ class MonthlyTimesheet(models.Model):
                 except ValueError:
                     break  # Конец месяца
                 
+                # Пропускаем дни до даты приема сотрудника
+                hire_date = getattr(employee, 'hire_date', None)
+                if hire_date and date < hire_date:
+                    day += 1
+                    continue
+                
                 # Проверяем, не существует ли уже запись
                 if not Timesheet.objects.filter(date=date, employee=employee).exists():
                     # Проверяем, назначен ли сотрудник этому мастеру на эту дату

@@ -82,6 +82,11 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
         for day in range(1, last_day + 1):
             date = datetime(year, month, day).date()
             
+            # Пропускаем дни до даты приема сотрудника
+            hire_date = getattr(employee, 'hire_date', None)
+            if hire_date and date < hire_date:
+                continue
+            
             # Пропускаем выходные, если не включены
             if not include_weekends and date.weekday() >= 5:
                 continue
