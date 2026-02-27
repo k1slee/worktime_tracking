@@ -38,7 +38,7 @@
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
             {% endif %}
             <div class="d-flex gap-2">
-              <a href="{% url 'users:employee_detail' employee.pk %}" class="btn btn-secondary w-50">Отмена</a>
+              <a href="{% url 'users:employee_list' %}" class="btn btn-secondary w-50">Отмена</a>
               <button class="btn btn-primary w-50" type="submit">Сохранить</button>
             </div>
           </form>

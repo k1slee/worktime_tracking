@@ -189,7 +189,7 @@ def employee_edit_master(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Данные сотрудника обновлены')
-            return redirect('users:employee_detail', pk=pk)
+            return redirect('users:employee_list')
     else:
         form = EmployeeMasterEditForm(employee=employee)
     return render(request, 'users/employee_edit.html', {
@@ -204,13 +204,13 @@ def assignment_add(request, pk):
     employee = get_object_or_404(Employee, pk=pk)
     if not (request.user.is_master or request.user.is_planner or request.user.is_administrator):
         messages.error(request, 'Недостаточно прав для назначения мастера')
-        return redirect('users:employee_detail', pk=pk)
+        return redirect('users:employee_list')
     if request.method == 'POST':
         form = EmployeeAssignmentForm(request.POST, employee=employee, current_user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Назначение успешно добавлено')
-            return redirect('users:employee_detail', pk=pk)
+            return redirect('users:employee_list')
     else:
         form = EmployeeAssignmentForm(employee=employee, current_user=request.user)
     return render(request, 'users/assignment_form.html', {
@@ -226,12 +226,12 @@ def assignment_close(request, assignment_id):
     assignment = get_object_or_404(EmployeeAssignment, pk=assignment_id)
     if not (request.user.is_master or request.user.is_planner or request.user.is_administrator):
         messages.error(request, 'Недостаточно прав для изменения назначения')
-        return redirect('users:employee_detail', pk=assignment.employee_id)
+        return redirect('users:employee_list')
     from django.utils import timezone
     assignment.end_date = timezone.now().date()
     assignment.save()
     messages.success(request, 'Назначение закрыто')
-    return redirect('users:employee_detail', pk=assignment.employee_id)
+    return redirect('users:employee_list')
 
 @login_required
 def search_users_api(request):
