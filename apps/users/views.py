@@ -163,8 +163,10 @@ def remove_employee(request, pk):
 
 @login_required
 def employee_detail(request, pk):
-    """Карточка сотрудника временно недоступна"""
-    raise Http404("Страница временно недоступна")
+    """Маршрут карточки: перенаправляем на редактирование для мастера либо на список"""
+    if request.user.is_master:
+        return redirect('users:employee_edit_master', pk=pk)
+    return redirect('users:employee_list')
 
 @login_required
 def employee_edit_master(request, pk):
