@@ -543,7 +543,7 @@
                 <nav aria-label="Навигация по месяцам">
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item">
-                            <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
+                            <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_master %}&master={{ selected_master }}{% endif %}">
                                 &laquo; {{ prev_month|stringformat:"02d" }}.{{ prev_year }}
                             </a>
                         </li>
@@ -551,7 +551,7 @@
                             <span class="page-link">{{ month|stringformat:"02d" }}.{{ year }}</span>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}">
+                            <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_master %}&master={{ selected_master }}{% endif %}">
                                 {{ next_month|stringformat:"02d" }}.{{ next_year }} &raquo;
                             </a>
                         </li>
@@ -564,7 +564,7 @@
                         <i class="fas fa-users me-2"></i>
                         Мои сотрудники
                     </a>
-                    <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master_id={{ request.user.id }}{% endif %}"
+                    <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master={{ request.user.id }}{% elif selected_master %}&master={{ selected_master }}{% endif %}"
                         class="btn btn-primary" target="_blank">
                             <i class="bi bi-printer-fill"></i> Печатная форма
                         </a>
@@ -602,6 +602,44 @@
                                 <!-- Кнопка сдачи табеля -->
                                 <button type="button" class="btn btn-success btn-sm" onclick="submitEntireMonth()">
                                     <i class="bi bi-send-check-fill"></i> Сдать табель
+                                </button>
+                                
+                                <!-- Кнопка для показа условных обозначений -->
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleLegend()">
+                                    <i class="bi bi-info-circle"></i> Условные обозначения
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if is_planner and not is_master %}
+        <div class="row mb-3 top-section">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Просмотр табелей за {{ month_name }}</h6>
+                                <small class="text-muted">
+                                    {% if total_employees > 0 %}
+                                    Всего сотрудников: {{ total_employees }}
+                                    {% else %}
+                                    Нет сотрудников для отображения
+                                    {% endif %}
+                                </small>
+                                <div class="mode-indicator" id="modeIndicator">
+                                    <i class="bi bi-calendar-check"></i> Режим: Заполнение табеля
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <!-- Кнопка переключения режима -->
+                                <button type="button" class="btn btn-outline-info btn-sm mode-toggle-btn" id="toggleModeBtn" onclick="toggleViewMode()">
+                                    <i class="bi bi-bar-chart" id="modeBtnIcon"></i> 
+                                    <span id="modeBtnText">Показать статистику</span>
                                 </button>
                                 
                                 <!-- Кнопка для показа условных обозначений -->
@@ -773,7 +811,7 @@
                                     <option value="">Все мастера</option>
                                     {% for master in masters %}
                                     <option value="{{ master.id }}" {% if request.GET.master == master.id|stringformat:"s" %}selected{% endif %}>
-                                        {{ master.get_full_name }} ({{ master.employee_id }})
+                                        {{ master.get_full_name }} ({{ master.employee_id }}){% if master.department %} — {{ master.department.name }}{% endif %}
                                     </option>
                                     {% endfor %}
                                 </select>

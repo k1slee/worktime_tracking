@@ -173,10 +173,43 @@ def get_monthly_data(request, year, month, print_mode=False):
 
     # === ЛОГИКА ДЛЯ ПЛАНОВИКА И АДМИНИСТРАТОРА ===
     elif request.user.is_planner or request.user.is_administrator:
-        employees = Employee.objects.filter(is_active=True)
-
+        # Рассчитываем границы месяца
+        month_start = date(year, month, 1)
+        if month == 12:
+            next_month_start = date(year + 1, 1, 1)
+        else:
+            next_month_start = date(year, month + 1, 1)
+        month_end = next_month_start - timedelta(days=1)
+        
+        # Ограничение по доступным мастерам для плановика
+        allowed_master_ids = None
+        if request.user.is_planner and hasattr(request.user, 'allowed_masters'):
+            qs = request.user.allowed_masters.all()
+            if qs.exists():
+                allowed_master_ids = list(qs.values_list('id', flat=True))
+        
+        base_employees = Employee.objects.filter(is_active=True)
+        # Фильтр по мастеру (из селекта)
         if master_id:
-            employees = employees.filter(master_id=master_id)
+            base_employees = base_employees.filter(
+                Q(master_id=master_id) |
+                (Q(assignments__master_id=master_id) &
+                 (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                 Q(assignments__start_date__lte=month_end))
+            )
+        else:
+            # Без выбора мастера: если плановику заданы доступные мастера — показываем только их сотрудников
+            if allowed_master_ids:
+                base_employees = base_employees.filter(
+                    Q(master_id__in=allowed_master_ids) |
+                    (Q(assignments__master_id__in=allowed_master_ids) &
+                     (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                     Q(assignments__start_date__lte=month_end))
+                )
+            else:
+                # Нет выбранного мастера и нет ограничений по allowed_masters — не грузим ничего
+                base_employees = Employee.objects.none()
+        employees = base_employees.distinct()
 
         if print_mode:
             # Для печатной формы - только табели со статусом submitted/approved
@@ -194,12 +227,18 @@ def get_monthly_data(request, year, month, print_mode=False):
             if employee_ids_from_timesheets:
                 employees = employees.filter(id__in=employee_ids_from_timesheets)
         else:
-            # Для веб-интерфейса - все табели
+            # Для веб-интерфейса
             timesheets = Timesheet.objects.filter(
                 date__year=year,
                 date__month=month,
                 employee__in=employees
             ).select_related('employee', 'employee__user', 'master')
+            # Плановый отдел видит только сданные/утвержденные
+            if request.user.is_planner:
+                timesheets = timesheets.filter(status__in=['submitted', 'approved'])
+                employee_ids_from_timesheets = timesheets.values_list('employee_id', flat=True).distinct()
+                if employee_ids_from_timesheets:
+                    employees = employees.filter(id__in=employee_ids_from_timesheets)
 
         if not master_user and timesheets.exists():
             first_timesheet = timesheets.first()
@@ -388,7 +427,11 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'is_sunday':is_sunday,
                 })
             else:
-                display_value = holiday_value or default_table.get(day, "")
+                # Для планового отдела не показываем автозаполнение — только фактические записи
+                if request.user.is_planner:
+                    display_value = ""
+                else:
+                    display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
                     'day': day,
                     'timesheet_id': None,
@@ -532,7 +575,11 @@ def monthly_table_view(request):
     
     if request.user.is_planner or request.user.is_administrator:
         departments = Department.objects.all()
-        masters = User.objects.filter(role='master', is_active=True).order_by('last_name', 'first_name')
+        masters_qs = User.objects.filter(role='master', is_active=True)
+        if request.user.is_planner and hasattr(request.user, 'allowed_masters'):
+            if request.user.allowed_masters.exists():
+                masters_qs = request.user.allowed_masters.all()
+        masters = masters_qs.order_by('last_name', 'first_name')
     
     # Навигация по месяцам
     prev_month = month - 1 if month > 1 else 12
@@ -582,7 +629,7 @@ def print_monthly_table(request):
     
     if not data['employees'].exists():
         messages.info(request, 'Нет данных для печати')
-        return redirect('timesheet:monthly-table')
+        return redirect('timesheet:monthly_table')
     
     # Обрабатываем данные табелей
     processed_data = process_timesheet_data(request, year, month, data['employees'], data['timesheets'])
@@ -687,6 +734,9 @@ class TimesheetListView(LoginRequiredMixin, ListView):
         
         if user.is_master:
             queryset = queryset.filter(master=user)
+        # Плановый отдел видит только сданные/утвержденные
+        if user.is_planner:
+            queryset = queryset.filter(status__in=['submitted', 'approved'])
         
         # Фильтрация по параметрам
         date_from = self.request.GET.get('date_from')
@@ -1303,7 +1353,55 @@ def submit_month(request):
         year = int(year)
         month = int(month)
         
-        # Получаем все табели мастера за месяц
+        # Рассчитываем границы месяца
+        month_start = date(year, month, 1)
+        if month == 12:
+            next_month_start = date(year + 1, 1, 1)
+        else:
+            next_month_start = date(year, month + 1, 1)
+        month_end = next_month_start - timedelta(days=1)
+        
+        # 1) Создаем отсутствующие записи по автозаполнению (для возможности сдачи «чистого» табеля)
+        default_table = generate_default_table(year, month)
+        from apps.users.models import Employee, EmployeeAssignment
+        from django.db.models import Q
+        employees = Employee.objects.filter(is_active=True).filter(
+            (
+                Q(assignments__master=request.user) &
+                (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                Q(assignments__start_date__lte=month_end)
+            ) | Q(master=request.user)
+        ).distinct()
+        created_missing = 0
+        _, last_day = calendar.monthrange(year, month)
+        for emp in employees:
+            hire_date = getattr(emp, 'hire_date', None)
+            for day in range(1, last_day + 1):
+                d = date(year, month, day)
+                if hire_date and d < hire_date:
+                    continue
+                # Только если назначен этому мастеру в этот день или legacy-мастер
+                legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)
+                has_assignment = EmployeeAssignment.objects.filter(
+                    employee=emp, master=request.user
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=d),
+                    start_date__lte=d
+                ).exists()
+                if not (legacy_ok or has_assignment):
+                    continue
+                # Создаем запись, если отсутствует
+                if not Timesheet.objects.filter(date=d, employee=emp).exists():
+                    Timesheet.objects.create(
+                        date=d,
+                        employee=emp,
+                        master=request.user,
+                        value=default_table.get(day, ''),
+                        status='draft'
+                    )
+                    created_missing += 1
+        
+        # 2) Получаем все черновики мастера за месяц и сдаем их
         timesheets = Timesheet.objects.filter(
             master=request.user,
             date__year=year,
@@ -1322,6 +1420,7 @@ def submit_month(request):
         return JsonResponse({
             'success': True,
             'submitted_count': submitted_count,
+            'created_missing': created_missing,
             'message': f'Сдано {submitted_count} табелей'
         })
         

@@ -29,7 +29,6 @@ urlpatterns = [
     path('fill-range/', web_views.fill_range, name='fill_range'),
     path('restore-range/', web_views.restore_range, name='restore_range'),
     path('submit/<int:timesheet_id>/', views.submit_timesheet, name='submit_timesheet'),
-    path('submit-month/', views.submit_month, name='submit_month'),
     path('approve/<int:timesheet_id>/', views.approve_timesheet, name='approve_timesheet'),
     path('<int:pk>/submit/', web_views.submit_timesheet, name='submit'),
     path('bulk-submit/', web_views.bulk_submit_view, name='bulk_submit'),

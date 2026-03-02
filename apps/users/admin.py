@@ -23,6 +23,7 @@ class CustomUserAdmin(UserAdmin):
                 'position',
                 'department',
                 'role',
+                'allowed_masters',
                 'shop_chief_name_override',
                 'show_self_in_own_timesheet',
             )

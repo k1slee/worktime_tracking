@@ -53,6 +53,14 @@ class User(AbstractUser):
         default=True,
         help_text='Если выключено — ваша строка не будет отображаться в вашем табеле'
     )
+    allowed_masters = models.ManyToManyField(
+        'self',
+        verbose_name='Доступные мастера (для планового отдела)',
+        related_name='permitted_planners',
+        symmetrical=False,
+        blank=True,
+        limit_choices_to={'role': 'master'}
+    )
     
     class Meta:
         verbose_name = 'Пользователь'
