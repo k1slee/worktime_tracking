@@ -147,4 +147,5 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
+    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',
 }

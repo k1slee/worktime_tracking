@@ -23,3 +23,9 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# Error handlers
+handler400 = 'apps.core.views.error_400'
+handler403 = 'apps.core.views.error_403'
+handler404 = 'apps.core.views.error_404'
+handler500 = 'apps.core.views.error_500'

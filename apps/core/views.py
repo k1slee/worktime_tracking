@@ -1,13 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseNotFound, HttpResponseServerError
 
 @login_required
 def dashboard_view(request):
-    """Главная страница"""
     user = request.user
     
     if user.is_administrator:
-        # Статистика для администратора
         from apps.timesheet.models import Timesheet
         from apps.users.models import User, Employee
         
@@ -21,7 +20,6 @@ def dashboard_view(request):
             'total_timesheets': total_timesheets,
         }
     elif user.is_master:
-        # Данные для мастера
         from apps.timesheet.models import Timesheet
         from apps.users.models import Employee
         from django.utils import timezone
@@ -41,7 +39,6 @@ def dashboard_view(request):
             'recent_timesheets': recent_timesheets,
         }
     elif user.is_planner:
-        # Данные для планового отдела
         from apps.timesheet.models import Timesheet
         from apps.timesheet.utils import get_timesheet_stats
         
@@ -55,3 +52,19 @@ def dashboard_view(request):
     
     context['user'] = user
     return render(request, 'core/dashboard.html', context)
+
+
+def error_400(request, exception):
+    return render(request, '400.html', status=400)
+
+
+def error_403(request, exception):
+    return render(request, '403.html', status=403)
+
+
+def error_404(request, exception):
+    return render(request, '404.html', status=404)
+
+
+def error_500(request):
+    return render(request, '500.html', status=500)

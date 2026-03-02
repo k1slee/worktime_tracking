@@ -1,18 +1,19 @@
 import logging
 import time
 from django.utils.deprecation import MiddlewareMixin
+from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.http import Http404
+from django.conf import settings
 
 logger = logging.getLogger('apps')
 
 class LoggingMiddleware(MiddlewareMixin):
-    """Middleware для логирования действий пользователей"""
-    
     def process_request(self, request):
         request.start_time = time.time()
         return None
     
     def process_response(self, request, response):
-        # Логируем только аутентифицированных пользователей
         if hasattr(request, 'user') and request.user.is_authenticated:
             duration = time.time() - request.start_time
             
@@ -27,10 +28,43 @@ class LoggingMiddleware(MiddlewareMixin):
                 'ip': request.META.get('REMOTE_ADDR'),
             }
             
-            # Логируем изменение данных
             if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
                 logger.info(f"Action: {log_data}")
             elif request.method == 'GET' and duration > 2.0:  # Долгие запросы
                 logger.warning(f"Slow request: {log_data}")
         
         return response
+
+
+class ExceptionHandlingMiddleware(MiddlewareMixin):
+    def _wants_json(self, request):
+        accept = request.META.get('HTTP_ACCEPT', '')
+        xrw = request.META.get('HTTP_X_REQUESTED_WITH', '')
+        return 'application/json' in accept or xrw == 'XMLHttpRequest' or request.path.startswith('/timesheet/api')
+    
+    def process_exception(self, request, exception):
+        if not self._wants_json(request):
+            return None
+        
+        if isinstance(exception, Http404):
+            status_code = 404
+            message = 'Ресурс не найден'
+        elif isinstance(exception, PermissionDenied):
+            status_code = 403
+            message = 'Доступ запрещен'
+        elif isinstance(exception, ValidationError):
+            status_code = 400
+            message = 'Некорректные данные'
+        else:
+            status_code = 500
+            message = 'Внутренняя ошибка сервера'
+        
+        payload = {
+            'success': False,
+            'error': message,
+        }
+        if settings.DEBUG and status_code == 500:
+            payload['detail'] = str(exception)
+        
+        logger.exception(f"Handled exception on {request.method} {request.path}: {exception}")
+        return JsonResponse(payload, status=status_code)
