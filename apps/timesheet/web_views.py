@@ -557,16 +557,7 @@ def monthly_table_view(request):
     # Получаем данные
     data = get_monthly_data(request, year, month, print_mode=False)
     
-    if not data['employees'].exists():
-        messages.info(request, 'Нет данных для отображения')
-        return render(request, 'timesheet/monthly_table.html', {
-            'title': f'Табель за {month:02d}.{year}',
-            'year': year,
-            'month': month,
-            'table_data': [],
-        })
-    
-    # Обрабатываем данные табелей
+    # Обрабатываем данные табелей (даже если пусто — чтобы контекст был консистентен)
     processed_data = process_timesheet_data(request, year, month, data['employees'], data['timesheets'])
     
     # Подготовка контекста
@@ -607,6 +598,10 @@ def monthly_table_view(request):
         'shop_chief_name': get_shop_chief_name(request, data['master_user'], data['department_id']),
         **processed_data,
     }
+    
+    # Сообщение при пустых данных, но контекст остается полным (стрелки и фильтры работают)
+    if not data['employees'].exists():
+        messages.info(request, 'Нет данных для отображения')
     
     return render(request, 'timesheet/monthly_table.html', context)
 
