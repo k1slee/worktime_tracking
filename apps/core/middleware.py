@@ -68,3 +68,24 @@ class ExceptionHandlingMiddleware(MiddlewareMixin):
         
         logger.exception(f"Handled exception on {request.method} {request.path}: {exception}")
         return JsonResponse(payload, status=status_code)
+
+
+class RoleRestrictionMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        user = getattr(request, 'user', None)
+        if not (user and user.is_authenticated):
+            return None
+        # Разрешаем только окно талонов для роли ТБ
+        if getattr(user, 'is_tb', False):
+            path = request.path or '/'
+            allowed_prefixes = (
+                '/timesheet/milk-vouchers',
+                '/logout',
+                '/static/',
+                '/favicon.ico',
+            )
+            # Разрешаем саму страницу и печать
+            if path == '/' or not path.startswith(allowed_prefixes):
+                from django.shortcuts import redirect
+                return redirect('timesheet:milk_vouchers')
+        return None

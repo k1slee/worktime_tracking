@@ -1,10 +1,13 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseNotFound, HttpResponseServerError
+from django.shortcuts import redirect
 
 @login_required
 def dashboard_view(request):
     user = request.user
+    if getattr(user, 'is_tb', False):
+        return redirect('timesheet:milk_vouchers')
     
     if user.is_administrator:
         from apps.timesheet.models import Timesheet
