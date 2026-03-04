@@ -2,22 +2,18 @@
 {% block title %}Талоны на молоко{% endblock %}
 {% block content %}
 <div class="container py-4">
-  <h3 class="mb-3">Талоны на молоко — {{ month|stringformat:"02d" }}.{{ year }}</h3>
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <a class="btn btn-outline-secondary btn-sm" href="?year={{ prev_year }}&month={{ prev_month }}">&laquo; {{ prev_month|stringformat:"02d" }}.{{ prev_year }}</a>
-      <a class="btn btn-outline-secondary btn-sm" href="?year={{ next_year }}&month={{ next_month }}">{{ next_month|stringformat:"02d" }}.{{ next_year }} &raquo;</a>
-    </div>
+  <h3 class="mb-3">Нормы талонов на молоко по должностям</h3>
+  <div class="mb-3">
+    <a class="btn btn-outline-primary btn-sm" target="_blank" href="{% url 'timesheet:milk_vouchers_print' %}">Печать</a>
   </div>
-  <form method="post" class="card shadow-sm">
+  <form method="post" class="card shadow-sm" autocomplete="off">
     {% csrf_token %}
     <div class="table-responsive">
       <table class="table table-striped mb-0">
         <thead>
           <tr>
             <th>#</th>
-            <th>Сотрудник</th>
-            <th>Таб. номер</th>
+            <th>Должность</th>
             <th class="text-end" style="width: 180px;">Количество талонов</th>
           </tr>
         </thead>
@@ -25,16 +21,15 @@
           {% for row in rows %}
             <tr>
               <td>{{ forloop.counter }}</td>
-              <td>{{ row.emp.full_name }}</td>
-              <td>{{ row.emp.employee_id }}</td>
+              <td>{{ row.position }}</td>
               <td class="text-end">
-                <input type="number" class="form-control text-end" name="vouchers[{{ row.emp.id }}]" min="0" step="1"
+                <input type="number" class="form-control text-end" name="allowance[{{ row.position }}]" min="0" step="1"
                        value="{{ row.count }}">
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" class="text-center text-muted">Нет литейщиков</td>
+              <td colspan="3" class="text-center text-muted">Нет доступных должностей</td>
             </tr>
           {% endfor %}
         </tbody>

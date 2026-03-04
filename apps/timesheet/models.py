@@ -282,6 +282,22 @@ class MilkVoucher(models.Model):
     def __str__(self):
         return f"{self.employee} — {self.month:02d}.{self.year}: {self.count}"
 
+
+class PositionMilkAllowance(models.Model):
+    """Дневная норма талонов на молоко по должности"""
+    position = models.CharField('Должность', max_length=200, unique=True)
+    per_day_count = models.PositiveIntegerField('Талонов в день', default=0)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Кем обновлено')
+    updated_at = models.DateTimeField('Обновлено', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Норма талонов по должности'
+        verbose_name_plural = 'Нормы талонов по должностям'
+        ordering = ['position']
+    
+    def __str__(self):
+        return f"{self.position}: {self.per_day_count} в день"
+
 class Holiday(models.Model):
     date = models.DateField(unique = True)
     name = models.CharField(max_length = 100, blank = True, null = True)

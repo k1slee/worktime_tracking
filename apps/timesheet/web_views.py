@@ -11,7 +11,7 @@ import calendar
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 
-from .models import MonthlyTimesheet, Timesheet, Holiday, MilkVoucher
+from .models import MonthlyTimesheet, Timesheet, Holiday, PositionMilkAllowance
 from .forms import MonthlyTimesheetForm, BulkTimesheetForm, TimesheetForm
 from apps.users.models import Employee, Department, User
 from apps.users.permissions import IsMaster, IsPlanner
@@ -548,26 +548,30 @@ def get_composer_fio(master_user):
 
 @login_required
 def milk_vouchers_view(request):
-    """Назначение талонов на молоко для литейщиков (роль ТБ)"""
+    """Назначение дневной нормы талонов по должностям литейщиков (роль ТБ)"""
     if not (getattr(request.user, 'is_tb', False) or request.user.is_administrator):
         messages.error(request, 'Доступ разрешен только пользователям ТБ или администраторам')
         return redirect('timesheet:list')
     
-    today = timezone.now().date()
-    try:
-        year = int(request.GET.get('year', today.year))
-        month = int(request.GET.get('month', today.month))
-    except (ValueError, TypeError):
-        year = today.year
-        month = today.month
-    
-    employees = Employee.objects.filter(is_active=True, is_foundry=True).order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
+    # Собираем уникальные должности из всех сотрудников (не только литейщиков)
+    employees = Employee.objects.filter(is_active=True)
+    # Уникальные должности через свойство position/position_own/user.position
+    positions = []
+    seen = set()
+    for emp in employees:
+        pos = (emp.position or '').strip()
+        if not pos:
+            continue
+        if pos not in seen:
+            seen.add(pos)
+            positions.append(pos)
+    positions.sort()
+    allowances_map = {a.position: a for a in PositionMilkAllowance.objects.filter(position__in=positions)}
     
     if request.method == 'POST':
-        # Ожидаем поля вида vouchers[<employee_id>]
-        updated = 0
-        for emp in employees:
-            key = f"vouchers[{emp.id}]"
+        saved = 0
+        for pos in positions:
+            key = f"allowance[{pos}]"
             raw = request.POST.get(key)
             if raw is None:
                 continue
@@ -577,35 +581,47 @@ def milk_vouchers_view(request):
                     count = 0
             except (ValueError, TypeError):
                 continue
-            mv, _ = MilkVoucher.objects.get_or_create(employee=emp, year=year, month=month, defaults={'count': 0, 'created_by': request.user})
-            if mv.count != count:
-                mv.count = count
-                if not mv.created_by:
-                    mv.created_by = request.user
-                mv.save()
-                updated += 1
-        messages.success(request, f'Сохранено записей: {updated}')
-        return redirect(f"{reverse_lazy('timesheet:milk_vouchers')}?year={year}&month={month}")
+            obj = allowances_map.get(pos)
+            if obj:
+                if obj.per_day_count != count:
+                    obj.per_day_count = count
+                    if not obj.updated_by:
+                        obj.updated_by = request.user
+                    obj.save()
+                    saved += 1
+            else:
+                PositionMilkAllowance.objects.create(position=pos, per_day_count=count, updated_by=request.user)
+                saved += 1
+        messages.success(request, f'Сохранено настроек: {saved}')
+        return redirect(reverse_lazy('timesheet:milk_vouchers'))
     
-    mv_qs = MilkVoucher.objects.filter(year=year, month=month, employee__in=employees)
-    vouchers_by_emp = {mv.employee_id: mv.count for mv in mv_qs}
-    
-    # Навигация по месяцам
-    prev_month = month - 1 if month > 1 else 12
-    prev_year = year if month > 1 else year - 1
-    next_month = month + 1 if month < 12 else 1
-    next_year = year if month < 12 else year + 1
-    
-    rows = [{'emp': emp, 'count': vouchers_by_emp.get(emp.id, 0)} for emp in employees]
+    rows = [{'position': pos, 'count': allowances_map.get(pos).per_day_count if allowances_map.get(pos) else 0} for pos in positions]
+    return render(request, 'timesheet/milk_vouchers.html', {'title': 'Талоны на молоко: нормы по должностям', 'rows': rows})
+
+@login_required
+def print_milk_vouchers_view(request):
+    if not (getattr(request.user, 'is_tb', False) or request.user.is_administrator):
+        messages.error(request, 'Доступ разрешен только пользователям ТБ или администраторам')
+        return redirect('timesheet:list')
+    today = timezone.now().date()
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        year = today.year
+        month = today.month
+    employees = Employee.objects.filter(is_active=True, is_foundry=True).order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
+    allowances = {a.position: a.per_day_count for a in PositionMilkAllowance.objects.all()}
+    rows = [{'emp': emp, 'count': allowances.get((emp.position or '').strip(), 0)} for emp in employees]
+    total = sum(r['count'] for r in rows)
     context = {
-        'title': 'Талоны на молоко',
+        'title': 'Отчет по талонам на молоко (в день)',
         'year': year,
         'month': month,
         'rows': rows,
-        'prev_month': prev_month, 'prev_year': prev_year,
-        'next_month': next_month, 'next_year': next_year,
+        'total': total,
     }
-    return render(request, 'timesheet/milk_vouchers.html', context)
+    return render(request, 'timesheet/print_milk_vouchers.html', context)
 
 @login_required
 def monthly_table_view(request):
