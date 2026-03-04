@@ -2,6 +2,7 @@ from django.utils import timezone
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from apps.users.models import User, Employee
+from django.core.validators import MinValueValidator
 class MonthlyTimesheet(models.Model):
     """Месячный табель - для массового создания записей"""
     month = models.DateField('Месяц', help_text='Первый день месяца')
@@ -258,8 +259,28 @@ class Timesheet(models.Model):
             return 'submitted'
         elif self.status == 'draft':
             return 'draft'
-        else:
-            return ''
+
+
+class MilkVoucher(models.Model):
+    """Талоны на молоко для литейщиков"""
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='milk_vouchers', verbose_name='Сотрудник')
+    year = models.PositiveIntegerField('Год', validators=[MinValueValidator(2000)])
+    month = models.PositiveIntegerField('Месяц', validators=[MinValueValidator(1), MaxValueValidator(12)])
+    count = models.PositiveIntegerField('Количество талонов', default=0)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Назначил')
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+    updated_at = models.DateTimeField('Обновлено', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Талоны на молоко'
+        verbose_name_plural = 'Талоны на молоко'
+        unique_together = ('employee', 'year', 'month')
+        indexes = [
+            models.Index(fields=['year', 'month']),
+        ]
+    
+    def __str__(self):
+        return f"{self.employee} — {self.month:02d}.{self.year}: {self.count}"
 
 class Holiday(models.Model):
     date = models.DateField(unique = True)

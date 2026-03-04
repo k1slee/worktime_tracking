@@ -35,4 +35,5 @@ urlpatterns = [
     path('submit-month/', web_views.submit_month, name='submit_month'),
     path('print-monthly-table/', web_views.print_monthly_table, name='print_monthly_table'),
     path('get-statistics/', web_views.get_statistics_view, name='get_statistics'),
+    path('milk-vouchers/', web_views.milk_vouchers_view, name='milk_vouchers'),
 ]

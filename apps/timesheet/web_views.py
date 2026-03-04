@@ -11,7 +11,7 @@ import calendar
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 
-from .models import MonthlyTimesheet, Timesheet, Holiday
+from .models import MonthlyTimesheet, Timesheet, Holiday, MilkVoucher
 from .forms import MonthlyTimesheetForm, BulkTimesheetForm, TimesheetForm
 from apps.users.models import Employee, Department, User
 from apps.users.permissions import IsMaster, IsPlanner
@@ -431,7 +431,12 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                 if request.user.is_planner:
                     display_value = ""
                 else:
-                    display_value = holiday_value or default_table.get(day, "")
+                    # Специальный график для литейщиков: 2 через 2 по 12 часов
+                    if getattr(employee, 'is_foundry', False):
+                        idx = (day - 1) % 4
+                        display_value = '12' if idx in (0, 1) else 'В'
+                    else:
+                        display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
                     'day': day,
                     'timesheet_id': None,
@@ -540,6 +545,67 @@ def get_composer_fio(master_user):
 
 
 # ==================== ОСНОВНЫЕ VIEW ФУНКЦИИ ====================
+
+@login_required
+def milk_vouchers_view(request):
+    """Назначение талонов на молоко для литейщиков (роль ТБ)"""
+    if not (getattr(request.user, 'is_tb', False) or request.user.is_administrator):
+        messages.error(request, 'Доступ разрешен только пользователям ТБ или администраторам')
+        return redirect('timesheet:list')
+    
+    today = timezone.now().date()
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except (ValueError, TypeError):
+        year = today.year
+        month = today.month
+    
+    employees = Employee.objects.filter(is_active=True, is_foundry=True).order_by('last_name', 'first_name', 'user__last_name', 'user__first_name')
+    
+    if request.method == 'POST':
+        # Ожидаем поля вида vouchers[<employee_id>]
+        updated = 0
+        for emp in employees:
+            key = f"vouchers[{emp.id}]"
+            raw = request.POST.get(key)
+            if raw is None:
+                continue
+            try:
+                count = int(raw)
+                if count < 0:
+                    count = 0
+            except (ValueError, TypeError):
+                continue
+            mv, _ = MilkVoucher.objects.get_or_create(employee=emp, year=year, month=month, defaults={'count': 0, 'created_by': request.user})
+            if mv.count != count:
+                mv.count = count
+                if not mv.created_by:
+                    mv.created_by = request.user
+                mv.save()
+                updated += 1
+        messages.success(request, f'Сохранено записей: {updated}')
+        return redirect(f"{reverse_lazy('timesheet:milk_vouchers')}?year={year}&month={month}")
+    
+    mv_qs = MilkVoucher.objects.filter(year=year, month=month, employee__in=employees)
+    vouchers_by_emp = {mv.employee_id: mv.count for mv in mv_qs}
+    
+    # Навигация по месяцам
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+    
+    rows = [{'emp': emp, 'count': vouchers_by_emp.get(emp.id, 0)} for emp in employees]
+    context = {
+        'title': 'Талоны на молоко',
+        'year': year,
+        'month': month,
+        'rows': rows,
+        'prev_month': prev_month, 'prev_year': prev_year,
+        'next_month': next_month, 'next_year': next_year,
+    }
+    return render(request, 'timesheet/milk_vouchers.html', context)
 
 @login_required
 def monthly_table_view(request):

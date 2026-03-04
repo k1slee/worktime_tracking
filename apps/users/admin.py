@@ -118,15 +118,16 @@ class DepartmentAdmin(admin.ModelAdmin):
     )
 
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'is_active', 'department')
-    list_filter = ('master', 'is_active', 'hire_date')
+    list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'is_active', 'is_foundry', 'department')
+    list_filter = ('master', 'is_active', 'hire_date', 'is_foundry')
     fieldsets = (
         (None, {
             'fields' : (
                 'user', 
                 'last_name', 'first_name', 'middle_name',
                 'employee_id_own', 'position_own', 'department_own',
-                'master', 
+                'master',
+                'is_foundry',
                 'is_active'
             )
         }),

@@ -32,6 +32,7 @@ class User(AbstractUser):
         ('admin', 'Администратор'),
         ('master', 'Мастер'),
         ('planner', 'Плановый отдел'),
+        ('tb', 'ТБ'),
         ('worker', 'Работник'),
     ]
     
@@ -89,6 +90,10 @@ class User(AbstractUser):
     def is_planner(self):
         return self.role == 'planner'
     
+    @property
+    def is_tb(self):
+        return self.role == 'tb'
+    
     def get_managed_employees(self):
         """Получить сотрудников, назначенных мастеру на текущую дату"""
         if not self.is_master:
@@ -119,6 +124,7 @@ class Employee(models.Model):
                              verbose_name='Мастер', limit_choices_to={'role': 'master'})
     hire_date = models.DateField('Дата приема', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
+    is_foundry = models.BooleanField('Литейщик', default=False, help_text='Работает по литейному графику')
     # Поля для сотрудников без учетной записи
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
     first_name = models.CharField('Имя', max_length=150, blank=True)
