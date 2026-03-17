@@ -54,6 +54,17 @@ class User(AbstractUser):
         default=True,
         help_text='Если выключено — ваша строка не будет отображаться в вашем табеле'
     )
+    is_foundry_master = models.BooleanField(
+        'Мастер литейного графика',
+        default=False,
+        help_text='Если включено — все сотрудники этого мастера работают по литейному графику'
+    )
+    foundry_anchor_date = models.DateField(
+        'Якорь литейного графика',
+        null=True,
+        blank=True,
+        help_text='Дата, с которой начинается цикл литейного графика для сотрудников мастера'
+    )
     allowed_masters = models.ManyToManyField(
         'self',
         verbose_name='Доступные мастера (для планового отдела)',

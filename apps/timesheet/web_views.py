@@ -124,6 +124,36 @@ def generate_default_table(year: int, month: int) -> dict:
     
     return default_table
 
+def get_foundry_day_value(day_date: date, anchor: date) -> str:
+    pattern = (
+        ('8', 4),
+        ('В', 2),
+        ('7/3', 4),
+        ('В', 1),
+        ('8/2', 4),
+        ('В', 1),
+        ('8', 4),
+        ('В', 2),
+    )
+    cycle_len = sum(length for _, length in pattern)
+    offset = (day_date - anchor).days % cycle_len
+    acc = 0
+    for value, length in pattern:
+        if offset < acc + length:
+            return value
+        acc += length
+    return 'В'
+
+def get_foundry_anchor_for(request_user, employee=None) -> date:
+    default_anchor = date(2026, 2, 28)
+    if request_user and getattr(request_user, 'is_master', False) and getattr(request_user, 'is_foundry_master', False):
+        return getattr(request_user, 'foundry_anchor_date', None) or default_anchor
+    if employee is not None:
+        master = getattr(employee, 'master', None)
+        if master and getattr(master, 'is_foundry_master', False):
+            return getattr(master, 'foundry_anchor_date', None) or default_anchor
+    return default_anchor
+
 def get_monthly_data(request, year, month, print_mode=False):
     """
     Общая функция для получения данных табеля за месяц.
@@ -431,10 +461,14 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                 if request.user.is_planner:
                     display_value = ""
                 else:
-                    # Специальный график для литейщиков: 2 через 2 по 12 часов
-                    if getattr(employee, 'is_foundry', False):
-                        idx = (day - 1) % 4
-                        display_value = '12' if idx in (0, 1) else 'В'
+                    foundry_mode = False
+                    if request.user.is_master and getattr(request.user, 'is_foundry_master', False):
+                        foundry_mode = True
+                    elif getattr(employee, 'is_foundry', False):
+                        foundry_mode = True
+                    if foundry_mode:
+                        anchor = get_foundry_anchor_for(request.user, employee)
+                        display_value = get_foundry_day_value(day_date, anchor)
                     else:
                         display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
@@ -1469,11 +1503,15 @@ def submit_month(request):
                     continue
                 # Создаем запись, если отсутствует
                 if not Timesheet.objects.filter(date=d, employee=emp).exists():
+                    value = default_table.get(day, '')
+                    if getattr(request.user, 'is_foundry_master', False):
+                        anchor = get_foundry_anchor_for(request.user, emp)
+                        value = get_foundry_day_value(d, anchor)
                     Timesheet.objects.create(
                         date=d,
                         employee=emp,
                         master=request.user,
-                        value=default_table.get(day, ''),
+                        value=value,
                         status='draft'
                     )
                     created_missing += 1

@@ -26,6 +26,8 @@ class CustomUserAdmin(UserAdmin):
                 'allowed_masters',
                 'shop_chief_name_override',
                 'show_self_in_own_timesheet',
+                'is_foundry_master',
+                'foundry_anchor_date',
             )
         }),
         (_('Permissions'), {
