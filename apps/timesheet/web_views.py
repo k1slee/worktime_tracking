@@ -132,8 +132,6 @@ def get_foundry_day_value(day_date: date, anchor: date) -> str:
         ('В', 1),
         ('8/2', 4),
         ('В', 1),
-        ('8', 4),
-        ('В', 2),
     )
     cycle_len = sum(length for _, length in pattern)
     offset = (day_date - anchor).days % cycle_len
