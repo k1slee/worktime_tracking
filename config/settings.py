@@ -70,6 +70,21 @@ DATABASES = {
     }
 }
 
+# Переопределение пути к SQLite через переменные окружения
+# DJANGO_SQLITE_PATH — полный путь к файлу БД
+# DJANGO_SQLITE_DIR  — путь к директории; файл будет timesheet.sqlite3 внутри неё
+SQLITE_ENV_PATH = os.getenv('DJANGO_SQLITE_PATH')
+SQLITE_ENV_DIR = os.getenv('DJANGO_SQLITE_DIR')
+if not SQLITE_ENV_PATH and SQLITE_ENV_DIR:
+    SQLITE_ENV_PATH = str((Path(SQLITE_ENV_DIR) / 'timesheet.sqlite3'))
+if SQLITE_ENV_PATH:
+    try:
+        Path(SQLITE_ENV_PATH).parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        # Директорию создать не удалось — используем как есть
+        pass
+    DATABASES['default']['NAME'] = SQLITE_ENV_PATH
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
