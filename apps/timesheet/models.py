@@ -41,11 +41,14 @@ class MonthlyTimesheet(models.Model):
         month_end = next_month_start - timedelta(days=1)
         employees = Employee.objects.filter(
             is_active=True,
-            assignments__master=self.master
+            assignments__master=self.master,
+            is_itr_employee=False
         ).filter(
             Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
             assignments__start_date__lte=month_end
         ).distinct()
+        if hasattr(self.master, 'show_self_in_own_timesheet') and not self.master.show_self_in_own_timesheet:
+            employees = employees.exclude(user=self.master)
         
         # Создаем записи для каждого дня месяца
         days_created = 0
@@ -253,6 +256,95 @@ class Timesheet(models.Model):
     @property
     def css_class(self):
         """CSS класс для стилизации в зависимости от статуса"""
+        if self.status == 'approved':
+            return 'approved'
+        elif self.status == 'submitted':
+            return 'submitted'
+        elif self.status == 'draft':
+            return 'draft'
+
+
+class ItrTimesheet(models.Model):
+    CODE_CHOICES = Timesheet.CODE_CHOICES
+    STATUS_CHOICES = Timesheet.STATUS_CHOICES
+    
+    date = models.DateField('Дата', db_index=True)
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name='Сотрудник', related_name='itr_timesheets')
+    master = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Мастер', limit_choices_to={'role': 'master'})
+    value = models.CharField('Значение', max_length=10, help_text='Часы работы (1-24) или условное обозначение')
+    status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+    updated_at = models.DateTimeField('Обновлено', auto_now=True)
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_itr_timesheets',
+        verbose_name='Утверждено',
+    )
+    approved_at = models.DateTimeField('Дата утверждения', null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Табель ИТР'
+        verbose_name_plural = 'Табели ИТР'
+        ordering = ['-date', 'employee']
+        unique_together = ['date', 'employee']
+        indexes = [
+            models.Index(fields=['date', 'employee']),
+            models.Index(fields=['status', 'date']),
+        ]
+    
+    def __str__(self):
+        return f"{self.date} - {self.employee} - {self.value}"
+    
+    def clean(self):
+        return Timesheet.clean(self)
+    
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_approved(self):
+        return self.status == 'approved'
+    
+    @property
+    def can_edit(self):
+        return self.status == 'draft'
+    
+    @property
+    def can_submit(self):
+        return self.status == 'draft'
+    
+    @property
+    def can_approve(self):
+        return self.status in ['submitted', 'draft'] and not self.is_approved
+    
+    def submit(self, user):
+        if not self.can_submit:
+            raise ValueError('Табель нельзя сдать')
+        self.status = 'submitted'
+        self.submitted_by = user
+        self.submitted_at = timezone.now()
+        self.save()
+    
+    def approve(self, user):
+        if not self.can_approve:
+            raise ValueError('Табель нельзя утвердить')
+        self.status = 'approved'
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.save()
+    
+    @property
+    def display_value(self):
+        if self.value.isdigit():
+            return f"{self.value} ч"
+        return self.value if self.value else ""
+    
+    @property
+    def css_class(self):
         if self.status == 'approved':
             return 'approved'
         elif self.status == 'submitted':

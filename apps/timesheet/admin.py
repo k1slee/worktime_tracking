@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Timesheet
+from .models import Timesheet, ItrTimesheet
 from .models import Holiday
 @admin.register(Timesheet)
 class TimesheetAdmin(admin.ModelAdmin):
@@ -28,6 +28,15 @@ class TimesheetAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'Снято с утверждения табелей: {updated}')
     unapprove_selected.short_description = 'Снять утверждение с выбранных'
+
+
+@admin.register(ItrTimesheet)
+class ItrTimesheetAdmin(admin.ModelAdmin):
+    list_display = ['date', 'employee', 'master', 'value', 'status', 'approved_by', 'approved_at']
+    list_filter = ['status', 'date', 'master', 'employee__user__department']
+    search_fields = ['employee__user__first_name', 'employee__user__last_name', 'employee__user__employee_id']
+    readonly_fields = ['created_at', 'updated_at', 'approved_at']
+    date_hierarchy = 'date'
 
 @admin.register(Holiday)
 class HolidayAdmin(admin.ModelAdmin):

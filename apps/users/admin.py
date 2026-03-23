@@ -26,8 +26,12 @@ class CustomUserAdmin(UserAdmin):
                 'allowed_masters',
                 'shop_chief_name_override',
                 'show_self_in_own_timesheet',
+                'show_self_in_itr_timesheet',
                 'is_foundry_master',
                 'foundry_anchor_date',
+                'is_ic_master',
+                'ic_anchor_date',
+                'is_itr_master',
             )
         }),
         (_('Permissions'), {
@@ -121,7 +125,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'is_active', 'is_foundry', 'department')
-    list_filter = ('master', 'is_active', 'hire_date', 'is_foundry')
+    list_filter = ('master', 'is_active', 'hire_date', 'is_foundry', 'ic_schedule_override', 'is_itr_employee')
     fieldsets = (
         (None, {
             'fields' : (
@@ -130,6 +134,9 @@ class EmployeeAdmin(admin.ModelAdmin):
                 'employee_id_own', 'position_own', 'department_own',
                 'master',
                 'is_foundry',
+                'ic_schedule_override',
+                'ic_weekdays',
+                'is_itr_employee',
                 'is_active'
             )
         }),

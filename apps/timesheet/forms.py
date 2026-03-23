@@ -81,7 +81,9 @@ class MonthlyTimesheetForm(forms.Form):
                 (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
                 Q(assignments__start_date__lte=month_end)
             ) | Q(master=self.user)
-        ).distinct()
+        ).filter(is_itr_employee=False).distinct()
+        if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
+            employees = employees.exclude(user=self.user)
         
         if not employees.exists():
             raise ValueError('У вас нет активных сотрудников')
@@ -207,7 +209,9 @@ class BulkTimesheetForm(forms.Form):
                 (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &
                 Q(assignments__start_date__lte=date)
             ) | Q(master=self.user)
-        ).distinct()
+        ).filter(is_itr_employee=False).distinct()
+        if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
+            employees = employees.exclude(user=self.user)
         
         updated_count = 0
         
@@ -264,7 +268,9 @@ class TimesheetForm(forms.ModelForm):
                     Q(assignments__start_date__lte=today) &
                     (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=today))
                 ) | Q(master=self.user)
-            ).select_related('user').distinct()
+            ).filter(is_itr_employee=False).select_related('user').distinct()
+            if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
+                self.fields['employee'].queryset = self.fields['employee'].queryset.exclude(user=self.user)
     
     def clean(self):
         cleaned_data = super().clean()
@@ -276,6 +282,8 @@ class TimesheetForm(forms.ModelForm):
             employee = cleaned_data.get('employee')
             date = cleaned_data.get('date')
             if employee and date:
+                if getattr(employee, 'is_itr_employee', False):
+                    raise forms.ValidationError('Сотрудник в табеле ИТР и не может быть в обычном табеле')
                 assigned = EmployeeAssignment.objects.filter(
                     employee=employee, master=self.user
                 ).filter(

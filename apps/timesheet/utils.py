@@ -73,7 +73,9 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
             Q(assignments__start_date__lte=month_start)
         ) | Q(master=master)
-    ).distinct()
+    ).filter(is_itr_employee=False).distinct()
+    if hasattr(master, 'show_self_in_own_timesheet') and not master.show_self_in_own_timesheet:
+        employees = employees.exclude(user=master)
     _, last_day = calendar.monthrange(year, month)
     
     created_count = 0
@@ -122,7 +124,9 @@ def get_master_employees_with_timesheets(master, date):
             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &
             Q(assignments__start_date__lte=date)
         ) | Q(master=master)
-    ).distinct()
+    ).filter(is_itr_employee=False).distinct()
+    if hasattr(master, 'show_self_in_own_timesheet') and not master.show_self_in_own_timesheet:
+        employees = employees.exclude(user=master)
     result = []
     
     for employee in employees:

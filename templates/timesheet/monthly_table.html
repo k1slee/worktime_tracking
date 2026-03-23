@@ -543,7 +543,7 @@
                 <nav aria-label="Навигация по месяцам">
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item">
-                            <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_master %}&master={{ selected_master }}{% endif %}">
+                            <a class="page-link" href="?year={{ prev_year }}&month={{ prev_month }}&tt={{ timesheet_type }}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_master %}&master={{ selected_master }}{% endif %}">
                                 &laquo; {{ prev_month|stringformat:"02d" }}.{{ prev_year }}
                             </a>
                         </li>
@@ -551,7 +551,7 @@
                             <span class="page-link">{{ month|stringformat:"02d" }}.{{ year }}</span>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_master %}&master={{ selected_master }}{% endif %}">
+                            <a class="page-link" href="?year={{ next_year }}&month={{ next_month }}&tt={{ timesheet_type }}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_master %}&master={{ selected_master }}{% endif %}">
                                 {{ next_month|stringformat:"02d" }}.{{ next_year }} &raquo;
                             </a>
                         </li>
@@ -564,13 +564,26 @@
                         <i class="fas fa-users me-2"></i>
                         Мои сотрудники
                     </a>
-                    <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master={{ request.user.id }}{% elif selected_master %}&master={{ selected_master }}{% endif %}"
+                    <a href="{% url 'timesheet:print_monthly_table' %}?year={{ year }}&month={{ month }}&tt={{ timesheet_type }}&department={{ selected_department|default:'' }}{% if request.user.is_master %}&master={{ request.user.id }}{% elif selected_master %}&master={{ selected_master }}{% endif %}"
                         class="btn btn-primary" target="_blank">
                             <i class="bi bi-printer-fill"></i> Печатная форма
                         </a>
                 </div>
             </div>
         </div>
+
+        {% if is_master and is_itr_master %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="btn-group" role="group">
+                    <a class="btn {% if timesheet_type == 'main' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+                       href="?year={{ year }}&month={{ month }}&tt=main">Обычный табель</a>
+                    <a class="btn {% if timesheet_type == 'itr' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+                       href="?year={{ year }}&month={{ month }}&tt=itr">Табель ИТР</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         
         <!-- Панель управления для мастера -->
         {% if is_master %}
@@ -804,6 +817,7 @@
                 <div class="card filters-card">
                     <div class="card-body py-2">
                         <form method="get" class="row g-2">
+                            <input type="hidden" name="tt" value="{{ timesheet_type }}">
                             <!-- Добавляем фильтр по мастеру -->
                             <div class="col-md-4">
                                 <label class="form-label">Мастер:</label>
@@ -840,7 +854,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
-                                <a href="?year={{ year }}&month={{ month }}" class="btn btn-outline-secondary btn-sm">
+                                <a href="?year={{ year }}&month={{ month }}&tt={{ timesheet_type }}" class="btn btn-outline-secondary btn-sm">
                                     Сбросить фильтры
                                 </a>
                             </div>
@@ -1317,6 +1331,7 @@
         }
         
         const formData = new FormData();
+        formData.append('tt', '{{ timesheet_type }}');
         formData.append('timesheet_id', cell.getAttribute('data-timesheet-id') || '');
         formData.append('date', cell.getAttribute('data-date'));
         formData.append('employee_id', cell.getAttribute('data-employee-id'));
@@ -1380,6 +1395,7 @@
             return;
         }
         const formData = new FormData();
+        formData.append('tt', '{{ timesheet_type }}');
         formData.append('employee_id', cell.getAttribute('data-employee-id'));
         formData.append('date_from', dateFrom);
         formData.append('date_to', dateTo);
@@ -1421,6 +1437,7 @@
             return;
         }
         const formData = new FormData();
+        formData.append('tt', '{{ timesheet_type }}');
         formData.append('employee_id', cell.getAttribute('data-employee-id'));
         formData.append('date_from', dateFrom);
         formData.append('date_to', dateTo);
@@ -1455,6 +1472,7 @@
         if (!timesheetId) return;
         
         const formData = new FormData();
+        formData.append('tt', '{{ timesheet_type }}');
         formData.append('timesheet_id', timesheetId);
         formData.append('action', 'delete');
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -1495,7 +1513,7 @@
     function submitMonthConfirmed() {
         bootstrap.Modal.getInstance(document.getElementById('submitConfirmModal')).hide();
         
-        const url = `{% url 'timesheet:submit_month' %}?year={{ year }}&month={{ month }}`;
+        const url = `{% url 'timesheet:submit_month' %}?year={{ year }}&month={{ month }}&tt={{ timesheet_type }}`;
         
         showNotification('Отправка табелей...', 'info');
         

@@ -54,6 +54,11 @@ class User(AbstractUser):
         default=True,
         help_text='Если выключено — ваша строка не будет отображаться в вашем табеле'
     )
+    show_self_in_itr_timesheet = models.BooleanField(
+        'Показывать себя в табеле ИТР',
+        default=True,
+        help_text='Если выключено — ваша строка не будет отображаться в вашем табеле ИТР'
+    )
     is_foundry_master = models.BooleanField(
         'Мастер литейного графика',
         default=False,
@@ -64,6 +69,22 @@ class User(AbstractUser):
         null=True,
         blank=True,
         help_text='Дата, с которой начинается цикл литейного графика для сотрудников мастера'
+    )
+    is_ic_master = models.BooleanField(
+        'Мастер ИЦ',
+        default=False,
+        help_text='Если включено — сотрудники мастера работают по графику ИЦ (неделя 8 / неделя 8/2)'
+    )
+    ic_anchor_date = models.DateField(
+        'Якорь графика ИЦ',
+        null=True,
+        blank=True,
+        help_text='Дата, с которой начинается недельный цикл графика ИЦ'
+    )
+    is_itr_master = models.BooleanField(
+        'Мастер ИТР',
+        default=False,
+        help_text='Если включено — доступен отдельный табель ИТР'
     )
     allowed_masters = models.ManyToManyField(
         'self',
@@ -136,6 +157,29 @@ class Employee(models.Model):
     hire_date = models.DateField('Дата приема', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
     is_foundry = models.BooleanField('Литейщик', default=False, help_text='Работает по литейному графику')
+    IC_SCHEDULE_OVERRIDE_CHOICES = [
+        ('inherit', 'Наследовать от мастера'),
+        ('always_8', 'Всегда 8'),
+        ('weekdays', 'Только выбранные дни недели'),
+    ]
+    ic_schedule_override = models.CharField(
+        'ИЦ: режим',
+        max_length=20,
+        choices=IC_SCHEDULE_OVERRIDE_CHOICES,
+        default='inherit',
+        blank=False,
+    )
+    ic_weekdays = models.CharField(
+        'ИЦ: дни недели',
+        max_length=50,
+        blank=True,
+        help_text='Через запятую: 0..6 (0=Пн). Пример: 0,2,4'
+    )
+    is_itr_employee = models.BooleanField(
+        'ИТР: показывать в табеле ИТР',
+        default=False,
+        help_text='Если включено — сотрудник будет в отдельном табеле ИТР своего мастера'
+    )
     # Поля для сотрудников без учетной записи
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
     first_name = models.CharField('Имя', max_length=150, blank=True)
