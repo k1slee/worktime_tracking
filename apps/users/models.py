@@ -175,6 +175,16 @@ class Employee(models.Model):
         blank=True,
         help_text='Через запятую: 0..6 (0=Пн). Пример: 0,2,4'
     )
+    ic_is_part_time = models.BooleanField(
+        'ИЦ: совместитель',
+        default=False
+    )
+    ic_hours_per_day = models.PositiveIntegerField(
+        'ИЦ: часов в день',
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(24)]
+    )
     is_itr_employee = models.BooleanField(
         'ИТР: показывать в табеле ИТР',
         default=False,
@@ -215,6 +225,10 @@ class Employee(models.Model):
             qs = Employee.objects.filter(user__isnull=True).exclude(pk=self.pk)
             if qs.filter(employee_id_own=emp_id).exists():
                 raise ValidationError({'employee_id_own': 'Табельный номер уже используется другим сотрудником'})
+        if getattr(self, 'ic_is_part_time', False) and not getattr(self, 'ic_hours_per_day', None):
+            raise ValidationError({'ic_hours_per_day': 'Укажите количество часов в день для совместителя'})
+        if not getattr(self, 'ic_is_part_time', False) and getattr(self, 'ic_hours_per_day', None):
+            raise ValidationError({'ic_is_part_time': 'Включите совместителя, чтобы указать часы в день'})
     
     @property
     def full_name(self):

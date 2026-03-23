@@ -178,11 +178,15 @@ def parse_weekdays_csv(value: str) -> set:
             result.add(n)
     return result
 
-def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays) -> str:
+def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays, hours_per_day=None, weekdays_always_8: bool = False) -> str:
     if holiday_value == 'В':
         return 'В'
     if allowed_weekdays is not None and day_date.weekday() not in allowed_weekdays:
         return 'В'
+    if allowed_weekdays is not None and weekdays_always_8:
+        return str(hours_per_day) if hours_per_day else '8'
+    if hours_per_day:
+        return str(hours_per_day)
     week_index = ((day_date - anchor).days // 7) % 2
     base = '8' if (force_always_8 or week_index == 0) else '8/2'
     if holiday_value == '7':
@@ -213,9 +217,9 @@ def get_monthly_data(request, year, month, print_mode=False):
     master_user = None
     
     timesheet_type = get_timesheet_type(request)
-    if request.user.is_master and getattr(request.user, 'is_itr_master', False) and timesheet_type == 'main' and not request.GET.get('tt') and not request.POST.get('tt'):
+    if request.user.is_master and getattr(request.user, 'is_itr_master', False) and getattr(request.user, 'is_ic_master', False) and timesheet_type == 'main' and not request.GET.get('tt') and not request.POST.get('tt'):
         timesheet_type = 'itr'
-    if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
+    if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
         return {
             'employees': Employee.objects.none(),
             'timesheets': ItrTimesheet.objects.none(),
@@ -287,6 +291,13 @@ def get_monthly_data(request, year, month, print_mode=False):
         base_employees = Employee.objects.filter(is_active=True)
         if timesheet_type == 'itr':
             base_employees = base_employees.filter(is_itr_employee=True)
+            if master_id and not User.objects.filter(id=master_id, is_ic_master=True, is_itr_master=True).exists():
+                base_employees = Employee.objects.none()
+            else:
+                base_employees = base_employees.filter(
+                    Q(master__is_ic_master=True, master__is_itr_master=True) |
+                    Q(assignments__master__is_ic_master=True, assignments__master__is_itr_master=True)
+                )
         else:
             base_employees = base_employees.filter(is_itr_employee=False)
         # Фильтр по мастеру (из селекта)
@@ -553,10 +564,13 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                         anchor = get_ic_anchor_for(request.user, employee)
                         override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
                         force_always_8 = override == 'always_8'
+                        hours_per_day = None
+                        if getattr(employee, 'ic_is_part_time', False):
+                            hours_per_day = getattr(employee, 'ic_hours_per_day', None)
                         allowed_weekdays = None
                         if override == 'weekdays':
                             allowed_weekdays = parse_weekdays_csv(getattr(employee, 'ic_weekdays', '') or '')
-                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays)
+                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'))
                     else:
                         display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
@@ -798,6 +812,7 @@ def monthly_table_view(request):
         'is_master': request.user.is_master,
         'is_planner': request.user.is_planner,
         'is_admin': request.user.is_administrator,
+        'is_ic_master': getattr(request.user, 'is_ic_master', False),
         'is_itr_master': getattr(request.user, 'is_itr_master', False),
         'timesheet_type': data.get('timesheet_type', 'main'),
         'total_employees': data['employees'].count(),
@@ -1223,7 +1238,7 @@ def quick_edit_timesheet(request):
         from .models import MonthlyTimesheet, Timesheet, ItrTimesheet
         
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
+        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         
@@ -1391,7 +1406,7 @@ def fill_range(request):
         return JsonResponse({'error': 'Не указаны параметры'}, status=400)
     try:
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
+        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         emp = Employee.objects.get(id=int(employee_id))
@@ -1457,7 +1472,7 @@ def restore_range(request):
         return JsonResponse({'error': 'Не указаны параметры'}, status=400)
     try:
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
+        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         emp = Employee.objects.get(id=int(employee_id))
@@ -1592,7 +1607,7 @@ def submit_month(request):
         month_end = next_month_start - timedelta(days=1)
         
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
+        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         
@@ -1645,11 +1660,14 @@ def submit_month(request):
                         anchor = get_ic_anchor_for(request.user, emp)
                         override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
                         force_always_8 = override == 'always_8'
+                        hours_per_day = None
+                        if getattr(emp, 'ic_is_part_time', False):
+                            hours_per_day = getattr(emp, 'ic_hours_per_day', None)
                         allowed_weekdays = None
                         if override == 'weekdays':
                             allowed_weekdays = parse_weekdays_csv(getattr(emp, 'ic_weekdays', '') or '')
                         holiday_value = get_day_value(d)
-                        value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays)
+                        value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'))
                     TimesheetModel.objects.create(
                         date=d,
                         employee=emp,

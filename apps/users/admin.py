@@ -125,7 +125,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'is_active', 'is_foundry', 'department')
-    list_filter = ('master', 'is_active', 'hire_date', 'is_foundry', 'ic_schedule_override', 'is_itr_employee')
+    list_filter = ('master', 'is_active', 'hire_date', 'is_foundry', 'ic_schedule_override', 'ic_is_part_time', 'is_itr_employee')
     fieldsets = (
         (None, {
             'fields' : (
@@ -136,6 +136,8 @@ class EmployeeAdmin(admin.ModelAdmin):
                 'is_foundry',
                 'ic_schedule_override',
                 'ic_weekdays',
+                'ic_is_part_time',
+                'ic_hours_per_day',
                 'is_itr_employee',
                 'is_active'
             )
