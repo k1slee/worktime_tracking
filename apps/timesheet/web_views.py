@@ -178,9 +178,11 @@ def parse_weekdays_csv(value: str) -> set:
             result.add(n)
     return result
 
-def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays, hours_per_day=None, weekdays_always_8: bool = False) -> str:
+def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays, hours_per_day=None, weekdays_always_8: bool = False, dm_weekdays=None) -> str:
     if holiday_value == 'В':
         return 'В'
+    if dm_weekdays is not None and day_date.weekday() in dm_weekdays:
+        return 'ДМ'
     if allowed_weekdays is not None and day_date.weekday() not in allowed_weekdays:
         return 'В'
     if allowed_weekdays is not None and weekdays_always_8:
@@ -570,7 +572,8 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                         allowed_weekdays = None
                         if override == 'weekdays':
                             allowed_weekdays = parse_weekdays_csv(getattr(employee, 'ic_weekdays', '') or '')
-                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'))
+                        dm_weekdays = parse_weekdays_csv(getattr(employee, 'ic_dm_weekdays', '') or '')
+                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays)
                     else:
                         display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
@@ -1667,7 +1670,8 @@ def submit_month(request):
                         if override == 'weekdays':
                             allowed_weekdays = parse_weekdays_csv(getattr(emp, 'ic_weekdays', '') or '')
                         holiday_value = get_day_value(d)
-                        value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'))
+                        dm_weekdays = parse_weekdays_csv(getattr(emp, 'ic_dm_weekdays', '') or '')
+                        value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays)
                     TimesheetModel.objects.create(
                         date=d,
                         employee=emp,

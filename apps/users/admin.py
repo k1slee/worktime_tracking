@@ -136,6 +136,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                 'is_foundry',
                 'ic_schedule_override',
                 'ic_weekdays',
+                'ic_dm_weekdays',
                 'ic_is_part_time',
                 'ic_hours_per_day',
                 'is_itr_employee',

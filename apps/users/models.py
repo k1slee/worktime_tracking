@@ -175,6 +175,12 @@ class Employee(models.Model):
         blank=True,
         help_text='Через запятую: 0..6 (0=Пн). Пример: 0,2,4'
     )
+    ic_dm_weekdays = models.CharField(
+        'ИЦ: дни ДМ',
+        max_length=50,
+        blank=True,
+        help_text='Через запятую: 0..6 (0=Пн). Пример: 0,2,4'
+    )
     ic_is_part_time = models.BooleanField(
         'ИЦ: совместитель',
         default=False
