@@ -556,7 +556,12 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     schedule = None
                     # Для ИТР определяем график от самого сотрудника (мастера в строке)
                     if timesheet_type == 'itr':
-                        if getattr(employee, 'is_foundry', False):
+                        row_user = getattr(employee, 'user', None)
+                        if row_user and getattr(row_user, 'is_foundry_master', False):
+                            schedule = 'foundry'
+                        elif row_user and getattr(row_user, 'is_ic_master', False):
+                            schedule = 'ic'
+                        elif getattr(employee, 'is_foundry', False):
                             schedule = 'foundry'
                         else:
                             override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
@@ -579,11 +584,13 @@ def process_timesheet_data(request, year, month, employees, timesheets):
 
                     if schedule == 'foundry':
                         # В ИТР-табеле якорь берем у самого сотрудника
-                        anchor = get_foundry_anchor_for(None if timesheet_type == 'itr' else request.user, employee)
+                        anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
+                        anchor = get_foundry_anchor_for(anchor_user, employee)
                         display_value = get_foundry_day_value(day_date, anchor)
                     elif schedule == 'ic':
                         # В ИТР-табеле используем якорь через мастера самого сотрудника
-                        anchor = get_ic_anchor_for(None if timesheet_type == 'itr' else request.user, employee)
+                        anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
+                        anchor = get_ic_anchor_for(anchor_user, employee)
                         override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
                         force_always_8 = override == 'always_8'
                         hours_per_day = None
@@ -1677,8 +1684,35 @@ def submit_month(request):
                 if not TimesheetModel.objects.filter(date=d, employee=emp).exists():
                     value = default_table.get(day, '')
                     if timesheet_type == 'itr':
-                        anchor = get_foundry_anchor_for(request.user, emp)
-                        value = get_foundry_day_value(d, anchor)
+                        row_user = getattr(emp, 'user', None)
+                        schedule = None
+                        if row_user and getattr(row_user, 'is_foundry_master', False):
+                            schedule = 'foundry'
+                        elif row_user and getattr(row_user, 'is_ic_master', False):
+                            schedule = 'ic'
+                        elif getattr(emp, 'is_foundry', False):
+                            schedule = 'foundry'
+                        else:
+                            override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
+                            master = getattr(emp, 'master', None)
+                            if override != 'inherit' or (master and getattr(master, 'is_ic_master', False)):
+                                schedule = 'ic'
+                        if schedule == 'foundry':
+                            anchor = get_foundry_anchor_for(row_user, emp)
+                            value = get_foundry_day_value(d, anchor)
+                        elif schedule == 'ic':
+                            anchor = get_ic_anchor_for(row_user, emp)
+                            override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
+                            force_always_8 = override == 'always_8'
+                            hours_per_day = None
+                            if getattr(emp, 'ic_is_part_time', False):
+                                hours_per_day = getattr(emp, 'ic_hours_per_day', None)
+                            allowed_weekdays = None
+                            if override == 'weekdays':
+                                allowed_weekdays = parse_weekdays_csv(getattr(emp, 'ic_weekdays', '') or '')
+                            holiday_value = get_day_value(d)
+                            dm_weekdays = parse_weekdays_csv(getattr(emp, 'ic_dm_weekdays', '') or '')
+                            value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays)
                     elif timesheet_type == 'main' and getattr(request.user, 'is_foundry_master', False):
                         anchor = get_foundry_anchor_for(request.user, emp)
                         value = get_foundry_day_value(d, anchor)
