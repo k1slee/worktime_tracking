@@ -3,7 +3,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from .models import User, Department, Employee
-from django.forms import ModelForm
 
 class ManagedEmployeeInline(admin.TabularInline):
     model = Employee
@@ -135,6 +134,20 @@ class CustomUserAdmin(UserAdmin):
                 if not employee.hire_date:
                     employee.hire_date = obj.date_joined.date() if obj.date_joined else timezone.now().date()
                     employee.save()
+
+            from django.db.models import Q
+            from .models import EmployeeAssignment
+            today = timezone.now().date()
+            employee_ids = list(
+                EmployeeAssignment.objects.filter(
+                    master=obj,
+                    start_date__lte=today,
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=today)
+                ).values_list('employee_id', flat=True)
+            )
+            if employee_ids:
+                Employee.objects.filter(id__in=employee_ids).exclude(master=obj).update(master=obj)
 
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'parent')
