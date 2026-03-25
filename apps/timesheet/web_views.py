@@ -553,17 +553,22 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     display_value = ""
                 else:
                     schedule = None
-                    # ПОЛИТИКА ИТР (сейчас: литейщики).
-                    # Если в будущем табель ИТР будет для других подразделений — поменяйте этот блок
-                    # и/или добавьте здесь выбор логики по отделу/типу сотрудников.
+                    # Для ИТР определяем график от самого сотрудника (мастера в строке)
                     if timesheet_type == 'itr':
-                        schedule = 'foundry'
-                    if request.user.is_master:
+                        if getattr(employee, 'is_foundry', False):
+                            schedule = 'foundry'
+                        else:
+                            override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
+                            master = getattr(employee, 'master', None)
+                            if override != 'inherit' or (master and getattr(master, 'is_ic_master', False)):
+                                schedule = 'ic'
+                    # Для обычного табеля оставляем текущую логику
+                    if request.user.is_master and schedule is None:
                         if getattr(request.user, 'is_foundry_master', False):
                             schedule = 'foundry'
                         elif getattr(request.user, 'is_ic_master', False):
                             schedule = 'ic'
-                    else:
+                    elif schedule is None:
                         if getattr(employee, 'is_foundry', False):
                             schedule = 'foundry'
                         else:
@@ -572,10 +577,12 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                                 schedule = 'ic'
 
                     if schedule == 'foundry':
-                        anchor = get_foundry_anchor_for(request.user, employee)
+                        # В ИТР-табеле якорь берем у самого сотрудника
+                        anchor = get_foundry_anchor_for(None if timesheet_type == 'itr' else request.user, employee)
                         display_value = get_foundry_day_value(day_date, anchor)
                     elif schedule == 'ic':
-                        anchor = get_ic_anchor_for(request.user, employee)
+                        # В ИТР-табеле используем якорь через мастера самого сотрудника
+                        anchor = get_ic_anchor_for(None if timesheet_type == 'itr' else request.user, employee)
                         override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
                         force_always_8 = override == 'always_8'
                         hours_per_day = None
