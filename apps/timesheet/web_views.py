@@ -440,6 +440,7 @@ def update_statistics(stats, employee_id, day, value_str, is_weekend,
 
 def process_timesheet_data(request, year, month, employees, timesheets):
     """Обработка данных табелей и подсчет статистики"""
+    timesheet_type = get_timesheet_type(request)
     days_in_month = calendar.monthrange(year, month)[1]
     days = list(range(1, days_in_month + 1))
     
