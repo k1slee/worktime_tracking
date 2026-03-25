@@ -157,6 +157,12 @@ class Employee(models.Model):
     hire_date = models.DateField('Дата приема', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
     is_foundry = models.BooleanField('Литейщик', default=False, help_text='Работает по литейному графику')
+    foundry_anchor_date = models.DateField(
+        'Литейщик: якорь графика',
+        null=True,
+        blank=True,
+        help_text='Если задано — используется как индивидуальный якорь литейного графика (перекрывает якорь мастера)'
+    )
     IC_SCHEDULE_OVERRIDE_CHOICES = [
         ('inherit', 'Наследовать от мастера'),
         ('always_8', 'Всегда 8'),

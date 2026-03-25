@@ -144,6 +144,11 @@ def get_foundry_day_value(day_date: date, anchor: date) -> str:
 
 def get_foundry_anchor_for(request_user, employee=None) -> date:
     default_anchor = date(2026, 2, 28)
+    # Индивидуальный якорь сотрудника (удобно для табеля ИТР и персональных циклов)
+    if employee is not None:
+        employee_anchor = getattr(employee, 'foundry_anchor_date', None)
+        if employee_anchor:
+            return employee_anchor
     if request_user and getattr(request_user, 'is_master', False) and getattr(request_user, 'is_foundry_master', False):
         return getattr(request_user, 'foundry_anchor_date', None) or default_anchor
     if employee is not None:
@@ -166,16 +171,25 @@ def parse_weekdays_csv(value: str) -> set:
     if not value:
         return set()
     result = set()
-    for part in value.split(','):
-        part = part.strip()
+    mapping = {
+        'пн': 0, 'вт': 1, 'ср': 2, 'чт': 3, 'пт': 4, 'сб': 5, 'вс': 6,
+        'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3, 'fri': 4, 'sat': 5, 'sun': 6,
+    }
+    for raw in value.replace(';', ',').split(','):
+        part = raw.strip().lower()
         if not part:
             continue
         try:
             n = int(part)
+            if 1 <= n <= 7:
+                n -= 1
+            if 0 <= n <= 6:
+                result.add(n)
+                continue
         except ValueError:
-            continue
-        if 0 <= n <= 6:
-            result.add(n)
+            pass
+        if part in mapping:
+            result.add(mapping[part])
     return result
 
 def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays, hours_per_day=None, weekdays_always_8: bool = False, dm_weekdays=None) -> str:
@@ -219,9 +233,9 @@ def get_monthly_data(request, year, month, print_mode=False):
     master_user = None
     
     timesheet_type = get_timesheet_type(request)
-    if request.user.is_master and getattr(request.user, 'is_itr_master', False) and getattr(request.user, 'is_ic_master', False) and timesheet_type == 'main' and not request.GET.get('tt') and not request.POST.get('tt'):
+    if request.user.is_master and getattr(request.user, 'is_itr_master', False) and timesheet_type == 'main' and not request.GET.get('tt') and not request.POST.get('tt'):
         timesheet_type = 'itr'
-    if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
+    if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
         return {
             'employees': Employee.objects.none(),
             'timesheets': ItrTimesheet.objects.none(),
@@ -293,13 +307,6 @@ def get_monthly_data(request, year, month, print_mode=False):
         base_employees = Employee.objects.filter(is_active=True)
         if timesheet_type == 'itr':
             base_employees = base_employees.filter(is_itr_employee=True)
-            if master_id and not User.objects.filter(id=master_id, is_ic_master=True, is_itr_master=True).exists():
-                base_employees = Employee.objects.none()
-            else:
-                base_employees = base_employees.filter(
-                    Q(master__is_ic_master=True, master__is_itr_master=True) |
-                    Q(assignments__master__is_ic_master=True, assignments__master__is_itr_master=True)
-                )
         else:
             base_employees = base_employees.filter(is_itr_employee=False)
         # Фильтр по мастеру (из селекта)
@@ -546,6 +553,11 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     display_value = ""
                 else:
                     schedule = None
+                    # ПОЛИТИКА ИТР (сейчас: литейщики).
+                    # Если в будущем табель ИТР будет для других подразделений — поменяйте этот блок
+                    # и/или добавьте здесь выбор логики по отделу/типу сотрудников.
+                    if timesheet_type == 'itr':
+                        schedule = 'foundry'
                     if request.user.is_master:
                         if getattr(request.user, 'is_foundry_master', False):
                             schedule = 'foundry'
@@ -1241,7 +1253,7 @@ def quick_edit_timesheet(request):
         from .models import MonthlyTimesheet, Timesheet, ItrTimesheet
         
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
+        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         
@@ -1409,7 +1421,7 @@ def fill_range(request):
         return JsonResponse({'error': 'Не указаны параметры'}, status=400)
     try:
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
+        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         emp = Employee.objects.get(id=int(employee_id))
@@ -1475,7 +1487,7 @@ def restore_range(request):
         return JsonResponse({'error': 'Не указаны параметры'}, status=400)
     try:
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
+        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         emp = Employee.objects.get(id=int(employee_id))
@@ -1610,7 +1622,7 @@ def submit_month(request):
         month_end = next_month_start - timedelta(days=1)
         
         timesheet_type = get_timesheet_type(request)
-        if timesheet_type == 'itr' and request.user.is_master and (not getattr(request.user, 'is_itr_master', False) or not getattr(request.user, 'is_ic_master', False)):
+        if timesheet_type == 'itr' and request.user.is_master and not getattr(request.user, 'is_itr_master', False):
             return JsonResponse({'error': 'Нет доступа к табелю ИТР'}, status=403)
         TimesheetModel = get_timesheet_model(timesheet_type)
         
@@ -1656,7 +1668,10 @@ def submit_month(request):
                 # Создаем запись, если отсутствует
                 if not TimesheetModel.objects.filter(date=d, employee=emp).exists():
                     value = default_table.get(day, '')
-                    if timesheet_type == 'main' and getattr(request.user, 'is_foundry_master', False):
+                    if timesheet_type == 'itr':
+                        anchor = get_foundry_anchor_for(request.user, emp)
+                        value = get_foundry_day_value(d, anchor)
+                    elif timesheet_type == 'main' and getattr(request.user, 'is_foundry_master', False):
                         anchor = get_foundry_anchor_for(request.user, emp)
                         value = get_foundry_day_value(d, anchor)
                     elif timesheet_type == 'main' and getattr(request.user, 'is_ic_master', False):

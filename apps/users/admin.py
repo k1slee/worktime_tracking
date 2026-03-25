@@ -134,6 +134,7 @@ class EmployeeAdmin(admin.ModelAdmin):
                 'employee_id_own', 'position_own', 'department_own',
                 'master',
                 'is_foundry',
+                'foundry_anchor_date',
                 'ic_schedule_override',
                 'ic_weekdays',
                 'ic_dm_weekdays',
