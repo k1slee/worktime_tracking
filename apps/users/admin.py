@@ -3,6 +3,24 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from .models import User, Department, Employee
+from django.forms import ModelForm
+
+class ManagedEmployeeInline(admin.TabularInline):
+    model = Employee
+    fk_name = 'master'
+    extra = 0
+    fields = (
+        'user',
+        'last_name', 'first_name', 'middle_name',
+        'is_active',
+        'is_foundry', 'foundry_anchor_date',
+        'ic_schedule_override', 'ic_weekdays', 'ic_dm_weekdays',
+        'ic_is_part_time', 'ic_hours_per_day',
+        'is_itr_employee',
+        'hire_date',
+    )
+    readonly_fields = ()
+    show_change_link = True
 
 class CustomUserAdmin(UserAdmin):
     """Кастомный админ-класс для пользователей"""
@@ -59,6 +77,7 @@ class CustomUserAdmin(UserAdmin):
             ),
         }),
     )
+    inlines = [ManagedEmployeeInline]
     
     list_display = (
         'username',
@@ -79,6 +98,14 @@ class CustomUserAdmin(UserAdmin):
         return obj.get_full_name()
     get_full_name.short_description = 'ФИО'
     get_full_name.admin_order_field = 'last_name'
+
+    def get_inline_instances(self, request, obj=None):
+        inlines = super().get_inline_instances(request, obj)
+        if obj is None:
+            return []
+        if getattr(obj, 'role', None) != 'master':
+            return []
+        return inlines
     
     def save_model(self, request, obj, form, change):
         """Сохраняем пользователя и создаем запись Employee для мастера"""
