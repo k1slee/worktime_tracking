@@ -108,29 +108,20 @@ class CustomUserAdmin(UserAdmin):
         return inlines
     
     def save_model(self, request, obj, form, change):
-        """Сохраняем пользователя и создаем запись Employee для мастера"""
-        # Сохраняем пользователя
         super().save_model(request, obj, form, change)
-        
-        # Если это мастер, создаем/обновляем запись Employee
         if obj.role == 'master':
             employee, created = Employee.objects.get_or_create(
                 user=obj,
                 defaults={
-                    'master': obj,  # Мастер сам себе мастер
+                    'master': obj,
                     'hire_date': obj.date_joined.date() if obj.date_joined else timezone.now().date(),
                     'is_active': True
                 }
             )
-            
-            # Если запись уже существовала, обновляем
             if not created:
-                # Обновляем мастера, если он не сам себе
                 if employee.master != obj:
                     employee.master = obj
                     employee.save()
-                
-                # Обновляем дату приема, если не установлена
                 if not employee.hire_date:
                     employee.hire_date = obj.date_joined.date() if obj.date_joined else timezone.now().date()
                     employee.save()
@@ -148,6 +139,28 @@ class CustomUserAdmin(UserAdmin):
             )
             if employee_ids:
                 Employee.objects.filter(id__in=employee_ids).exclude(master=obj).update(master=obj)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        response = super().change_view(request, object_id, form_url, extra_context)
+        try:
+            obj = self.get_object(request, object_id)
+            if obj and getattr(obj, 'role', None) == 'master':
+                from django.db.models import Q
+                from .models import EmployeeAssignment
+                today = timezone.now().date()
+                employee_ids = list(
+                    EmployeeAssignment.objects.filter(
+                        master=obj,
+                        start_date__lte=today,
+                    ).filter(
+                        Q(end_date__isnull=True) | Q(end_date__gte=today)
+                    ).values_list('employee_id', flat=True)
+                )
+                if employee_ids:
+                    Employee.objects.filter(id__in=employee_ids).exclude(master=obj).update(master=obj)
+        except Exception:
+            pass
+        return response
 
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'parent')
