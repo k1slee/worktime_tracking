@@ -12,6 +12,7 @@ class ManagedEmployeeInline(admin.TabularInline):
     fields = (
         'user',
         'last_name', 'first_name', 'middle_name',
+        'employee_id_own',
         'is_active',
         'is_foundry', 'foundry_anchor_date',
         'ic_schedule_override', 'ic_weekdays', 'ic_dm_weekdays',
