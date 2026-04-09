@@ -11,7 +11,7 @@ import calendar
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 
-from .models import MonthlyTimesheet, Timesheet, ItrTimesheet, Holiday, PositionMilkAllowance
+from .models import MonthlyTimesheet, Timesheet, ItrTimesheet, Holiday, PositionMilkAllowance, WorkdaySwap
 from .forms import MonthlyTimesheetForm, BulkTimesheetForm, TimesheetForm
 from apps.users.models import Employee, Department, User
 from apps.users.permissions import IsMaster, IsPlanner
@@ -54,27 +54,22 @@ def get_formatted_fio(user):
     
     return result.strip()
 def get_day_value(day_date):
-    """Получение кода дня для автозаполнения с правильной логикой предпраздничных дней"""
-    # Проверяем, является ли день праздником
-    if Holiday.objects.filter(date=day_date, type="holiday").exists():
-        return "В"
-    
-    # Проверяем, является ли день предпраздничным
-    next_day = day_date + timedelta(days=1)
-    is_next_day_holiday = Holiday.objects.filter(date=next_day, type="holiday").exists()
-    
-    # Условия для предпраздничного дня:
-    # 1. Следующий день должен быть праздником
-    # 2. Текущий день должен быть рабочим (пн-пт)
-    if is_next_day_holiday and day_date.weekday() in (0, 1, 2, 3, 4):
-        return "7"
-    
-    # Суббота/воскресенье - всегда выходные
-    if day_date.weekday() in (5, 6):
-        return 'В'
-    
-    # Все остальные дни - обычные рабочие
-    return "8"
+    def base_value(d: date) -> str:
+        if Holiday.objects.filter(date=d, type="holiday").exists():
+            return "В"
+        next_day = d + timedelta(days=1)
+        is_next_day_holiday = Holiday.objects.filter(date=next_day, type="holiday").exists()
+        if is_next_day_holiday and d.weekday() in (0, 1, 2, 3, 4):
+            return "7"
+        if d.weekday() in (5, 6):
+            return 'В'
+        return "8"
+
+    swap = WorkdaySwap.objects.filter(is_active=True).filter(Q(date_a=day_date) | Q(date_b=day_date)).first()
+    if swap:
+        mapped = swap.date_b if swap.date_a == day_date else swap.date_a
+        return base_value(mapped)
+    return base_value(day_date)
 def generate_default_table(year: int, month: int) -> dict:
     """
     Автозаполнение табеля с правильной логикой:
@@ -86,41 +81,50 @@ def generate_default_table(year: int, month: int) -> dict:
     cal = calendar.Calendar()
     month_days = cal.monthdatescalendar(year, month)
     
-    # Получаем все праздники за месяц
-    holidays = Holiday.objects.filter(
-        date__year=year,
-        date__month=month,
-        type="holiday"
-    ).values_list('date', flat=True)
-    
+    def base_value(d: date, holidays_set: set) -> str:
+        if d in holidays_set:
+            return "В"
+        next_day = d + timedelta(days=1)
+        is_next_day_holiday = next_day in holidays_set
+        if is_next_day_holiday and d.weekday() in (0, 1, 2, 3, 4):
+            return "7"
+        if d.weekday() in (5, 6):
+            return "В"
+        return "8"
+
+    holidays = set(
+        Holiday.objects.filter(
+            date__year=year,
+            date__month=month,
+            type="holiday"
+        ).values_list('date', flat=True)
+    )
+
     for week in month_days:
         for day_date in week:
             if day_date.month == month:
-                day_number = day_date.day
-                
-                # Проверяем, является ли день праздником
-                if day_date in holidays:
-                    default_table[day_number] = "В"
-                    continue
-                
-                # Проверяем, является ли день предпраздничным
-                next_day = day_date + timedelta(days=1)
-                is_next_day_holiday = next_day in holidays
-                
-                # Условия для предпраздничного дня:
-                # 1. Следующий день - праздник
-                # 2. Текущий день - рабочий (пн-пт)
-                if is_next_day_holiday and day_date.weekday() in (0, 1, 2, 3, 4):
-                    default_table[day_number] = "7"
-                    continue
-                
-                # Суббота/воскресенье - всегда выходные
-                if day_date.weekday() in (5, 6):
-                    default_table[day_number] = "В"
-                    continue
-                
-                # Все остальные дни - обычные рабочие
-                default_table[day_number] = "8"
+                default_table[day_date.day] = base_value(day_date, holidays)
+
+    month_start = date(year, month, 1)
+    if month == 12:
+        next_month_start = date(year + 1, 1, 1)
+    else:
+        next_month_start = date(year, month + 1, 1)
+    month_end = next_month_start - timedelta(days=1)
+    swaps = WorkdaySwap.objects.filter(is_active=True).filter(
+        Q(date_a__range=(month_start, month_end)) | Q(date_b__range=(month_start, month_end))
+    )
+    for s in swaps:
+        a_in = (s.date_a.year == year and s.date_a.month == month)
+        b_in = (s.date_b.year == year and s.date_b.month == month)
+        if a_in and b_in:
+            da = s.date_a.day
+            db = s.date_b.day
+            default_table[da], default_table[db] = default_table.get(db, ''), default_table.get(da, '')
+        elif a_in:
+            default_table[s.date_a.day] = base_value(s.date_b, holidays)
+        elif b_in:
+            default_table[s.date_b.day] = base_value(s.date_a, holidays)
     
     return default_table
 
@@ -448,11 +452,11 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     weekend_days_dict = {}
     default_table = generate_default_table(year, month)
     
+    day_value_by_day = {}
     for day in days:
         day_date = date(year, month, day)
-        weekend_days_dict[day] = Holiday.objects.filter(
-            date=day_date, type="holiday"
-        ).exists() or day_date.weekday() in (5, 6)
+        day_value_by_day[day] = get_day_value(day_date)
+        weekend_days_dict[day] = (day_value_by_day[day] == 'В')
     
     # Подготовка словарей для статистики
     stats = {
@@ -528,7 +532,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                 # Не считаем статистику для дней до даты приема
                 continue
             ts_data = employee_timesheets.get(day)
-            holiday_value = get_day_value(day_date)
+            holiday_value = day_value_by_day[day]
             
             if ts_data:
                 display_value = (

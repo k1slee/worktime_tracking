@@ -406,3 +406,33 @@ class Holiday(models.Model):
         ordering = ["date"]
     def __str__(self):
         return f"{self.date} - {self.name or self.type}"
+
+
+class WorkdaySwap(models.Model):
+    date_a = models.DateField('День A')
+    date_b = models.DateField('День B')
+    is_active = models.BooleanField('Активен', default=True)
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Перенос рабочего дня'
+        verbose_name_plural = 'Переносы рабочих дней'
+        ordering = ['-date_a', '-date_b']
+        constraints = [
+            models.UniqueConstraint(fields=['date_a', 'date_b'], name='uniq_workday_swap_pair'),
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        from django.db.models import Q
+        if self.date_a == self.date_b:
+            raise ValidationError({'date_b': 'Даты должны отличаться'})
+        overlap_q = Q(date_a=self.date_a) | Q(date_b=self.date_a) | Q(date_a=self.date_b) | Q(date_b=self.date_b)
+        qs = WorkdaySwap.objects.filter(is_active=True).filter(overlap_q)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        if qs.exists():
+            raise ValidationError('Одна из дат уже участвует в другом активном переносе')
+
+    def __str__(self):
+        return f"{self.date_a} ⇄ {self.date_b}"

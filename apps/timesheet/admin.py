@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Timesheet, ItrTimesheet
-from .models import Holiday
+from .models import Holiday, WorkdaySwap
 @admin.register(Timesheet)
 class TimesheetAdmin(admin.ModelAdmin):
     list_display = ['date', 'employee', 'master', 'value', 'status', 'approved_by', 'approved_at']
@@ -43,3 +43,10 @@ class HolidayAdmin(admin.ModelAdmin):
     list_display = ("date", "type", "name")
     list_filter = ("type",)
     search_fields = ("name",)
+
+
+@admin.register(WorkdaySwap)
+class WorkdaySwapAdmin(admin.ModelAdmin):
+    list_display = ("date_a", "date_b", "is_active", "created_at")
+    list_filter = ("is_active",)
+    date_hierarchy = "date_a"
