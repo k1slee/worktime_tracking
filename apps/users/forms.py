@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
 
@@ -17,12 +18,51 @@ class EmployeeMasterEditForm(forms.Form):
         label='Дата приема на работу',
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
+    ic_schedule_override = forms.ChoiceField(
+        required=False,
+        label='ИЦ: режим',
+        choices=(),
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ic_weekdays = forms.CharField(
+        max_length=50,
+        required=False,
+        label='ИЦ: дни недели',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Напр: 0,2,4 или пн,ср,пт'}),
+    )
+    ic_dm_weekdays = forms.CharField(
+        max_length=50,
+        required=False,
+        label='ИЦ: дни ДМ',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Напр: 0,2,4 или пн,ср,пт'}),
+    )
+    ic_is_part_time = forms.BooleanField(
+        required=False,
+        label='ИЦ: совместитель',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    ic_hours_per_day = forms.IntegerField(
+        required=False,
+        label='ИЦ: часов в день',
+        validators=[MinValueValidator(1), MaxValueValidator(24)],
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '24'})
+    )
     def __init__(self, *args, **kwargs):
         self.employee = kwargs.pop('employee', None)
         super().__init__(*args, **kwargs)
         if self.employee:
             self.fields['position'].initial = self.employee.position or ''
             self.fields['hire_date'].initial = self.employee.hire_date
+            try:
+                from .models import Employee
+                self.fields['ic_schedule_override'].choices = getattr(Employee, 'IC_SCHEDULE_OVERRIDE_CHOICES', [])
+            except Exception:
+                self.fields['ic_schedule_override'].choices = []
+            self.fields['ic_schedule_override'].initial = getattr(self.employee, 'ic_schedule_override', 'inherit') or 'inherit'
+            self.fields['ic_weekdays'].initial = getattr(self.employee, 'ic_weekdays', '') or ''
+            self.fields['ic_dm_weekdays'].initial = getattr(self.employee, 'ic_dm_weekdays', '') or ''
+            self.fields['ic_is_part_time'].initial = bool(getattr(self.employee, 'ic_is_part_time', False))
+            self.fields['ic_hours_per_day'].initial = getattr(self.employee, 'ic_hours_per_day', None)
     def save(self):
         emp = self.employee
         if not emp:
@@ -36,6 +76,21 @@ class EmployeeMasterEditForm(forms.Form):
         else:
             emp.position_own = position
         emp.hire_date = hire_date
+
+        if 'ic_schedule_override' in self.data:
+            override = (self.cleaned_data.get('ic_schedule_override') or '').strip() or 'inherit'
+            emp.ic_schedule_override = override
+
+        if 'ic_weekdays' in self.data:
+            emp.ic_weekdays = (self.cleaned_data.get('ic_weekdays') or '').strip()
+
+        if 'ic_dm_weekdays' in self.data:
+            emp.ic_dm_weekdays = (self.cleaned_data.get('ic_dm_weekdays') or '').strip()
+
+        if 'ic_is_part_time' in self.data or 'ic_hours_per_day' in self.data:
+            emp.ic_is_part_time = bool(self.cleaned_data.get('ic_is_part_time', False))
+            emp.ic_hours_per_day = self.cleaned_data.get('ic_hours_per_day')
+
         emp.full_clean()
         emp.save()
         return emp

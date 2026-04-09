@@ -165,6 +165,7 @@ class Employee(models.Model):
     )
     IC_SCHEDULE_OVERRIDE_CHOICES = [
         ('inherit', 'Наследовать от мастера'),
+        ('opposite', 'Противоположный мастеру'),
         ('always_8', 'Всегда 8'),
         ('weekdays', 'Только выбранные дни недели'),
     ]
