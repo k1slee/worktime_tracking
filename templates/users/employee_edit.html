@@ -34,6 +34,45 @@
                 <div class="text-danger small">{{ form.hire_date.errors|join:', ' }}</div>
               {% endif %}
             </div>
+            {% if request.user.is_ic_master %}
+            <hr>
+            <h6 class="mb-3">ИЦ: график сотрудника</h6>
+            <div class="mb-3">
+              {{ form.ic_schedule_override.label_tag }}
+              {{ form.ic_schedule_override }}
+              {% if form.ic_schedule_override.errors %}
+                <div class="text-danger small">{{ form.ic_schedule_override.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
+            <div class="mb-3">
+              {{ form.ic_weekdays.label_tag }}
+              {{ form.ic_weekdays }}
+              {% if form.ic_weekdays.errors %}
+                <div class="text-danger small">{{ form.ic_weekdays.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
+            <div class="mb-3">
+              {{ form.ic_dm_weekdays.label_tag }}
+              {{ form.ic_dm_weekdays }}
+              {% if form.ic_dm_weekdays.errors %}
+                <div class="text-danger small">{{ form.ic_dm_weekdays.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
+            <div class="mb-3 form-check">
+              {{ form.ic_is_part_time }}
+              {{ form.ic_is_part_time.label_tag }}
+              {% if form.ic_is_part_time.errors %}
+                <div class="text-danger small">{{ form.ic_is_part_time.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
+            <div class="mb-3">
+              {{ form.ic_hours_per_day.label_tag }}
+              {{ form.ic_hours_per_day }}
+              {% if form.ic_hours_per_day.errors %}
+                <div class="text-danger small">{{ form.ic_hours_per_day.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
             <div class="d-flex justify-content-between">
               <a href="{% url 'users:employee_list' %}" class="btn btn-secondary">Отмена</a>
               <button type="submit" class="btn btn-primary">Сохранить</button>
