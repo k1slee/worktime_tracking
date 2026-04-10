@@ -13,7 +13,7 @@
     }
     
     body {
-        font-family: 'Arial', sans-serif;
+        font-family: 'Times New Roman', serif;
         font-size: 6.5pt;
         line-height: 1;
         margin: 0;
@@ -25,6 +25,19 @@
     .page-break {
         page-break-after: always;
         break-after: page;
+    }
+    .page-month-container {
+        position: relative;
+        margin-bottom: 3mm;
+        min-height: 6mm;
+    }
+    .page-month {
+        position: absolute;
+        top: 0;
+        right: 0;
+        font-size: 11pt;
+        font-weight: bold;
+        white-space: nowrap;
     }
     /* ===== ШАПКА ДОКУМЕНТА ===== */
    /* Стили для печатной формы */
@@ -477,6 +490,12 @@
     {% if not forloop.first %}
     <div class="page-break"></div>
     {% endif %}
+    {% if not forloop.first %}
+    <div class="page-month-container">
+        <div class="page-month">{{ month|stringformat:"02d" }}.{{ year }}</div>
+    </div>
+    {% endif %}
+    {% if forloop.first %}
     <div class="header">
         <!-- Левый блок - МАКСИМАЛЬНО ЛЕВЕЕ -->
         <div class="left-section" style="position: absolute; left: 0; width: 30%; padding-left: 2mm;">
@@ -509,6 +528,7 @@
             <div class="underline-line" style="width: 95%; height: 1.5px; margin: 1px auto 0 auto;"></div>
         </div>
     </div>
+    {% endif %}
     <div class="table-container">
         <table class="table">
             <thead>
@@ -719,9 +739,7 @@
             </tbody>
         </table>
     </div>
-    {% endfor %}
     
-    <!-- ===== УСЛОВНЫЕ ОБОЗНАЧЕНИЯ ===== -->
     <div class="legend">
         <div class="legend-title">УСЛОВНЫЕ ОБОЗНАЧЕНИЯ</div>
         <table class="legend-table">
@@ -776,7 +794,6 @@
         </table>
     </div>
     
-    <!-- ===== ПОДПИСИ ===== -->
     <div class="signatures">
         <div class="signature-left">
             Начальник Отдела ______________ 
@@ -787,6 +804,7 @@
             {{ composer_fio }}
         </div>
     </div>
+    {% endfor %}
     
     <!-- Кнопка печати -->
     <button onclick="window.print()" class="print-button">
