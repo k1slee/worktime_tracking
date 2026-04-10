@@ -188,6 +188,13 @@
         font-size: 0.75rem;
     }
     
+    .row-selected td {
+        background-color: #fff3cd !important;
+    }
+    .row-selected .employee-col {
+        background-color: #ffe8a1 !important;
+    }
+    
     .stats-badge {
         font-size: 0.7rem;
         padding: 2px 6px;
@@ -888,7 +895,7 @@
                         </thead>
                         <tbody>
                             {% for row in table_data %}
-                            <tr>
+                            <tr data-employee-id="{{ row.employee.id }}" class="employee-row">
                                 <!-- Колонка с информацией о сотруднике -->
                                 <td class="employee-col">
                                     <div class="employee-info">
@@ -971,7 +978,7 @@
                         </thead>
                         <tbody>
                             {% for row in table_data %}
-                            <tr>
+                            <tr data-employee-id="{{ row.employee.id }}" class="employee-row">
                                 <!-- Колонка с информацией о сотруднике -->
                                 <td class="employee-col">
                                     <div class="employee-info">
@@ -1160,33 +1167,110 @@
     function getMainContainer() {
         return document.getElementById('mainTableContainer');
     }
+    function readSavedScroll(mode) {
+        const raw = sessionStorage.getItem(scrollKeyBase + ':pos');
+        if (!raw) return null;
+        try {
+            const pos = JSON.parse(raw);
+            if (typeof pos !== 'object' || pos === null) return null;
+            if (typeof pos.top !== 'number' || typeof pos.left !== 'number') return null;
+            return pos;
+        } catch {
+            return null;
+        }
+    }
     function saveScroll(mode) {
         const container = getMainContainer();
         if (!container) return;
-        sessionStorage.setItem(scrollKeyBase + ':' + mode, JSON.stringify({
+        sessionStorage.setItem(scrollKeyBase + ':pos', JSON.stringify({
             top: container.scrollTop,
             left: container.scrollLeft
         }));
         sessionStorage.setItem(scrollKeyBase + ':mode', mode);
     }
-    function restoreScroll(mode) {
+    function setScroll(pos) {
         const container = getMainContainer();
         if (!container) return;
-        const raw = sessionStorage.getItem(scrollKeyBase + ':' + mode);
-        if (!raw) return;
-        try {
-            const pos = JSON.parse(raw);
-            if (typeof pos.left === 'number') container.scrollLeft = pos.left;
-            if (typeof pos.top === 'number') container.scrollTop = pos.top;
-        } catch {
+        container.scrollLeft = pos.left;
+        container.scrollTop = pos.top;
+    }
+    function restoreScroll(mode) {
+        const pos = readSavedScroll(mode);
+        if (!pos) return;
+        setScroll(pos);
+    }
+    function restoreScrollWithRetry(mode) {
+        const pos = readSavedScroll(mode);
+        if (!pos) return;
+        requestAnimationFrame(() => {
+            setScroll(pos);
+            requestAnimationFrame(() => setScroll(pos));
+        });
+        setTimeout(() => setScroll(pos), 350);
+    }
+    function updateModeUI() {
+        const toggleBtn = document.getElementById('toggleModeBtn');
+        const btnIcon = document.getElementById('modeBtnIcon');
+        const btnText = document.getElementById('modeBtnText');
+        const modeIndicator = document.getElementById('modeIndicator');
+        if (!toggleBtn || !btnIcon || !btnText || !modeIndicator) return;
+        if (currentMode === 'stats') {
+            btnIcon.className = 'bi bi-calendar-check';
+            btnText.textContent = 'Показать табель';
+            toggleBtn.classList.add('stats-mode');
+            modeIndicator.innerHTML = '<i class="bi bi-bar-chart"></i> Режим: Статистика';
+        } else {
+            btnIcon.className = 'bi bi-bar-chart';
+            btnText.textContent = 'Показать статистику';
+            toggleBtn.classList.remove('stats-mode');
+            modeIndicator.innerHTML = '<i class="bi bi-calendar-check"></i> Режим: Заполнение табеля';
         }
     }
-    document.addEventListener('DOMContentLoaded', () => {
-        const lastMode = sessionStorage.getItem(scrollKeyBase + ':mode');
-        restoreScroll('timesheet');
-        if (lastMode === 'stats') {
-            toggleViewMode();
+    function setMode(mode, { restore = true, savePrev = true } = {}) {
+        const timesheetTable = document.getElementById('timesheetTable');
+        const statsTable = document.getElementById('statsTable');
+        if (!timesheetTable || !statsTable) return;
+
+        if (savePrev) {
+            saveScroll(currentMode);
         }
+
+        currentMode = mode === 'stats' ? 'stats' : 'timesheet';
+        sessionStorage.setItem(scrollKeyBase + ':mode', currentMode);
+
+        if (currentMode === 'stats') {
+            timesheetTable.classList.add('hidden');
+            statsTable.classList.remove('hidden');
+            statsTable.classList.add('visible');
+            if (restore) restoreScrollWithRetry('stats');
+        } else {
+            statsTable.classList.remove('visible');
+            statsTable.classList.add('hidden');
+            timesheetTable.classList.remove('hidden');
+            if (restore) restoreScrollWithRetry('timesheet');
+        }
+
+        updateModeUI();
+        applyRowSelection();
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = getMainContainer();
+        if (container) {
+            let scheduled = false;
+            container.addEventListener('scroll', () => {
+                if (scheduled) return;
+                scheduled = true;
+                requestAnimationFrame(() => {
+                    scheduled = false;
+                    saveScroll(currentMode);
+                });
+            }, { passive: true });
+        }
+
+        const lastMode = sessionStorage.getItem(scrollKeyBase + ':mode') || 'timesheet';
+        setMode(lastMode, { restore: true, savePrev: false });
+        initRowSelection();
+        applyRowSelection();
     });
     window.addEventListener('beforeunload', () => {
         saveScroll(currentMode);
@@ -1194,51 +1278,51 @@
     
     // Функция для переключения режима отображения
     function toggleViewMode() {
+        setMode(currentMode === 'timesheet' ? 'stats' : 'timesheet', { restore: true, savePrev: true });
+    }
+    
+    function getSelectedKey() {
+        return scrollKeyBase + ':selected';
+    }
+    function getSelectedEmployeeId() {
+        return sessionStorage.getItem(getSelectedKey());
+    }
+    function setSelectedEmployeeId(id) {
+        if (id === null || id === undefined || id === '') {
+            sessionStorage.removeItem(getSelectedKey());
+        } else {
+            sessionStorage.setItem(getSelectedKey(), String(id));
+        }
+    }
+    function applyRowSelection() {
+        const selectedId = getSelectedEmployeeId();
+        const allRows = document.querySelectorAll('#timesheetTable tbody tr.employee-row, #statsTable tbody tr.employee-row');
+        allRows.forEach(tr => tr.classList.remove('row-selected'));
+        if (!selectedId) return;
+        const rowsToMark = document.querySelectorAll('#timesheetTable tbody tr[data-employee-id=\"' + selectedId + '\"], #statsTable tbody tr[data-employee-id=\"' + selectedId + '\"]');
+        rowsToMark.forEach(tr => tr.classList.add('row-selected'));
+    }
+    function initRowSelection() {
+        const onClick = (e) => {
+            const td = e.target.closest('td');
+            if (!td) return;
+            if (!td.classList.contains('employee-col')) return;
+            const tr = td.closest('tr');
+            if (!tr) return;
+            const id = tr.getAttribute('data-employee-id');
+            if (!id) return;
+            const current = getSelectedEmployeeId();
+            if (current === id) {
+                setSelectedEmployeeId('');
+            } else {
+                setSelectedEmployeeId(id);
+            }
+            applyRowSelection();
+        };
         const timesheetTable = document.getElementById('timesheetTable');
         const statsTable = document.getElementById('statsTable');
-        const toggleBtn = document.getElementById('toggleModeBtn');
-        const btnIcon = document.getElementById('modeBtnIcon');
-        const btnText = document.getElementById('modeBtnText');
-        const modeIndicator = document.getElementById('modeIndicator');
-        
-        saveScroll(currentMode);
-
-        if (currentMode === 'timesheet') {
-            // Переключаемся на статистику
-            currentMode = 'stats';
-            
-            // Анимируем переход
-            timesheetTable.classList.add('hidden');
-            setTimeout(() => {
-                statsTable.classList.remove('hidden');
-                statsTable.classList.add('visible');
-                restoreScroll('stats');
-            }, 300);
-            
-            // Обновляем кнопку
-            btnIcon.className = 'bi bi-calendar-check';
-            btnText.textContent = 'Показать табель';
-            toggleBtn.classList.add('stats-mode');
-            modeIndicator.innerHTML = '<i class="bi bi-bar-chart"></i> Режим: Статистика';
-            
-        } else {
-            // Переключаемся на табель
-            currentMode = 'timesheet';
-            
-            // Анимируем переход
-            statsTable.classList.remove('visible');
-            statsTable.classList.add('hidden');
-            setTimeout(() => {
-                timesheetTable.classList.remove('hidden');
-                restoreScroll('timesheet');
-            }, 300);
-            
-            // Обновляем кнопку
-            btnIcon.className = 'bi bi-bar-chart';
-            btnText.textContent = 'Показать статистику';
-            toggleBtn.classList.remove('stats-mode');
-            modeIndicator.innerHTML = '<i class="bi bi-calendar-check"></i> Режим: Заполнение табеля';
-        }
+        if (timesheetTable) timesheetTable.addEventListener('click', onClick);
+        if (statsTable) statsTable.addEventListener('click', onClick);
     }
     
     // Переключение отображения условных обозначений
