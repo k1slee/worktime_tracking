@@ -36,7 +36,7 @@
         top: 0;
         right: 0;
         font-size: 11pt;
-        font-weight: bold;
+        font-weight: normal;
         white-space: nowrap;
     }
     /* ===== ШАПКА ДОКУМЕНТА ===== */
@@ -492,7 +492,10 @@
     {% endif %}
     {% if not forloop.first %}
     <div class="page-month-container">
-        <div class="page-month">{{ month|stringformat:"02d" }}.{{ year }}</div>
+        <div class="page-month">
+            {% if month == 1 %}Январь{% elif month == 2 %}Февраль{% elif month == 3 %}Март{% elif month == 4 %}Апрель{% elif month == 5 %}Май{% elif month == 6 %}Июнь{% elif month == 7 %}Июль{% elif month == 8 %}Август{% elif month == 9 %}Сентябрь{% elif month == 10 %}Октябрь{% elif month == 11 %}Ноябрь{% elif month == 12 %}Декабрь{% endif %}
+            {{ year }}
+        </div>
     </div>
     {% endif %}
     {% if forloop.first %}
