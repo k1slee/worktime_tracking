@@ -7,22 +7,16 @@
 <style>
     /* Контейнер на весь экран */
     body {
-        overflow-x: hidden;
         padding: 0;
         margin: 0;
     }
     
     .full-width-container {
-        width: 100vw;
-        max-width: 100vw;
+        width: 100%;
+        max-width: 100%;
         margin: 0;
         padding: 0;
-        overflow-x: auto;
-        position: relative;
-        left: 50%;
-        right: 50%;
-        margin-left: -50vw;
-        margin-right: -50vw;
+        overflow-x: visible;
     }
     
     /* Основной контент без ограничений по ширине */
@@ -210,10 +204,11 @@
         overflow: auto;
         border: 1px solid #dee2e6;
         border-radius: 4px;
-        width: 100vw;
-        margin-left: calc(-50vw + 50%);
-        margin-right: calc(-50vw + 50%);
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
         padding: 0;
+        box-sizing: border-box;
     }
     
     /* Убираем левые и правые отступы у таблицы внутри контейнера */
@@ -506,11 +501,11 @@
     
     /* Для табличного контейнера - убираем все боковые отступы */
     .wide-table-section {
-        margin-left: calc(-50vw + 50%);
-        margin-right: calc(-50vw + 50%);
+        margin-left: -15px;
+        margin-right: -15px;
         padding-left: 0;
         padding-right: 0;
-        width: 100vw;
+        width: calc(100% + 30px);
     }
     
     /* Верхние секции с отступами */
@@ -1158,6 +1153,42 @@
     
     // Режим отображения: 'timesheet' - табель, 'stats' - статистика
     let currentMode = 'timesheet';
+
+    const scrollKeyBase = 'monthly_table_scroll:{{ year }}-{{ month }}-{{ timesheet_type }}-{{ selected_department|default:"" }}-{{ selected_master|default:"" }}';
+    function getMainContainer() {
+        return document.getElementById('mainTableContainer');
+    }
+    function saveScroll(mode) {
+        const container = getMainContainer();
+        if (!container) return;
+        sessionStorage.setItem(scrollKeyBase + ':' + mode, JSON.stringify({
+            top: container.scrollTop,
+            left: container.scrollLeft
+        }));
+        sessionStorage.setItem(scrollKeyBase + ':mode', mode);
+    }
+    function restoreScroll(mode) {
+        const container = getMainContainer();
+        if (!container) return;
+        const raw = sessionStorage.getItem(scrollKeyBase + ':' + mode);
+        if (!raw) return;
+        try {
+            const pos = JSON.parse(raw);
+            if (typeof pos.left === 'number') container.scrollLeft = pos.left;
+            if (typeof pos.top === 'number') container.scrollTop = pos.top;
+        } catch {
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const lastMode = sessionStorage.getItem(scrollKeyBase + ':mode');
+        restoreScroll('timesheet');
+        if (lastMode === 'stats') {
+            toggleViewMode();
+        }
+    });
+    window.addEventListener('beforeunload', () => {
+        saveScroll(currentMode);
+    });
     
     // Функция для переключения режима отображения
     function toggleViewMode() {
@@ -1168,6 +1199,8 @@
         const btnText = document.getElementById('modeBtnText');
         const modeIndicator = document.getElementById('modeIndicator');
         
+        saveScroll(currentMode);
+
         if (currentMode === 'timesheet') {
             // Переключаемся на статистику
             currentMode = 'stats';
@@ -1177,6 +1210,7 @@
             setTimeout(() => {
                 statsTable.classList.remove('hidden');
                 statsTable.classList.add('visible');
+                restoreScroll('stats');
             }, 300);
             
             // Обновляем кнопку
@@ -1194,6 +1228,7 @@
             statsTable.classList.add('hidden');
             setTimeout(() => {
                 timesheetTable.classList.remove('hidden');
+                restoreScroll('timesheet');
             }, 300);
             
             // Обновляем кнопку
