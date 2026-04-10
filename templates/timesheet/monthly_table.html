@@ -16,7 +16,7 @@
         max-width: 100%;
         margin: 0;
         padding: 0;
-        overflow-x: visible;
+        overflow-x: hidden;
     }
     
     /* Основной контент без ограничений по ширине */
@@ -75,7 +75,7 @@
     .timesheet-table {
         font-size: 0.85rem;
         width: 100% !important;
-        min-width: fit-content;
+        table-layout: fixed;
     }
     
     .timesheet-table th {
@@ -90,16 +90,17 @@
         left: 0;
         background-color: white;
         z-index: 5;
-        min-width: 200px;
-        max-width: 200px;
-        width: 200px;
+        min-width: var(--employee-col, 180px);
+        max-width: var(--employee-col, 180px);
+        width: var(--employee-col, 180px);
         box-shadow: 2px 0 2px rgba(0,0,0,0.1);
+        padding-left: 8px !important;
     }
     
     .timesheet-table .day-cell {
-        width: 40px;
-        min-width: 40px;
-        max-width: 40px;
+        width: calc((100% - var(--employee-col, 180px)) / var(--days, 31));
+        min-width: 22px;
+        max-width: none;
         text-align: center;
         padding: 2px !important;
         cursor: pointer;
@@ -111,9 +112,9 @@
     }
     
     .timesheet-table .day-header {
-        width: 40px;
-        min-width: 40px;
-        max-width: 40px;
+        width: calc((100% - var(--employee-col, 180px)) / var(--days, 31));
+        min-width: 22px;
+        max-width: none;
         text-align: center;
         padding: 4px !important;
         font-weight: normal;
@@ -201,13 +202,14 @@
     /* Скролл для таблицы - убираем боковые отступы */
     .table-container {
         max-height: calc(100vh - 300px);
-        overflow: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
         border: 1px solid #dee2e6;
         border-radius: 4px;
         width: 100%;
         margin-left: 0;
         margin-right: 0;
-        padding: 0;
+        padding: 0 8px 0 8px;
         box-sizing: border-box;
     }
     
@@ -863,7 +865,7 @@
         <!-- Основная таблица с днями (изначально видима) - широкая секция без отступов -->
         <div class="row wide-table-section">
             <div class="col-12 px-0">
-                <div class="table-container" id="mainTableContainer">
+                <div class="table-container" id="mainTableContainer" style="--days: {{ days|length }}; --employee-col: 176px;">
                     <table class="table table-bordered table-sm timesheet-table" id="timesheetTable">
                         <thead>
                             <tr>
