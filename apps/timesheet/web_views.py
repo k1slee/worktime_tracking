@@ -174,18 +174,20 @@ def get_ic_anchor_for(request_user, employee=None) -> date:
 def parse_weekdays_csv(value: str) -> set:
     if not value:
         return set()
+    raw_parts = [p.strip() for p in value.replace(';', ',').split(',') if p.strip()]
+    has_seven = any(p.isdigit() and int(p) == 7 for p in raw_parts)
     result = set()
     mapping = {
         'пн': 0, 'вт': 1, 'ср': 2, 'чт': 3, 'пт': 4, 'сб': 5, 'вс': 6,
         'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3, 'fri': 4, 'sat': 5, 'sun': 6,
     }
-    for raw in value.replace(';', ',').split(','):
-        part = raw.strip().lower()
+    for raw in raw_parts:
+        part = raw.lower()
         if not part:
             continue
         try:
             n = int(part)
-            if 1 <= n <= 7:
+            if has_seven and 1 <= n <= 7:
                 n -= 1
             if 0 <= n <= 6:
                 result.add(n)
