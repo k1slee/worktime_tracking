@@ -188,6 +188,10 @@ class Employee(models.Model):
         blank=True,
         help_text='Через запятую: 0..6 (0=Пн). Пример: 0,2,4'
     )
+    ic_is_disabled_group2 = models.BooleanField(
+        'ИЦ: инвалид 2 группы',
+        default=False
+    )
     ic_is_part_time = models.BooleanField(
         'ИЦ: совместитель',
         default=False

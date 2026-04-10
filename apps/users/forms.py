@@ -36,6 +36,11 @@ class EmployeeMasterEditForm(forms.Form):
         label='ИЦ: дни ДМ',
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Напр: 0,2,4 или пн,ср,пт'}),
     )
+    ic_is_disabled_group2 = forms.BooleanField(
+        required=False,
+        label='ИЦ: инвалид 2 группы',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
     ic_is_part_time = forms.BooleanField(
         required=False,
         label='ИЦ: совместитель',
@@ -61,6 +66,7 @@ class EmployeeMasterEditForm(forms.Form):
             self.fields['ic_schedule_override'].initial = getattr(self.employee, 'ic_schedule_override', 'inherit') or 'inherit'
             self.fields['ic_weekdays'].initial = getattr(self.employee, 'ic_weekdays', '') or ''
             self.fields['ic_dm_weekdays'].initial = getattr(self.employee, 'ic_dm_weekdays', '') or ''
+            self.fields['ic_is_disabled_group2'].initial = bool(getattr(self.employee, 'ic_is_disabled_group2', False))
             self.fields['ic_is_part_time'].initial = bool(getattr(self.employee, 'ic_is_part_time', False))
             self.fields['ic_hours_per_day'].initial = getattr(self.employee, 'ic_hours_per_day', None)
     def save(self):
@@ -86,6 +92,9 @@ class EmployeeMasterEditForm(forms.Form):
 
         if 'ic_dm_weekdays' in self.data:
             emp.ic_dm_weekdays = (self.cleaned_data.get('ic_dm_weekdays') or '').strip()
+
+        if 'ic_is_disabled_group2' in self.data:
+            emp.ic_is_disabled_group2 = bool(self.cleaned_data.get('ic_is_disabled_group2', False))
 
         if 'ic_is_part_time' in self.data or 'ic_hours_per_day' in self.data:
             emp.ic_is_part_time = bool(self.cleaned_data.get('ic_is_part_time', False))

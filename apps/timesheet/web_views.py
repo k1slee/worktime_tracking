@@ -196,7 +196,22 @@ def parse_weekdays_csv(value: str) -> set:
             result.add(mapping[part])
     return result
 
-def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays, hours_per_day=None, weekdays_always_8: bool = False, dm_weekdays=None, invert_week: bool = False) -> str:
+def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_always_8: bool, allowed_weekdays, hours_per_day=None, weekdays_always_8: bool = False, dm_weekdays=None, invert_week: bool = False, hour_delta: int = 0) -> str:
+    def apply_hour_delta(code: str) -> str:
+        if not hour_delta:
+            return code
+        if code in ('В', 'ДМ'):
+            return code
+        if '/' in code:
+            left, right = code.split('/', 1)
+            if left.isdigit():
+                new_left = max(1, int(left) + hour_delta)
+                return f"{new_left}/{right}"
+            return code
+        if code.isdigit():
+            return str(max(1, int(code) + hour_delta))
+        return code
+
     if holiday_value == 'В':
         return 'В'
     if dm_weekdays is not None and day_date.weekday() in dm_weekdays:
@@ -204,18 +219,20 @@ def get_ic_day_value(day_date: date, anchor: date, holiday_value: str, force_alw
     if allowed_weekdays is not None and day_date.weekday() not in allowed_weekdays:
         return 'В'
     if allowed_weekdays is not None and weekdays_always_8:
-        return str(hours_per_day) if hours_per_day else '8'
+        if hours_per_day:
+            return str(max(1, int(hours_per_day) + hour_delta))
+        return apply_hour_delta('8')
     if hours_per_day:
-        return str(hours_per_day)
+        return str(max(1, int(hours_per_day) + hour_delta))
     week_index = ((day_date - anchor).days // 7) % 2
     if invert_week and not force_always_8:
         week_index = week_index ^ 1
     base = '8' if (force_always_8 or week_index == 0) else '8/2'
     if holiday_value == '7':
         if base == '8/2':
-            return '7/2'
-        return '7'
-    return base
+            return apply_hour_delta('7/2')
+        return apply_hour_delta('7')
+    return apply_hour_delta(base)
 
 def get_timesheet_type(request) -> str:
     tt = (request.GET.get('tt') or request.POST.get('tt') or '').strip().lower()
@@ -600,6 +617,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                         override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
                         force_always_8 = override == 'always_8'
                         invert_week = override == 'opposite'
+                        hour_delta = -1 if getattr(employee, 'ic_is_disabled_group2', False) else 0
                         hours_per_day = None
                         if getattr(employee, 'ic_is_part_time', False):
                             hours_per_day = getattr(employee, 'ic_hours_per_day', None)
@@ -607,7 +625,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                         if override == 'weekdays':
                             allowed_weekdays = parse_weekdays_csv(getattr(employee, 'ic_weekdays', '') or '')
                         dm_weekdays = parse_weekdays_csv(getattr(employee, 'ic_dm_weekdays', '') or '')
-                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week)
+                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week, hour_delta=hour_delta)
                     else:
                         display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
@@ -886,6 +904,11 @@ def print_monthly_table(request):
     
     # Обрабатываем данные табелей
     processed_data = process_timesheet_data(request, year, month, data['employees'], data['timesheets'])
+    table_data = list(processed_data.get('table_data') or [])
+    for i, row in enumerate(table_data, start=1):
+        row['row_number'] = i
+    page_size = 18
+    table_pages = [table_data[i:i + page_size] for i in range(0, len(table_data), page_size)]
     
     context = {
         'title': f'{"Табель ИТР" if data.get("timesheet_type") == "itr" else "Табель"} за {month:02d}.{year}',
@@ -898,6 +921,9 @@ def print_monthly_table(request):
         'is_admin': request.user.is_administrator,
         'timesheet_type': data.get('timesheet_type', 'main'),
         **processed_data,
+        'table_data': table_data,
+        'table_pages': table_pages,
+        'table_page_size': page_size,
     }
     
     return render(request, 'timesheet/print_monthly_table.html', context)
@@ -1712,6 +1738,7 @@ def submit_month(request):
                             override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
                             force_always_8 = override == 'always_8'
                             invert_week = override == 'opposite'
+                            hour_delta = -1 if getattr(emp, 'ic_is_disabled_group2', False) else 0
                             hours_per_day = None
                             if getattr(emp, 'ic_is_part_time', False):
                                 hours_per_day = getattr(emp, 'ic_hours_per_day', None)
@@ -1720,7 +1747,7 @@ def submit_month(request):
                                 allowed_weekdays = parse_weekdays_csv(getattr(emp, 'ic_weekdays', '') or '')
                             holiday_value = get_day_value(d)
                             dm_weekdays = parse_weekdays_csv(getattr(emp, 'ic_dm_weekdays', '') or '')
-                            value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week)
+                            value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week, hour_delta=hour_delta)
                     elif timesheet_type == 'main' and getattr(request.user, 'is_foundry_master', False):
                         anchor = get_foundry_anchor_for(request.user, emp)
                         value = get_foundry_day_value(d, anchor)
@@ -1729,6 +1756,7 @@ def submit_month(request):
                         override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
                         force_always_8 = override == 'always_8'
                         invert_week = override == 'opposite'
+                        hour_delta = -1 if getattr(emp, 'ic_is_disabled_group2', False) else 0
                         hours_per_day = None
                         if getattr(emp, 'ic_is_part_time', False):
                             hours_per_day = getattr(emp, 'ic_hours_per_day', None)
@@ -1737,7 +1765,7 @@ def submit_month(request):
                             allowed_weekdays = parse_weekdays_csv(getattr(emp, 'ic_weekdays', '') or '')
                         holiday_value = get_day_value(d)
                         dm_weekdays = parse_weekdays_csv(getattr(emp, 'ic_dm_weekdays', '') or '')
-                        value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week)
+                        value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week, hour_delta=hour_delta)
                     TimesheetModel.objects.create(
                         date=d,
                         employee=emp,

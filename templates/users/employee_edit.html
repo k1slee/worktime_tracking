@@ -59,6 +59,13 @@
               {% endif %}
             </div>
             <div class="mb-3 form-check">
+              {{ form.ic_is_disabled_group2 }}
+              {{ form.ic_is_disabled_group2.label_tag }}
+              {% if form.ic_is_disabled_group2.errors %}
+                <div class="text-danger small">{{ form.ic_is_disabled_group2.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
+            <div class="mb-3 form-check">
               {{ form.ic_is_part_time }}
               {{ form.ic_is_part_time.label_tag }}
               {% if form.ic_is_part_time.errors %}

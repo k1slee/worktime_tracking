@@ -22,6 +22,10 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+    .page-break {
+        page-break-after: always;
+        break-after: page;
+    }
     /* ===== ШАПКА ДОКУМЕНТА ===== */
    /* Стили для печатной формы */
     .header {
@@ -469,6 +473,10 @@
     </style>
 </head>
 <body>
+    {% for page in table_pages %}
+    {% if not forloop.first %}
+    <div class="page-break"></div>
+    {% endif %}
     <div class="header">
         <!-- Левый блок - МАКСИМАЛЬНО ЛЕВЕЕ -->
         <div class="left-section" style="position: absolute; left: 0; width: 30%; padding-left: 2mm;">
@@ -501,8 +509,6 @@
             <div class="underline-line" style="width: 95%; height: 1.5px; margin: 1px auto 0 auto;"></div>
         </div>
     </div>
-    
-    <!-- ===== ТАБЛИЦА ===== -->
     <div class="table-container">
         <table class="table">
             <thead>
@@ -540,7 +546,7 @@
                 {% endfor %}
                 
                 <!-- Дни явок -->
-                <th class="col-stats vertical-header col-days-work" style="height: 17mm !important; position: relative; background-color: #817d7d !important;">
+                <th class="col-stats vertical-header col-days-work" style="height: 17mm !important; position: relative; background-color: #d9d9d9 !important;">
                     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
                         <div style="transform: rotate(-90deg); transform-origin: center; font-size: 5pt; text-align: center; line-height: 1.1; white-space: nowrap; font-weight: bold;">фактической<br>работы</div>
                     </div>
@@ -584,7 +590,7 @@
                 </th>
                 
                 <!-- Отработано часов -->
-                <th class="col-stats col-total-hours vertical-header" style="height: 17mm !important; position: relative; background-color: #817d7d !important;">
+                <th class="col-stats col-total-hours vertical-header" style="height: 17mm !important; position: relative; background-color: #d9d9d9 !important;">
                     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
                         <div style="transform: rotate(-90deg); transform-origin: center; font-size: 5pt; text-align: center; line-height: 1.1; white-space: nowrap; font-weight: bold;">всего</div>
                     </div>
@@ -613,10 +619,10 @@
             </thead>
             
             <tbody>
-                {% for row in table_data %}
+                {% for row in page %}
                 <tr>
                     <td class="col-number">
-                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ forloop.counter }}</div>
+                        <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.row_number|default:forloop.counter }}</div>
                     </td>
                     <td class="col-name">
                         <div class="cell-content text-left" style="font-family: 'Times New Roman', serif; font-size: 11pt; font-weight: bold;">{{ row.formatted_fio|default:row.employee.full_name }}</div>
@@ -639,7 +645,7 @@
                     {% endfor %}
                     
                     <!-- Дни явок -->
-                    <td class="col-stats col-days-work" style="background-color: #817d7d !important;">
+                    <td class="col-stats col-days-work" style="background-color: #d9d9d9 !important;">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.attendance_days|hide_zero_int }}</div>
                     </td>
                     <td class="col-stats col-days-downtime">
@@ -667,7 +673,7 @@
                     </td>
 
                     <!-- Отработано часов -->
-                    <td class="col-stats col-total-hours" style="background-color: #817d7d !important;">
+                    <td class="col-stats col-total-hours" style="background-color: #d9d9d9 !important;">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ row.total_hours|hide_zero_float:2 }}</div>
                     </td>
                     <td class="col-stats col-evening-hours">
@@ -683,15 +689,13 @@
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt;">{{ row.overtime_hours|hide_zero_float:2 }}</div>
                     </td>
                 </tr>
-                {% endfor %}
-                
-                <!-- Итоговая строка -->
+                {% if forloop.last %}
                 <tr class="total-row">
                     <!-- Сначала колонки до "Дни явок" -->
                     <td colspan="{{ days|length|add:'4' }}">ИТОГО</td>
                     
                     <!-- Теперь колонка "фактической работы" -->
-                    <td class="col-stats col-days-work" style="background-color: #817d7d !important;">
+                    <td class="col-stats col-days-work" style="background-color: #d9d9d9 !important;">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ table_data|sum_attr_int:"attendance_days"}}</div>
                     </td>
                     
@@ -703,16 +707,19 @@
                     <td colspan="5"></td>
                     
                     <!-- Колонка "всего" -->
-                    <td class="col-stats col-total-hours" style="background-color: #817d7d !important;">
+                    <td class="col-stats col-total-hours" style="background-color: #d9d9d9 !important;">
                         <div class="cell-content" style="font-family: 'Times New Roman', serif; font-size: 9pt; font-weight: bold;">{{ table_data|sum_attr_any:"total_hours"|floatformat:2}}</div>
                     </td>
                     
                     <!-- Остальные колонки "Отработано часов" (4 штуки) -->
                     <td colspan="4"></td>
                 </tr>
+                {% endif %}
+                {% endfor %}
             </tbody>
         </table>
     </div>
+    {% endfor %}
     
     <!-- ===== УСЛОВНЫЕ ОБОЗНАЧЕНИЯ ===== -->
     <div class="legend">
