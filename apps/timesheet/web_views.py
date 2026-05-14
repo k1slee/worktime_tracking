@@ -289,6 +289,8 @@ def get_monthly_data(request, year, month, print_mode=False):
 
         # Основной способ: по назначениям; плюс обратная совместимость: поле master
         employees = Employee.objects.filter(is_active=True).filter(
+            Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+        ).filter(
             (
                 Q(assignments__master=request.user) &
                 (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
@@ -329,7 +331,9 @@ def get_monthly_data(request, year, month, print_mode=False):
             if qs.exists():
                 allowed_master_ids = list(qs.values_list('id', flat=True))
         
-        base_employees = Employee.objects.filter(is_active=True)
+        base_employees = Employee.objects.filter(is_active=True).filter(
+            Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+        )
         if timesheet_type == 'itr':
             base_employees = base_employees.filter(is_itr_employee=True)
         else:
@@ -529,6 +533,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         employee_timesheets = timesheet_dict.get(employee_id, {})
         formatted_fio = employee.short_fio or (employee.full_name or "")
         emp_hire_date = getattr(employee, 'hire_date', None)
+        emp_termination_date = getattr(employee, 'termination_date', None)
         # Ячейки дней
         day_cells = []
         for day in days:
@@ -547,10 +552,25 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'status': 'empty',
                     'can_edit': False,
                     'css_class': 'empty',
+                    'is_blocked': True,
                     'is_saturday': is_saturday,
                     'is_sunday': is_sunday,
                 })
                 # Не считаем статистику для дней до даты приема
+                continue
+            if emp_termination_date and day_date > emp_termination_date:
+                day_cells.append({
+                    'day': day,
+                    'timesheet_id': None,
+                    'value': '',
+                    'display_value': '',
+                    'status': 'empty',
+                    'can_edit': False,
+                    'css_class': 'empty',
+                    'is_blocked': True,
+                    'is_saturday': is_saturday,
+                    'is_sunday': is_sunday,
+                })
                 continue
             ts_data = employee_timesheets.get(day)
             holiday_value = day_value_by_day[day]
@@ -570,6 +590,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'status': ts_data.get('status', 'draft'),
                     'can_edit': ts_data.get('can_edit', False),
                     'css_class': ts_data.get('css_class', 'draft'),
+                    'is_blocked': False,
                     'is_saturday':is_saturday,
                     'is_sunday':is_sunday,
                 })
@@ -638,6 +659,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'status': 'empty',
                     'can_edit': request.user.is_master,
                     'css_class': 'empty',
+                    'is_blocked': False,
                     'is_saturday':is_saturday,
                     'is_sunday':is_sunday,
                 })
@@ -1350,6 +1372,8 @@ def quick_edit_timesheet(request):
             # Запрет на редактирование значений для дат до приема (кроме удаления)
             if action != 'delete' and timesheet.employee.hire_date and timesheet.date < timesheet.employee.hire_date:
                 return JsonResponse({'error': 'Дата раньше даты приема сотрудника'}, status=400)
+            if action != 'delete' and getattr(timesheet.employee, 'termination_date', None) and timesheet.date > timesheet.employee.termination_date:
+                return JsonResponse({'error': 'Нельзя заполнять табель после даты увольнения сотрудника'}, status=400)
             
             if request.user.is_master:
                 # Разрешаем правку, если табель мастера или есть назначение на дату табеля
@@ -1388,6 +1412,8 @@ def quick_edit_timesheet(request):
             # Запрещаем создание записи ранее даты приема сотрудника
             if employee.hire_date and date_obj < employee.hire_date:
                 return JsonResponse({'error': 'Дата раньше даты приема сотрудника'}, status=400)
+            if getattr(employee, 'termination_date', None) and date_obj > employee.termination_date:
+                return JsonResponse({'error': 'Нельзя заполнять табель после даты увольнения сотрудника'}, status=400)
             
             # Проверка прав для мастера
             if request.user.is_master:
@@ -1485,6 +1511,7 @@ def fill_range(request):
             df, dt = dt, df
         # Учитываем дату приема: протягиваем только начиная с hire_date
         hire_date = getattr(emp, 'hire_date', None)
+        termination_date = getattr(emp, 'termination_date', None)
         # Права: мастер должен иметь назначение на каждую дату или быть legacy-мастером
         from apps.users.models import EmployeeAssignment
         from django.db.models import Q
@@ -1493,6 +1520,9 @@ def fill_range(request):
         day = df
         while day <= dt:
             if hire_date and day < hire_date:
+                day += timedelta(days=1)
+                continue
+            if termination_date and day > termination_date:
                 day += timedelta(days=1)
                 continue
             has_assignment = EmployeeAssignment.objects.filter(
@@ -1548,6 +1578,7 @@ def restore_range(request):
         if dt < df:
             df, dt = dt, df
         hire_date = getattr(emp, 'hire_date', None)
+        termination_date = getattr(emp, 'termination_date', None)
         from apps.users.models import EmployeeAssignment
         from django.db.models import Q
         legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)
@@ -1555,6 +1586,9 @@ def restore_range(request):
         day = df
         while day <= dt:
             if hire_date and day < hire_date:
+                day += timedelta(days=1)
+                continue
+            if termination_date and day > termination_date:
                 day += timedelta(days=1)
                 continue
             has_assignment = EmployeeAssignment.objects.filter(
@@ -1681,6 +1715,8 @@ def submit_month(request):
         from apps.users.models import Employee, EmployeeAssignment
         from django.db.models import Q
         employees = Employee.objects.filter(is_active=True).filter(
+            Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+        ).filter(
             (
                 Q(assignments__master=request.user) &
                 (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
@@ -1701,9 +1737,12 @@ def submit_month(request):
         _, last_day = calendar.monthrange(year, month)
         for emp in employees:
             hire_date = getattr(emp, 'hire_date', None)
+            termination_date = getattr(emp, 'termination_date', None)
             for day in range(1, last_day + 1):
                 d = date(year, month, day)
                 if hire_date and d < hire_date:
+                    continue
+                if termination_date and d > termination_date:
                     continue
                 # Только если назначен этому мастеру в этот день или legacy-мастер
                 legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)

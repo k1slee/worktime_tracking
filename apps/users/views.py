@@ -37,6 +37,8 @@ class EmployeeListView(MasterMixin, ListView):
         # Обратная совместимость: если сотруднику выставлен master напрямую
         legacy_master = Q(master=self.request.user)
         queryset = Employee.objects.filter(is_active=True).filter(
+            Q(termination_date__isnull=True) | Q(termination_date__gte=today)
+        ).filter(
             by_assignments | legacy_master
         ).distinct()
         
@@ -187,13 +189,13 @@ def employee_edit_master(request, pk):
         pk=pk
     )
     if request.method == 'POST':
-        form = EmployeeMasterEditForm(request.POST, employee=employee)
+        form = EmployeeMasterEditForm(request.POST, employee=employee, current_user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Данные сотрудника обновлены')
             return redirect('users:employee_list')
     else:
-        form = EmployeeMasterEditForm(employee=employee)
+        form = EmployeeMasterEditForm(employee=employee, current_user=request.user)
     return render(request, 'users/employee_edit.html', {
         'form': form,
         'employee': employee,

@@ -68,6 +68,8 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
     month_start = datetime(year, month, 1).date()
     # По назначениям на месяц или legacy master
     employees = Employee.objects.filter(is_active=True).filter(
+        Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+    ).filter(
         (
             Q(assignments__master=master) &
             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
@@ -87,6 +89,9 @@ def create_monthly_timesheets(master, year, month, default_value='В', include_w
             # Пропускаем дни до даты приема сотрудника
             hire_date = getattr(employee, 'hire_date', None)
             if hire_date and date < hire_date:
+                continue
+            termination_date = getattr(employee, 'termination_date', None)
+            if termination_date and date > termination_date:
                 continue
             
             # Пропускаем выходные, если не включены
@@ -119,6 +124,8 @@ def get_master_employees_with_timesheets(master, date):
     from django.db.models import Q
     
     employees = Employee.objects.filter(is_active=True).filter(
+        Q(termination_date__isnull=True) | Q(termination_date__gte=date)
+    ).filter(
         (
             Q(assignments__master=master) &
             (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &

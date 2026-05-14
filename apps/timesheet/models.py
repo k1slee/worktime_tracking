@@ -44,6 +44,8 @@ class MonthlyTimesheet(models.Model):
             assignments__master=self.master,
             is_itr_employee=False
         ).filter(
+            Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+        ).filter(
             Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start),
             assignments__start_date__lte=month_end
         ).distinct()
@@ -64,6 +66,10 @@ class MonthlyTimesheet(models.Model):
                 # Пропускаем дни до даты приема сотрудника
                 hire_date = getattr(employee, 'hire_date', None)
                 if hire_date and date < hire_date:
+                    day += 1
+                    continue
+                termination_date = getattr(employee, 'termination_date', None)
+                if termination_date and date > termination_date:
                     day += 1
                     continue
                 

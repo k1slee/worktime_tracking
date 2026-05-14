@@ -18,6 +18,11 @@ class EmployeeMasterEditForm(forms.Form):
         label='Дата приема на работу',
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
+    termination_date = forms.DateField(
+        required=False,
+        label='Дата увольнения',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
     ic_schedule_override = forms.ChoiceField(
         required=False,
         label='ИЦ: режим',
@@ -54,10 +59,14 @@ class EmployeeMasterEditForm(forms.Form):
     )
     def __init__(self, *args, **kwargs):
         self.employee = kwargs.pop('employee', None)
+        self.current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
+        self._initial_termination_date = None
         if self.employee:
             self.fields['position'].initial = self.employee.position or ''
             self.fields['hire_date'].initial = self.employee.hire_date
+            self._initial_termination_date = getattr(self.employee, 'termination_date', None)
+            self.fields['termination_date'].initial = self._initial_termination_date
             try:
                 from .models import Employee
                 self.fields['ic_schedule_override'].choices = getattr(Employee, 'IC_SCHEDULE_OVERRIDE_CHOICES', [])
@@ -75,6 +84,7 @@ class EmployeeMasterEditForm(forms.Form):
             raise ValidationError('Сотрудник не найден')
         position = self.cleaned_data.get('position', '').strip()
         hire_date = self.cleaned_data.get('hire_date')
+        termination_date = self.cleaned_data.get('termination_date')
         if emp.user:
             # У сотрудника есть учетная запись — обновляем должность в User
             emp.user.position = position
@@ -82,6 +92,7 @@ class EmployeeMasterEditForm(forms.Form):
         else:
             emp.position_own = position
         emp.hire_date = hire_date
+        emp.termination_date = termination_date
 
         if 'ic_schedule_override' in self.data:
             override = (self.cleaned_data.get('ic_schedule_override') or '').strip() or 'inherit'
@@ -102,6 +113,18 @@ class EmployeeMasterEditForm(forms.Form):
 
         emp.full_clean()
         emp.save()
+        if termination_date and (self._initial_termination_date != termination_date):
+            try:
+                from apps.timesheet.models import Timesheet, ItrTimesheet
+                qs = Timesheet.objects.filter(employee=emp, date__gt=termination_date, status='draft')
+                qs_itr = ItrTimesheet.objects.filter(employee=emp, date__gt=termination_date, status='draft')
+                if self.current_user and getattr(self.current_user, 'is_master', False):
+                    qs = qs.filter(master=self.current_user)
+                    qs_itr = qs_itr.filter(master=self.current_user)
+                qs.delete()
+                qs_itr.delete()
+            except Exception:
+                pass
         return emp
 
 class AddEmployeeForm(forms.ModelForm):

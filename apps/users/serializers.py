@@ -48,5 +48,5 @@ class EmployeeSerializer(serializers.ModelSerializer):
         model = Employee
         fields = [
             'id', 'user', 'user_details', 'master', 'master_name',
-            'hire_date', 'is_active'
+            'hire_date', 'termination_date', 'is_active'
         ]

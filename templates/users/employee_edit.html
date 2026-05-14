@@ -34,6 +34,13 @@
                 <div class="text-danger small">{{ form.hire_date.errors|join:', ' }}</div>
               {% endif %}
             </div>
+            <div class="mb-3">
+              {{ form.termination_date.label_tag }}
+              {{ form.termination_date }}
+              {% if form.termination_date.errors %}
+                <div class="text-danger small">{{ form.termination_date.errors|join:', ' }}</div>
+              {% endif %}
+            </div>
             {% if request.user.is_ic_master %}
             <hr>
             <h6 class="mb-3">ИЦ: график сотрудника</h6>

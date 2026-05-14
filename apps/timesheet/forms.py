@@ -76,6 +76,8 @@ class MonthlyTimesheetForm(forms.Form):
         month_end = datetime(year, month_num, last_day).date()
         # Основной способ: по назначениям; плюс обратная совместимость: поле master
         employees = Employee.objects.filter(is_active=True).filter(
+            Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+        ).filter(
             (
                 Q(assignments__master=self.user) &
                 (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
@@ -105,6 +107,9 @@ class MonthlyTimesheetForm(forms.Form):
                 # Пропускаем дни до даты приема сотрудника
                 hire_date = getattr(employee, 'hire_date', None)
                 if hire_date and date < hire_date:
+                    continue
+                termination_date = getattr(employee, 'termination_date', None)
+                if termination_date and date > termination_date:
                     continue
                 
                 # Пропускаем выходные, если не включены
@@ -263,6 +268,8 @@ class TimesheetForm(forms.ModelForm):
             from django.db.models import Q
             today = timezone.now().date()
             self.fields['employee'].queryset = Employee.objects.filter(is_active=True).filter(
+                Q(termination_date__isnull=True) | Q(termination_date__gte=today)
+            ).filter(
                 (
                     Q(assignments__master=self.user) &
                     Q(assignments__start_date__lte=today) &
@@ -284,6 +291,9 @@ class TimesheetForm(forms.ModelForm):
             if employee and date:
                 if getattr(employee, 'is_itr_employee', False):
                     raise forms.ValidationError('Сотрудник в табеле ИТР и не может быть в обычном табеле')
+                termination_date = getattr(employee, 'termination_date', None)
+                if termination_date and date > termination_date:
+                    raise forms.ValidationError('Нельзя заполнять табель после даты увольнения сотрудника')
                 assigned = EmployeeAssignment.objects.filter(
                     employee=employee, master=self.user
                 ).filter(

@@ -19,6 +19,7 @@ class ManagedEmployeeInline(admin.TabularInline):
         'ic_is_part_time', 'ic_hours_per_day',
         'is_itr_employee',
         'hire_date',
+        'termination_date',
     )
     readonly_fields = ()
     show_change_link = True
@@ -179,8 +180,8 @@ class DepartmentAdmin(admin.ModelAdmin):
     )
 
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'is_active', 'is_foundry', 'department')
-    list_filter = ('master', 'is_active', 'hire_date', 'is_foundry', 'ic_schedule_override', 'ic_is_part_time', 'is_itr_employee')
+    list_display = ('get_full_name', 'employee_id', 'master', 'hire_date', 'termination_date', 'is_active', 'is_foundry', 'department')
+    list_filter = ('master', 'is_active', 'hire_date', 'termination_date', 'is_foundry', 'ic_schedule_override', 'ic_is_part_time', 'is_itr_employee')
     fieldsets = (
         (None, {
             'fields' : (
@@ -201,7 +202,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             )
         }),
         ('Дополнительно', {
-            'fields': ('hire_date',),
+            'fields': ('hire_date', 'termination_date'),
             'classes': ('collapse',)
         }),
     )

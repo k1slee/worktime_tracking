@@ -155,6 +155,7 @@ class Employee(models.Model):
                              related_name='managed_employees', 
                              verbose_name='Мастер', limit_choices_to={'role': 'master'})
     hire_date = models.DateField('Дата приема', null=True, blank=True)
+    termination_date = models.DateField('Дата увольнения', null=True, blank=True)
     is_active = models.BooleanField('Активен', default=True)
     is_foundry = models.BooleanField('Литейщик', default=False, help_text='Работает по литейному графику')
     foundry_anchor_date = models.DateField(
@@ -246,6 +247,10 @@ class Employee(models.Model):
             raise ValidationError({'ic_hours_per_day': 'Укажите количество часов в день для совместителя'})
         if not getattr(self, 'ic_is_part_time', False) and getattr(self, 'ic_hours_per_day', None):
             raise ValidationError({'ic_is_part_time': 'Включите совместителя, чтобы указать часы в день'})
+        hire_date = getattr(self, 'hire_date', None)
+        termination_date = getattr(self, 'termination_date', None)
+        if hire_date and termination_date and termination_date < hire_date:
+            raise ValidationError({'termination_date': 'Дата увольнения не может быть раньше даты приема'})
     
     @property
     def full_name(self):

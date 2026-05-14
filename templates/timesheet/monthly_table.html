@@ -919,7 +919,7 @@
                                     data-date="{{ year }}-{{ month|stringformat:'02d' }}-{{ day_num|stringformat:'02d' }}"
                                     data-value="{{ day_data.value }}"
                                     data-status="{{ day_data.status }}"
-                                    onclick="editCell(this)">
+                                    {% if not day_data.is_blocked %}onclick="editCell(this)"{% endif %}>
 
                                     {% if day_data.display_value %}
                                     <span class="cell-value">{{ day_data.display_value }}</span>
