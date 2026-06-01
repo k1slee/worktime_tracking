@@ -1,0 +1,21 @@
+{% extends "admin/change_form.html" %}
+
+{% block after_related_objects %}
+{{ block.super }}
+{% if original and original.role == "master" %}
+<div class="module aligned">
+  <h2>Автозаполнение табеля</h2>
+  <form method="post" action="{% url 'admin:users_user_reset_autofill' original.pk %}">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="id_reset_autofill_month">Месяц</label>
+      <input type="month" id="id_reset_autofill_month" name="month" required>
+    </div>
+    <div class="submit-row">
+      <input type="submit" class="default" value="Сбросить месяц к значениям по умолчанию">
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+

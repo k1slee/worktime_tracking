@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.http import HttpResponseRedirect
+from django.urls import path, reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from .models import User, Department, Employee
@@ -26,6 +28,7 @@ class ManagedEmployeeInline(admin.TabularInline):
 
 class CustomUserAdmin(UserAdmin):
     """Кастомный админ-класс для пользователей"""
+    change_form_template = 'admin/users/user/change_form.html'
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (_('Personal info'), {
@@ -163,6 +166,50 @@ class CustomUserAdmin(UserAdmin):
         except Exception:
             pass
         return response
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<path:object_id>/reset-autofill/',
+                self.admin_site.admin_view(self.reset_autofill_view),
+                name='users_user_reset_autofill',
+            ),
+        ]
+        return custom_urls + urls
+
+    def reset_autofill_view(self, request, object_id):
+        obj = self.get_object(request, object_id)
+        if not obj or getattr(obj, 'role', None) != 'master':
+            self.message_user(request, 'Доступно только для пользователей с ролью "Мастер"', level='error')
+            return HttpResponseRedirect(reverse('admin:users_user_changelist'))
+
+        if request.method != 'POST':
+            return HttpResponseRedirect(reverse('admin:users_user_change', args=[obj.pk]))
+
+        month_str = (request.POST.get('month') or '').strip()
+        try:
+            year_s, month_s = month_str.split('-', 1)
+            year = int(year_s)
+            month = int(month_s)
+            if month < 1 or month > 12:
+                raise ValueError
+        except Exception:
+            self.message_user(request, 'Некорректный месяц. Формат: ГГГГ-ММ', level='error')
+            return HttpResponseRedirect(reverse('admin:users_user_change', args=[obj.pk]))
+
+        from django.db import transaction
+        from apps.timesheet.models import Timesheet, ItrTimesheet
+
+        with transaction.atomic():
+            deleted_main, _ = Timesheet.objects.filter(master=obj, date__year=year, date__month=month).delete()
+            deleted_itr, _ = ItrTimesheet.objects.filter(master=obj, date__year=year, date__month=month).delete()
+
+        self.message_user(
+            request,
+            f'Сброшено табелей за {month_str}: обычный табель={deleted_main}, ИТР={deleted_itr}',
+        )
+        return HttpResponseRedirect(reverse('admin:users_user_change', args=[obj.pk]))
 
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'parent')
