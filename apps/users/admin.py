@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin
 from django.http import HttpResponseRedirect
 from django.urls import path, reverse
@@ -181,7 +182,7 @@ class CustomUserAdmin(UserAdmin):
     def reset_autofill_view(self, request, object_id):
         obj = self.get_object(request, object_id)
         if not obj or getattr(obj, 'role', None) != 'master':
-            self.message_user(request, 'Доступно только для пользователей с ролью "Мастер"', level='error')
+            self.message_user(request, 'Доступно только для пользователей с ролью "Мастер"', level=messages.ERROR)
             return HttpResponseRedirect(reverse('admin:users_user_changelist'))
 
         if request.method != 'POST':
@@ -195,19 +196,177 @@ class CustomUserAdmin(UserAdmin):
             if month < 1 or month > 12:
                 raise ValueError
         except Exception:
-            self.message_user(request, 'Некорректный месяц. Формат: ГГГГ-ММ', level='error')
+            self.message_user(request, 'Некорректный месяц. Формат: ГГГГ-ММ', level=messages.ERROR)
             return HttpResponseRedirect(reverse('admin:users_user_change', args=[obj.pk]))
 
         from django.db import transaction
+        from datetime import date
+        import calendar
         from apps.timesheet.models import Timesheet, ItrTimesheet
+        from apps.users.models import Employee, EmployeeAssignment
+        from django.db.models import Q
 
         with transaction.atomic():
             deleted_main, _ = Timesheet.objects.filter(master=obj, date__year=year, date__month=month).delete()
             deleted_itr, _ = ItrTimesheet.objects.filter(master=obj, date__year=year, date__month=month).delete()
 
+            month_start = date(year, month, 1)
+            if month == 12:
+                next_month_start = date(year + 1, 1, 1)
+            else:
+                next_month_start = date(year, month + 1, 1)
+            month_end = next_month_start - date.resolution
+
+            created_main = 0
+            default_table = None
+            try:
+                from apps.timesheet.web_views import generate_default_table
+                default_table = generate_default_table(year, month)
+            except Exception:
+                default_table = {}
+
+            employees_main = Employee.objects.filter(is_active=True).filter(
+                Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+            ).filter(
+                (
+                    Q(assignments__master=obj) &
+                    (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                    Q(assignments__start_date__lte=month_end)
+                ) | Q(master=obj)
+            ).filter(is_itr_employee=False).distinct()
+
+            _, last_day = calendar.monthrange(year, month)
+            for emp in employees_main:
+                hire_date = getattr(emp, 'hire_date', None)
+                termination_date = getattr(emp, 'termination_date', None)
+                legacy_ok = getattr(emp, 'master_id', None) == getattr(obj, 'id', None)
+                for day in range(1, last_day + 1):
+                    d = date(year, month, day)
+                    if hire_date and d < hire_date:
+                        continue
+                    if termination_date and d > termination_date:
+                        continue
+                    if not legacy_ok:
+                        has_assignment = EmployeeAssignment.objects.filter(
+                            employee=emp, master=obj
+                        ).filter(
+                            Q(end_date__isnull=True) | Q(end_date__gte=d),
+                            start_date__lte=d
+                        ).exists()
+                        if not has_assignment:
+                            continue
+                    Timesheet.objects.create(
+                        date=d,
+                        employee=emp,
+                        master=obj,
+                        value=default_table.get(day, '') or '',
+                        status='draft'
+                    )
+                    created_main += 1
+
+            created_itr = 0
+            if getattr(obj, 'is_itr_master', False):
+                employees_itr = Employee.objects.filter(is_active=True).filter(
+                    Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+                ).filter(
+                    (
+                        Q(assignments__master=obj) &
+                        (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                        Q(assignments__start_date__lte=month_end)
+                    ) | Q(master=obj)
+                ).filter(is_itr_employee=True).distinct()
+
+                try:
+                    from apps.timesheet.web_views import (
+                        get_day_value,
+                        get_foundry_anchor_for,
+                        get_foundry_day_value,
+                        get_ic_anchor_for,
+                        get_ic_day_value,
+                        parse_weekdays_csv,
+                    )
+                except Exception:
+                    get_day_value = None
+
+                for emp in employees_itr:
+                    hire_date = getattr(emp, 'hire_date', None)
+                    termination_date = getattr(emp, 'termination_date', None)
+                    legacy_ok = getattr(emp, 'master_id', None) == getattr(obj, 'id', None)
+                    row_user = getattr(emp, 'user', None)
+                    for day in range(1, last_day + 1):
+                        d = date(year, month, day)
+                        if hire_date and d < hire_date:
+                            continue
+                        if termination_date and d > termination_date:
+                            continue
+                        if not legacy_ok:
+                            has_assignment = EmployeeAssignment.objects.filter(
+                                employee=emp, master=obj
+                            ).filter(
+                                Q(end_date__isnull=True) | Q(end_date__gte=d),
+                                start_date__lte=d
+                            ).exists()
+                            if not has_assignment:
+                                continue
+
+                        holiday_value = get_day_value(d) if get_day_value else ''
+                        value = default_table.get(day, '') or ''
+                        schedule = None
+                        if row_user and getattr(row_user, 'is_foundry_master', False):
+                            schedule = 'foundry'
+                        elif row_user and getattr(row_user, 'is_ic_master', False):
+                            schedule = 'ic'
+                        elif getattr(emp, 'is_foundry', False):
+                            schedule = 'foundry'
+                        else:
+                            override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
+                            master = getattr(emp, 'master', None)
+                            if override != 'inherit' or (master and getattr(master, 'is_ic_master', False)):
+                                schedule = 'ic'
+
+                        if schedule == 'foundry':
+                            anchor = get_foundry_anchor_for(row_user, emp) if get_foundry_anchor_for else None
+                            value = get_foundry_day_value(d, anchor) if get_foundry_day_value else value
+                        elif schedule == 'ic':
+                            anchor = get_ic_anchor_for(row_user, emp) if get_ic_anchor_for else None
+                            override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
+                            force_always_8 = override == 'always_8'
+                            invert_week = override == 'opposite'
+                            hour_delta = -1 if getattr(emp, 'ic_is_disabled_group2', False) else 0
+                            hours_per_day = None
+                            if getattr(emp, 'ic_is_part_time', False):
+                                hours_per_day = getattr(emp, 'ic_hours_per_day', None)
+                            allowed_weekdays = None
+                            if override == 'weekdays' and parse_weekdays_csv:
+                                allowed_weekdays = parse_weekdays_csv(getattr(emp, 'ic_weekdays', '') or '')
+                            dm_weekdays = parse_weekdays_csv(getattr(emp, 'ic_dm_weekdays', '') or '') if parse_weekdays_csv else set()
+                            value = get_ic_day_value(
+                                d,
+                                anchor,
+                                holiday_value,
+                                force_always_8,
+                                allowed_weekdays,
+                                hours_per_day=hours_per_day,
+                                weekdays_always_8=(override == 'weekdays'),
+                                dm_weekdays=dm_weekdays,
+                                invert_week=invert_week,
+                                hour_delta=hour_delta
+                            ) if get_ic_day_value else value
+                        else:
+                            value = holiday_value or value
+
+                        ItrTimesheet.objects.create(
+                            date=d,
+                            employee=emp,
+                            master=obj,
+                            value=value or '',
+                            status='draft'
+                        )
+                        created_itr += 1
+
         self.message_user(
             request,
-            f'Сброшено табелей за {month_str}: обычный табель={deleted_main}, ИТР={deleted_itr}',
+            f'Сброшено табелей за {month_str}: удалено обычный={deleted_main}, ИТР={deleted_itr}; создано обычный={created_main}, ИТР={created_itr}',
         )
         return HttpResponseRedirect(reverse('admin:users_user_change', args=[obj.pk]))
 

@@ -1816,17 +1816,33 @@ def submit_month(request):
                     )
                     created_missing += 1
         
-        # 2) Получаем все черновики мастера за месяц и сдаем их
+        # 2) Получаем все черновики за месяц по сотрудникам мастера и сдаем их
+        # Важно: записи могли быть созданы ранее с master=None или с другим мастером, но если на дату сотрудник
+        # назначен текущему мастеру — считаем, что сдавать должен он.
         timesheets = TimesheetModel.objects.filter(
-            master=request.user,
+            employee__in=employees,
             date__year=year,
             date__month=month,
             status='draft'
-        )
+        ).select_related('employee', 'master')
         
         submitted_count = 0
         for timesheet in timesheets:
             try:
+                emp = timesheet.employee
+                d = timesheet.date
+                legacy_ok = getattr(emp, 'master_id', None) == getattr(request.user, 'id', None)
+                has_assignment = EmployeeAssignment.objects.filter(
+                    employee=emp, master=request.user
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=d),
+                    start_date__lte=d
+                ).exists()
+                if not (legacy_ok or has_assignment):
+                    continue
+                if timesheet.master_id != request.user.id:
+                    timesheet.master = request.user
+                    timesheet.save(update_fields=['master'])
                 timesheet.submit(request.user)
                 submitted_count += 1
             except ValueError:
