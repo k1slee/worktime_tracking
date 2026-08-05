@@ -395,8 +395,15 @@ def get_monthly_data(request, year, month, print_mode=False):
 
 
 def update_statistics(stats, employee_id, day, value_str, is_weekend, 
-                     total_hours_formats, evening_formats, night_formats, overtime_formats):
-    """Обновление статистики для одного дня"""
+                     total_hours_formats, evening_formats, night_formats, overtime_formats,
+                     is_foundry=False):
+    """Обновление статистики для одного дня
+    
+    is_foundry: сотрудник работает по литейному 3-сменному графику.
+    Для foundry:  X/2 = вся смена вечерняя (X часов вечерних, 0 ночных)
+                  X/3 = вся смена ночная   (X часов ночных,   0 вечерних)
+    Для ИЦ (не foundry): 8/2, 9/2, 10/2, 6/2 = 6.5 вечерних + 1.5 ночных (кроме 7/2 -> 6.5 веч+0.5 ноч)
+    """
     if not value_str:
         return stats
     
@@ -416,13 +423,31 @@ def update_statistics(stats, employee_id, day, value_str, is_weekend,
         except (ValueError, TypeError):
             pass
     
-    # Вечерние часы
-    if value_str in evening_formats:
-        stats['evening_hours'][employee_id] = stats['evening_hours'].get(employee_id, 0) + 6.5
+    # Определяем смену по формату X/2 или X/3
+    shift_hours = None
+    shift_kind = None  # 'evening' для /2, 'night' для /3
+    if '/' in value_str:
+        parts = value_str.split('/', 1)
+        if parts[0].isdigit() and parts[1] in ('2', '3'):
+            shift_hours = int(parts[0])
+            shift_kind = 'evening' if parts[1] == '2' else 'night'
     
-    # Ночные часы
-    if value_str in night_formats:
-        stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + night_formats[value_str]
+    # Вечерние и ночные часы
+    if is_foundry and shift_hours is not None:
+        # Литейный 3-сменный график: вся смена целиком в своей категории
+        if shift_kind == 'evening':
+            stats['evening_hours'][employee_id] = stats['evening_hours'].get(employee_id, 0) + shift_hours
+        elif shift_kind == 'night':
+            stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + shift_hours
+    else:
+        # ИЦ (2-сменный / стандартный): фиксированные величины по таблицам
+        if value_str in evening_formats:
+            stats['evening_hours'][employee_id] = stats['evening_hours'].get(employee_id, 0) + 6.5
+        if value_str in night_formats:
+            stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + night_formats[value_str]
+        # Заполняем пропуск 0.5 часа для 7/2 в ИЦ: total=7, вечерние=6.5 -> ночные +=0.5
+        if not is_foundry and value_str == '7/2':
+            stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + 0.5
     
     # Сверхурочные часы
     if value_str in overtime_formats:
@@ -528,6 +553,11 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         formatted_fio = employee.short_fio or (employee.full_name or "")
         emp_hire_date = getattr(employee, 'hire_date', None)
         emp_termination_date = getattr(employee, 'termination_date', None)
+        # Определяем график сотрудника для foundry-режима статистики смен
+        emp_is_foundry = getattr(employee, 'is_foundry', False)
+        emp_master = getattr(employee, 'master', None)
+        if not emp_is_foundry and emp_master and getattr(emp_master, 'is_foundry_master', False):
+            emp_is_foundry = True
         # Ячейки дней
         day_cells = []
         for day in days:
@@ -654,17 +684,12 @@ def process_timesheet_data(request, year, month, employees, timesheets):
             value_str = day_cells[-1]['value'] or day_cells[-1]['display_value']
             stats = update_statistics(
                 stats, employee_id, day, value_str, weekend_days_dict.get(day, False),
-                total_hours_formats, evening_formats, night_formats, overtime_formats
+                total_hours_formats, evening_formats, night_formats, overtime_formats,
+                is_foundry=emp_is_foundry
             )
         
         # Проверяем, есть ли данные у сотрудника
         row_has_timesheets = any(cell['timesheet_id'] for cell in day_cells)
-        
-        # Определяем, работает ли сотрудник по литейному графику
-        emp_is_foundry = getattr(employee, 'is_foundry', False)
-        emp_master = getattr(employee, 'master', None)
-        if not emp_is_foundry and emp_master and getattr(emp_master, 'is_foundry_master', False):
-            emp_is_foundry = True
         
         downtime_days_raw = stats.get('downtime', {}).get(employee_id, 0)
         day_shift_days_raw = stats.get('day_shift', {}).get(employee_id, 0)
