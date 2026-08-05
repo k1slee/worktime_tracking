@@ -36,16 +36,12 @@ class TimesheetEditPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        # Нельзя редактировать утвержденный табель
-        if obj.is_approved:
-            return False
-        
         # Мастер может редактировать только свои табели
         if request.user.is_master:
             return obj.master == request.user
         
-        # Плановый отдел может редактировать все
-        if request.user.is_planner:
+        # Плановый отдел и администратор могут редактировать все
+        if request.user.is_planner or request.user.is_administrator:
             return True
         
         return False

@@ -211,12 +211,10 @@ class Timesheet(models.Model):
     
     @property
     def can_edit(self):
-        """Может ли табель быть отредактирован"""
-        return self.status == 'draft'
+        return True
     
     @property
     def display_value(self):
-        """Отображаемое значение"""
         if self.value.isdigit():
             return f"{self.value} ч"
         return self.value if self.value else ""
@@ -226,19 +224,12 @@ class Timesheet(models.Model):
         return self.status == 'submitted'
     
     @property
-    def can_edit(self):
-        """Может ли табель быть отредактирован мастером"""
-        return self.status == 'draft'
-    
-    @property
     def can_submit(self):
-        """Может ли мастер сдать табель"""
         return self.status == 'draft'
     
     @property
     def can_approve(self):
-        """Может ли плановый отдел утвердить табель"""
-        return self.status in ['submitted', 'draft'] and not self.is_approved
+        return True
     
     def submit(self, user):
         """Сдать табель мастером"""
@@ -317,7 +308,7 @@ class ItrTimesheet(models.Model):
     
     @property
     def can_edit(self):
-        return self.status == 'draft'
+        return True
     
     @property
     def can_submit(self):
@@ -325,7 +316,7 @@ class ItrTimesheet(models.Model):
     
     @property
     def can_approve(self):
-        return self.status in ['submitted', 'draft'] and not self.is_approved
+        return True
     
     def submit(self, user):
         if not self.can_submit:

@@ -361,33 +361,20 @@ def get_monthly_data(request, year, month, print_mode=False):
         employees = base_employees.distinct()
 
         if print_mode:
-            # Для печатной формы - только табели со статусом submitted/approved
             timesheets = TimesheetModel.objects.filter(
                 date__year=year,
                 date__month=month,
                 employee__in=employees,
-                status__in=['submitted', 'approved']
             ).select_related('employee', 'employee__user', 'master')
 
             if master_id:
                 timesheets = timesheets.filter(master_id=master_id)
-
-            employee_ids_from_timesheets = timesheets.values_list('employee_id', flat=True).distinct()
-            if employee_ids_from_timesheets:
-                employees = employees.filter(id__in=employee_ids_from_timesheets)
         else:
-            # Для веб-интерфейса
             timesheets = TimesheetModel.objects.filter(
                 date__year=year,
                 date__month=month,
                 employee__in=employees
             ).select_related('employee', 'employee__user', 'master')
-            # Плановый отдел видит только сданные/утвержденные
-            if request.user.is_planner:
-                timesheets = timesheets.filter(status__in=['submitted', 'approved'])
-                employee_ids_from_timesheets = timesheets.values_list('employee_id', flat=True).distinct()
-                if employee_ids_from_timesheets:
-                    employees = employees.filter(id__in=employee_ids_from_timesheets)
 
         if not master_user and timesheets.exists():
             first_timesheet = timesheets.first()
@@ -464,6 +451,12 @@ def update_statistics(stats, employee_id, day, value_str, is_weekend,
         key = category_map[value_str]
         stats[key][employee_id] = stats[key].get(employee_id, 0) + 1
     
+    # Подсчет дневных смен (литейный график): '8' без слэша в не выходной
+    if not is_weekend:
+        raw_val = value_str.replace(' ч', '').strip()
+        if '/' not in raw_val and raw_val == '8':
+            stats['day_shift'][employee_id] = stats['day_shift'].get(employee_id, 0) + 1
+    
     return stats
 
 
@@ -487,6 +480,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
     stats = {
         'attendance': {},
         'downtime': {},
+        'day_shift': {},
         'business_trip': {},
         'vacation': {},
         'illness': {},
@@ -595,69 +589,61 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                     'is_sunday':is_sunday,
                 })
             else:
-                # Для планового отдела не показываем автозаполнение — только фактические записи
-                if request.user.is_planner:
-                    display_value = ""
-                else:
-                    schedule = None
-                    # Для ИТР определяем график от самого сотрудника (мастера в строке)
-                    if timesheet_type == 'itr':
-                        row_user = getattr(employee, 'user', None)
-                        if row_user and getattr(row_user, 'is_foundry_master', False):
-                            schedule = 'foundry'
-                        elif row_user and getattr(row_user, 'is_ic_master', False):
-                            schedule = 'ic'
-                        elif getattr(employee, 'is_foundry', False):
-                            schedule = 'foundry'
-                        else:
-                            override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
-                            master = getattr(employee, 'master', None)
-                            if override != 'inherit' or (master and getattr(master, 'is_ic_master', False)):
-                                schedule = 'ic'
-                    # Для обычного табеля оставляем текущую логику
-                    if request.user.is_master and schedule is None:
-                        if getattr(request.user, 'is_foundry_master', False):
-                            schedule = 'foundry'
-                        elif getattr(request.user, 'is_ic_master', False):
-                            schedule = 'ic'
-                    elif schedule is None:
-                        if getattr(employee, 'is_foundry', False):
-                            schedule = 'foundry'
-                        else:
-                            master = getattr(employee, 'master', None)
-                            if master and getattr(master, 'is_ic_master', False):
-                                schedule = 'ic'
-
-                    if schedule == 'foundry':
-                        # В ИТР-табеле якорь берем у самого сотрудника
-                        anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
-                        anchor = get_foundry_anchor_for(anchor_user, employee)
-                        display_value = get_foundry_day_value(day_date, anchor)
-                    elif schedule == 'ic':
-                        # В ИТР-табеле используем якорь через мастера самого сотрудника
-                        anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
-                        anchor = get_ic_anchor_for(anchor_user, employee)
-                        override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
-                        force_always_8 = override == 'always_8'
-                        invert_week = override == 'opposite'
-                        hour_delta = -1 if getattr(employee, 'ic_is_disabled_group2', False) else 0
-                        hours_per_day = None
-                        if getattr(employee, 'ic_is_part_time', False):
-                            hours_per_day = getattr(employee, 'ic_hours_per_day', None)
-                        allowed_weekdays = None
-                        if override == 'weekdays':
-                            allowed_weekdays = parse_weekdays_csv(getattr(employee, 'ic_weekdays', '') or '')
-                        dm_weekdays = parse_weekdays_csv(getattr(employee, 'ic_dm_weekdays', '') or '')
-                        display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week, hour_delta=hour_delta)
+                schedule = None
+                if timesheet_type == 'itr':
+                    row_user = getattr(employee, 'user', None)
+                    if row_user and getattr(row_user, 'is_foundry_master', False):
+                        schedule = 'foundry'
+                    elif row_user and getattr(row_user, 'is_ic_master', False):
+                        schedule = 'ic'
+                    elif getattr(employee, 'is_foundry', False):
+                        schedule = 'foundry'
                     else:
-                        display_value = holiday_value or default_table.get(day, "")
+                        override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
+                        master = getattr(employee, 'master', None)
+                        if override != 'inherit' or (master and getattr(master, 'is_ic_master', False)):
+                            schedule = 'ic'
+                if request.user.is_master and schedule is None:
+                    if getattr(request.user, 'is_foundry_master', False):
+                        schedule = 'foundry'
+                    elif getattr(request.user, 'is_ic_master', False):
+                        schedule = 'ic'
+                elif schedule is None:
+                    if getattr(employee, 'is_foundry', False):
+                        schedule = 'foundry'
+                    else:
+                        master = getattr(employee, 'master', None)
+                        if master and getattr(master, 'is_ic_master', False):
+                            schedule = 'ic'
+
+                if schedule == 'foundry':
+                    anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
+                    anchor = get_foundry_anchor_for(anchor_user, employee)
+                    display_value = get_foundry_day_value(day_date, anchor)
+                elif schedule == 'ic':
+                    anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
+                    anchor = get_ic_anchor_for(anchor_user, employee)
+                    override = getattr(employee, 'ic_schedule_override', 'inherit') or 'inherit'
+                    force_always_8 = override == 'always_8'
+                    invert_week = override == 'opposite'
+                    hour_delta = -1 if getattr(employee, 'ic_is_disabled_group2', False) else 0
+                    hours_per_day = None
+                    if getattr(employee, 'ic_is_part_time', False):
+                        hours_per_day = getattr(employee, 'ic_hours_per_day', None)
+                    allowed_weekdays = None
+                    if override == 'weekdays':
+                        allowed_weekdays = parse_weekdays_csv(getattr(employee, 'ic_weekdays', '') or '')
+                    dm_weekdays = parse_weekdays_csv(getattr(employee, 'ic_dm_weekdays', '') or '')
+                    display_value = get_ic_day_value(day_date, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week, hour_delta=hour_delta)
+                else:
+                    display_value = holiday_value or default_table.get(day, "")
                 day_cells.append({
                     'day': day,
                     'timesheet_id': None,
                     'value': '',
                     'display_value': display_value,
                     'status': 'empty',
-                    'can_edit': request.user.is_master,
+                    'can_edit': True,
                     'css_class': 'empty',
                     'is_blocked': False,
                     'is_saturday':is_saturday,
@@ -674,14 +660,29 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         # Проверяем, есть ли данные у сотрудника
         row_has_timesheets = any(cell['timesheet_id'] for cell in day_cells)
         
+        # Определяем, работает ли сотрудник по литейному графику
+        emp_is_foundry = getattr(employee, 'is_foundry', False)
+        emp_master = getattr(employee, 'master', None)
+        if not emp_is_foundry and emp_master and getattr(emp_master, 'is_foundry_master', False):
+            emp_is_foundry = True
+        
+        downtime_days_raw = stats.get('downtime', {}).get(employee_id, 0)
+        day_shift_days_raw = stats.get('day_shift', {}).get(employee_id, 0)
+        
+        # Для литейного графика вместо простоев показываем дневные смены
+        display_downtime_days = day_shift_days_raw if emp_is_foundry else downtime_days_raw
+        
         table_data.append({
             'employee': employee,
             'formatted_fio': formatted_fio, 
             'days': day_cells,
             'employee_id': employee_id,
             'row_status': 'has_data' if row_has_timesheets else 'empty',
+            'is_foundry_employee': emp_is_foundry,
             'attendance_days': stats.get('attendance', {}).get(employee_id, 0),
-            'downtime_days': stats.get('downtime', {}).get(employee_id, 0),
+            'downtime_days': display_downtime_days,
+            'downtime_days_raw': downtime_days_raw,
+            'day_shift_days': day_shift_days_raw,
             'business_trip_days': stats.get('business_trip', {}).get(employee_id, 0),
             'vacation_days': stats.get('vacation', {}).get(employee_id, 0),
             'illness_days': stats.get('illness', {}).get(employee_id, 0),
@@ -695,12 +696,18 @@ def process_timesheet_data(request, year, month, employees, timesheets):
             'overtime_hours': round(stats.get('overtime_hours', {}).get(employee_id, 0), 2),
         })
     
+    # Определяем, является ли весь табель литейным (если есть сотрудники и все/большинство — литейщики)
+    foundry_count = sum(1 for r in table_data if r.get('is_foundry_employee'))
+    total_count = len(table_data)
+    is_foundry_schedule = (total_count > 0 and foundry_count == total_count)
+
     return {
         'table_data': table_data,
         'days': days,
         'days_in_month': days_in_month,
         'weekend_days': weekend_days_dict,
         'default_table': default_table,
+        'is_foundry_schedule': is_foundry_schedule,
     }
 
 def get_shop_chief_name(request, master_user=None, department_id=None):
@@ -875,6 +882,12 @@ def monthly_table_view(request):
     next_month = month + 1 if month < 12 else 1
     next_year = year if month < 12 else year + 1
     
+    foundry_mode = bool(processed_data.get('is_foundry_schedule'))
+    if getattr(request.user, 'is_foundry_master', False):
+        foundry_mode = True
+    if data.get('master_user') and getattr(data['master_user'], 'is_foundry_master', False):
+        foundry_mode = True
+
     context = {
         'title': f'{"Табель ИТР" if data.get("timesheet_type") == "itr" else "Табель"} за {month:02d}.{year}',
         'year': year,
@@ -896,6 +909,7 @@ def monthly_table_view(request):
         'timesheet_type': data.get('timesheet_type', 'main'),
         'total_employees': data['employees'].count(),
         'shop_chief_name': get_shop_chief_name(request, data['master_user'], data['department_id']),
+        'foundry_mode': foundry_mode,
         **processed_data,
     }
     
@@ -934,6 +948,12 @@ def print_monthly_table(request):
     page_size = 18
     table_pages = [table_data[i:i + page_size] for i in range(0, len(table_data), page_size)]
     
+    foundry_mode = bool(processed_data.get('is_foundry_schedule'))
+    if getattr(request.user, 'is_foundry_master', False):
+        foundry_mode = True
+    if data.get('master_user') and getattr(data['master_user'], 'is_foundry_master', False):
+        foundry_mode = True
+
     context = {
         'title': f'{"Табель ИТР" if data.get("timesheet_type") == "itr" else "Табель"} за {month:02d}.{year}',
         'year': year,
@@ -944,6 +964,7 @@ def print_monthly_table(request):
         'is_planner': request.user.is_planner,
         'is_admin': request.user.is_administrator,
         'timesheet_type': data.get('timesheet_type', 'main'),
+        'foundry_mode': foundry_mode,
         **processed_data,
         'table_data': table_data,
         'table_pages': table_pages,
@@ -1038,9 +1059,6 @@ class TimesheetListView(LoginRequiredMixin, ListView):
         
         if user.is_master:
             queryset = queryset.filter(master=user)
-        # Плановый отдел видит только сданные/утвержденные
-        if user.is_planner:
-            queryset = queryset.filter(status__in=['submitted', 'approved'])
         
         # Фильтрация по параметрам
         date_from = self.request.GET.get('date_from')

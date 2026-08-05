@@ -263,9 +263,6 @@ def approve_timesheet(request, timesheet_id):
         if timesheet.is_approved:
             return JsonResponse({'error': 'Табель уже утвержден'}, status=400)
         
-        if not timesheet.is_submitted:
-            return JsonResponse({'error': 'Табель не сдан мастером'}, status=400)
-        
         # Утверждаем табель
         timesheet.status = 'approved'
         timesheet.approved_by = request.user

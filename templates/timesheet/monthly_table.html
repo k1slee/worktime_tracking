@@ -963,7 +963,7 @@
                             <tr>
                                 <th class="employee-col stats-header">Сотрудник</th>
                                 <th class="stats-header attendance">Дни явок</th>
-                                <th class="stats-header downtime">Целосменные простои</th>
+                                <th class="stats-header downtime">{% if foundry_mode %}Дневные смены{% else %}Целосменные простои{% endif %}</th>
                                 <th class="stats-header vacation">Очередной отпуск</th>
                                 <th class="stats-header illness">Болезнь</th>
                                 <th class="stats-header other-absence">Прочие неявки</th>
