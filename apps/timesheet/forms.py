@@ -65,7 +65,7 @@ class MonthlyTimesheetForm(forms.Form):
         default_value = self.cleaned_data['default_value']
         include_weekends = self.cleaned_data['include_weekends']
         
-        # Получаем сотрудников, назначенных этому мастеру в выбранном месяце
+        # Получаем сотрудников: для мастера — по назначениям, для плановика/админа — все активные
         from apps.users.models import Employee, EmployeeAssignment
         from django.db.models import Q
         month_start = month
@@ -74,21 +74,26 @@ class MonthlyTimesheetForm(forms.Form):
         import calendar
         _, last_day = calendar.monthrange(year, month_num)
         month_end = datetime(year, month_num, last_day).date()
-        # Основной способ: по назначениям; плюс обратная совместимость: поле master
-        employees = Employee.objects.filter(is_active=True).filter(
-            Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
-        ).filter(
-            (
-                Q(assignments__master=self.user) &
-                (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
-                Q(assignments__start_date__lte=month_end)
-            ) | Q(master=self.user)
-        ).filter(is_itr_employee=False).distinct()
-        if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
-            employees = employees.exclude(user=self.user)
+        
+        if self.user.is_master:
+            employees = Employee.objects.filter(is_active=True).filter(
+                Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+            ).filter(
+                (
+                    Q(assignments__master=self.user) &
+                    (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=month_start)) &
+                    Q(assignments__start_date__lte=month_end)
+                ) | Q(master=self.user)
+            ).filter(is_itr_employee=False).distinct()
+            if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
+                employees = employees.exclude(user=self.user)
+        else:
+            employees = Employee.objects.filter(is_active=True).filter(
+                Q(termination_date__isnull=True) | Q(termination_date__gte=month_start)
+            ).filter(is_itr_employee=False).distinct()
         
         if not employees.exists():
-            raise ValueError('У вас нет активных сотрудников')
+            raise ValueError('Нет активных сотрудников для создания табелей')
         
         # Получаем первый и последний день месяца
         import calendar
@@ -118,20 +123,29 @@ class MonthlyTimesheetForm(forms.Form):
                 
                 # Проверяем, не существует ли уже табель
                 if not Timesheet.objects.filter(date=date, employee=employee).exists():
-                    # Проверяем назначение на эту дату (или legacy-связь master)
-                    assigned = EmployeeAssignment.objects.filter(
-                        employee=employee, master=self.user
-                    ).filter(
-                        Q(end_date__isnull=True) | Q(end_date__gte=date),
-                        start_date__lte=date
-                    ).exists()
-                    if not assigned and getattr(employee, 'master_id', None) != getattr(self.user, 'id', None):
+                    # Для мастера: проверяем назначение на эту дату (или legacy-связь master)
+                    # Для плановика/админа: создаем без проверки назначений
+                    should_create = False
+                    if self.user.is_master:
+                        assigned = EmployeeAssignment.objects.filter(
+                            employee=employee, master=self.user
+                        ).filter(
+                            Q(end_date__isnull=True) | Q(end_date__gte=date),
+                            start_date__lte=date
+                        ).exists()
+                        if assigned or getattr(employee, 'master_id', None) == getattr(self.user, 'id', None):
+                            should_create = True
+                    else:
+                        should_create = True
+                    
+                    if not should_create:
                         continue
+                    
                     try:
                         Timesheet.objects.create(
                             date=date,
                             employee=employee,
-                            master=self.user,
+                            master=self.user if self.user.is_master else getattr(employee, 'master', None),
                             value=default_value,
                             status='draft'
                         )
@@ -207,16 +221,23 @@ class BulkTimesheetForm(forms.Form):
         
         from apps.users.models import Employee, EmployeeAssignment
         from django.db.models import Q
-        # По назначениям на дату или legacy master
-        employees = Employee.objects.filter(id__in=ids, is_active=True).filter(
-            (
-                Q(assignments__master=self.user) &
-                (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &
-                Q(assignments__start_date__lte=date)
-            ) | Q(master=self.user)
-        ).filter(is_itr_employee=False).distinct()
-        if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
-            employees = employees.exclude(user=self.user)
+        
+        if self.user.is_master:
+            # По назначениям на дату или legacy master
+            employees = Employee.objects.filter(id__in=ids, is_active=True).filter(
+                (
+                    Q(assignments__master=self.user) &
+                    (Q(assignments__end_date__isnull=True) | Q(assignments__end_date__gte=date)) &
+                    Q(assignments__start_date__lte=date)
+                ) | Q(master=self.user)
+            ).filter(is_itr_employee=False).distinct()
+            if hasattr(self.user, 'show_self_in_own_timesheet') and not self.user.show_self_in_own_timesheet:
+                employees = employees.exclude(user=self.user)
+        else:
+            # Плановик/админ — все выбранные сотрудники
+            employees = Employee.objects.filter(id__in=ids, is_active=True).filter(
+                Q(termination_date__isnull=True) | Q(termination_date__gte=date)
+            ).filter(is_itr_employee=False).distinct()
         
         updated_count = 0
         
@@ -226,7 +247,7 @@ class BulkTimesheetForm(forms.Form):
                 date=date,
                 employee=employee,
                 defaults={
-                    'master': self.user,
+                    'master': self.user if self.user.is_master else getattr(employee, 'master', None),
                     'value': value,
                     'status': 'draft'
                 }

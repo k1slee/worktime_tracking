@@ -294,15 +294,15 @@ def quick_edit_timesheet(request):
         user = request.user
         
         # Проверяем права
-        if not user.is_master:
-            return JsonResponse({'error': 'Только мастер может редактировать табели'}, status=403)
+        if not (user.is_master or user.is_planner or user.is_administrator):
+            return JsonResponse({'error': 'Нет прав для редактирования табелей'}, status=403)
         
         # Если есть ID - редактируем существующий
         if timesheet_id:
             timesheet = Timesheet.objects.get(id=timesheet_id)
             
-            # Проверяем, что табель принадлежит мастеру
-            if timesheet.master != user:
+            # Проверяем, что табель принадлежит мастеру (для мастеров)
+            if user.is_master and timesheet.master != user:
                 return JsonResponse({'error': 'Нет прав для редактирования этого табеля'}, status=403)
             
             # Проверяем, можно ли редактировать
@@ -323,7 +323,7 @@ def quick_edit_timesheet(request):
             timesheet = Timesheet.objects.create(
                 date=date_obj,
                 employee=employee,
-                master=user,
+                master=user if user.is_master else getattr(employee, 'master', None),
                 value=value,
                 status='draft'
             )

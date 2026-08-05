@@ -640,7 +640,7 @@
                     <div class="card-body py-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-0">Просмотр табелей за {{ month_name }}</h6>
+                                <h6 class="mb-0">Управление табелями за {{ month_name }}</h6>
                                 <small class="text-muted">
                                     {% if total_employees > 0 %}
                                     Всего сотрудников: {{ total_employees }}
@@ -945,7 +945,7 @@
                                     <div class="text-muted">
                                         <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
                                         <h5 class="mt-2">Нет данных за этот период</h5>
-                                        {% if is_master %}
+                                        {% if is_master or is_planner or is_admin %}
                                         <a href="{% url 'timesheet:monthly_create' %}" class="btn btn-success mt-2">
                                             Создать табели на месяц
                                         </a>

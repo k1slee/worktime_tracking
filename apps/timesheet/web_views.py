@@ -55,8 +55,11 @@ def get_formatted_fio(user):
     return result.strip()
 def get_day_value(day_date):
     def base_value(d: date) -> str:
-        if Holiday.objects.filter(date=d, type="holiday").exists():
+        holiday_qs = Holiday.objects.filter(date=d)
+        if holiday_qs.filter(type="holiday").exists():
             return "В"
+        if holiday_qs.filter(type="preholiday").exists():
+            return "7"
         next_day = d + timedelta(days=1)
         is_next_day_holiday = Holiday.objects.filter(date=next_day, type="holiday").exists()
         if is_next_day_holiday and d.weekday() in (0, 1, 2, 3, 4):
@@ -70,20 +73,45 @@ def get_day_value(day_date):
         mapped = swap.date_b if swap.date_a == day_date else swap.date_a
         return base_value(mapped)
     return base_value(day_date)
+
+def get_holiday_override(day_date) -> str:
+    """Возвращает 'В' для праздничного дня из Holiday, '7' для предпраздничного.
+    Обычные суббота/воскресенье по календарю НЕ учитываются — только записи Holiday/WorkdaySwap.
+    Используется для корректировки литейного (foundry) графика, где сб/вс сами по себе не выходные.
+    """
+    def base_override(d: date) -> str:
+        holiday_qs = Holiday.objects.filter(date=d)
+        if holiday_qs.filter(type="holiday").exists():
+            return "В"
+        if holiday_qs.filter(type="preholiday").exists():
+            return "7"
+        next_day = d + timedelta(days=1)
+        is_next_day_holiday = Holiday.objects.filter(date=next_day, type="holiday").exists()
+        if is_next_day_holiday and d.weekday() in (0, 1, 2, 3, 4):
+            return "7"
+        return ""
+
+    swap = WorkdaySwap.objects.filter(is_active=True).filter(Q(date_a=day_date) | Q(date_b=day_date)).first()
+    if swap:
+        mapped = swap.date_b if swap.date_a == day_date else swap.date_a
+        return base_override(mapped)
+    return base_override(day_date)
 def generate_default_table(year: int, month: int) -> dict:
     """
     Автозаполнение табеля с правильной логикой:
     - 'В' для праздников и выходных (сб/вс)
-    - '7' для рабочего дня перед праздником (даже если праздник в субботу)
+    - '7' для предпраздничных дней (сокращённых) или рабочего дня перед праздником
     - '8' для рабочих дней
     """
     default_table = {}
     cal = calendar.Calendar()
     month_days = cal.monthdatescalendar(year, month)
     
-    def base_value(d: date, holidays_set: set) -> str:
+    def base_value(d: date, holidays_set: set, preholidays_set: set) -> str:
         if d in holidays_set:
             return "В"
+        if d in preholidays_set:
+            return "7"
         next_day = d + timedelta(days=1)
         is_next_day_holiday = next_day in holidays_set
         if is_next_day_holiday and d.weekday() in (0, 1, 2, 3, 4):
@@ -99,11 +127,18 @@ def generate_default_table(year: int, month: int) -> dict:
             type="holiday"
         ).values_list('date', flat=True)
     )
+    preholidays = set(
+        Holiday.objects.filter(
+            date__year=year,
+            date__month=month,
+            type="preholiday"
+        ).values_list('date', flat=True)
+    )
 
     for week in month_days:
         for day_date in week:
             if day_date.month == month:
-                default_table[day_date.day] = base_value(day_date, holidays)
+                default_table[day_date.day] = base_value(day_date, holidays, preholidays)
 
     month_start = date(year, month, 1)
     if month == 12:
@@ -122,13 +157,13 @@ def generate_default_table(year: int, month: int) -> dict:
             db = s.date_b.day
             default_table[da], default_table[db] = default_table.get(db, ''), default_table.get(da, '')
         elif a_in:
-            default_table[s.date_a.day] = base_value(s.date_b, holidays)
+            default_table[s.date_a.day] = base_value(s.date_b, holidays, preholidays)
         elif b_in:
-            default_table[s.date_b.day] = base_value(s.date_a, holidays)
+            default_table[s.date_b.day] = base_value(s.date_a, holidays, preholidays)
     
     return default_table
 
-def get_foundry_day_value(day_date: date, anchor: date) -> str:
+def get_foundry_day_value(day_date: date, anchor: date, holiday_override: str = '') -> str:
     pattern = (
         ('8', 4),
         ('В', 2),
@@ -140,11 +175,26 @@ def get_foundry_day_value(day_date: date, anchor: date) -> str:
     cycle_len = sum(length for _, length in pattern)
     offset = (day_date - anchor).days % cycle_len
     acc = 0
-    for value, length in pattern:
+    value = 'В'
+    for v, length in pattern:
         if offset < acc + length:
-            return value
+            value = v
+            break
         acc += length
-    return 'В'
+    if holiday_override == 'В':
+        return 'В'
+    if holiday_override == '7' and value != 'В':
+        def subtract_one_hour(v: str) -> str:
+            if '/' in v:
+                left, right = v.split('/', 1)
+                if left.isdigit():
+                    return f"{max(1, int(left) - 1)}/{right}"
+                return v
+            if v.isdigit():
+                return str(max(1, int(v) - 1))
+            return v
+        return subtract_one_hour(value)
+    return value
 
 def get_foundry_anchor_for(request_user, employee=None) -> date:
     default_anchor = date(2026, 2, 28)
@@ -394,20 +444,19 @@ def get_monthly_data(request, year, month, print_mode=False):
     }
 
 
-def update_statistics(stats, employee_id, day, value_str, is_weekend, 
-                     total_hours_formats, evening_formats, night_formats, overtime_formats,
-                     is_foundry=False):
-    """Обновление статистики для одного дня
-    
-    is_foundry: сотрудник работает по литейному 3-сменному графику.
-    Для foundry:  X/2 = вся смена вечерняя (X часов вечерних, 0 ночных)
-                  X/3 = вся смена ночная   (X часов ночных,   0 вечерних)
-    Для ИЦ (не foundry): 8/2, 9/2, 10/2, 6/2 = 6.5 вечерних + 1.5 ночных (кроме 7/2 -> 6.5 веч+0.5 ноч)
+def update_statistics(stats, employee_id, day, value_str, is_weekend,
+                     total_hours_formats, evening_formats, night_formats, overtime_formats):
+    """
+    Обновление статистики для одного дня.
+    Теперь единая логика для литейного и ИЦ графиков:
+      - X/2  -> 6.5 вечерних + ночные по словарю (для 7/2 – 0.5, для остальных – 1.5)
+      - X/3  -> всё количество часов – ночные, вечерних нет
+      - X    -> только общие часы (без разделения на смены)
     """
     if not value_str:
         return stats
-    
-    # Подсчет общего количества часов
+
+    # 1. Общие часы
     if value_str in total_hours_formats:
         hours = total_hours_formats[value_str]
         stats['total_hours'][employee_id] = stats['total_hours'].get(employee_id, 0) + hours
@@ -422,42 +471,34 @@ def update_statistics(stats, employee_id, day, value_str, is_weekend,
                     stats['weekend_hours'][employee_id] = stats['weekend_hours'].get(employee_id, 0) + hours
         except (ValueError, TypeError):
             pass
-    
-    # Определяем смену по формату X/2 или X/3
-    shift_hours = None
-    shift_kind = None  # 'evening' для /2, 'night' для /3
+
+    # 2. Вечерние и ночные часы (единая обработка)
     if '/' in value_str:
         parts = value_str.split('/', 1)
         if parts[0].isdigit() and parts[1] in ('2', '3'):
             shift_hours = int(parts[0])
             shift_kind = 'evening' if parts[1] == '2' else 'night'
-    
-    # Вечерние и ночные часы
-    if is_foundry and shift_hours is not None:
-        # Литейный 3-сменный график: вся смена целиком в своей категории
-        if shift_kind == 'evening':
-            stats['evening_hours'][employee_id] = stats['evening_hours'].get(employee_id, 0) + shift_hours
-        elif shift_kind == 'night':
-            stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + shift_hours
-    else:
-        # ИЦ (2-сменный / стандартный): фиксированные величины по таблицам
-        if value_str in evening_formats:
-            stats['evening_hours'][employee_id] = stats['evening_hours'].get(employee_id, 0) + 6.5
-        if value_str in night_formats:
-            stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + night_formats[value_str]
-        # Заполняем пропуск 0.5 часа для 7/2 в ИЦ: total=7, вечерние=6.5 -> ночные +=0.5
-        if not is_foundry and value_str == '7/2':
-            stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + 0.5
-    
-    # Сверхурочные часы
+
+            if shift_kind == 'evening':
+                # Для /2 – фиксированные доли (как в ИЦ)
+                if value_str in evening_formats:
+                    stats['evening_hours'][employee_id] = stats['evening_hours'].get(employee_id, 0) + 6.5
+                if value_str in night_formats:
+                    stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + night_formats[value_str]
+                # Для 7/2 ночные уже есть в словаре (0.5)
+            elif shift_kind == 'night':
+                # Для /3 – вся смена ночная
+                stats['night_hours'][employee_id] = stats['night_hours'].get(employee_id, 0) + shift_hours
+                # Вечерние не добавляем
+
+    # 3. Сверхурочные
     if value_str in overtime_formats:
         stats['overtime_hours'][employee_id] = stats['overtime_hours'].get(employee_id, 0) + overtime_formats[value_str]
-    
-    # Подсчет категорий
+
+    # 4. Подсчёт явок и категорий (без изменений)
     if value_str not in ['В', 'О', 'Б', 'К', 'ЦП', 'П', 'Н', 'ОС', 'Р', 'Г', 'ДМ', 'ОЖ', 'А']:
         stats['attendance'][employee_id] = stats['attendance'].get(employee_id, 0) + 1
-    
-    # Маппинг категорий
+
     category_map = {
         'ЦП': 'downtime',
         'К': 'business_trip',
@@ -471,17 +512,16 @@ def update_statistics(stats, employee_id, day, value_str, is_weekend,
         'ОС': 'other_absence',
         'А': 'admin_permission',
     }
-    
     if value_str in category_map:
         key = category_map[value_str]
         stats[key][employee_id] = stats[key].get(employee_id, 0) + 1
-    
-    # Подсчет дневных смен (литейный график): '8' без слэша в не выходной
+
+    # Подсчёт дневных смен (для литейного, но оставлено как есть)
     if not is_weekend:
         raw_val = value_str.replace(' ч', '').strip()
         if '/' not in raw_val and raw_val == '8':
             stats['day_shift'][employee_id] = stats['day_shift'].get(employee_id, 0) + 1
-    
+
     return stats
 
 
@@ -524,10 +564,14 @@ def process_timesheet_data(request, year, month, employees, timesheets):
         '7/3': 7.0, '7/2': 7.0, '8/2': 8.0, '8': 8.0, '7': 7.0,
         '4': 4.0, '10': 10.0, '10/2': 10.0, '3,5': 3.5, '9': 9.0,
         '9/2': 9.0, '6': 6.0, '6/2': 6.0, '5': 5.0, '5/2': 5.0,
+        '8/3': 8.0, '9/3': 9.0, '6/3': 6.0,
     }
     
     evening_formats = ['8/2', '7/2', '9/2', '10/2', '6/2']
-    night_formats = {'7/3': 7.0, '8/2': 1.5, '9/2': 1.5, '10/2': 1.5, '6/2': 1.5}
+    night_formats = {'7/3': 7.0, '8/2': 1.5, '9/2': 1.5, '10/2': 1.5, '6/2': 1.5, '7/3': 7.0, 
+    '8/3': 8.0,   # добавлено
+    '9/3': 9.0,   # добавлено на всякий случай
+    '6/3': 6.0,}
     overtime_formats = {'9': 1, '10': 2, '9/2': 1, '10/2': 2}
     
     # Группировка табелей по сотрудникам
@@ -649,7 +693,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
                 if schedule == 'foundry':
                     anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
                     anchor = get_foundry_anchor_for(anchor_user, employee)
-                    display_value = get_foundry_day_value(day_date, anchor)
+                    display_value = get_foundry_day_value(day_date, anchor, get_holiday_override(day_date))
                 elif schedule == 'ic':
                     anchor_user = getattr(employee, 'user', None) if timesheet_type == 'itr' else request.user
                     anchor = get_ic_anchor_for(anchor_user, employee)
@@ -684,8 +728,7 @@ def process_timesheet_data(request, year, month, employees, timesheets):
             value_str = day_cells[-1]['value'] or day_cells[-1]['display_value']
             stats = update_statistics(
                 stats, employee_id, day, value_str, weekend_days_dict.get(day, False),
-                total_hours_formats, evening_formats, night_formats, overtime_formats,
-                is_foundry=emp_is_foundry
+                total_hours_formats, evening_formats, night_formats, overtime_formats
             )
         
         # Проверяем, есть ли данные у сотрудника
@@ -1002,8 +1045,8 @@ def print_monthly_table(request):
 @login_required
 def monthly_create_view(request):
     """Создание табелей на весь месяц"""
-    if not request.user.is_master:
-        messages.error(request, 'Только мастера могут создавать месячные табели')
+    if not (request.user.is_master or request.user.is_planner or request.user.is_administrator):
+        messages.error(request, 'Нет прав для создания месячных табелей')
         return redirect('timesheet:list')
     
     if request.method == 'POST':
@@ -1030,8 +1073,8 @@ def monthly_create_view(request):
 @login_required
 def bulk_edit_view(request):
     """Массовое редактирование табелей"""
-    if not request.user.is_master:
-        messages.error(request, 'Только мастера могут редактировать табели')
+    if not (request.user.is_master or request.user.is_planner or request.user.is_administrator):
+        messages.error(request, 'Нет прав для редактирования табелей')
         return redirect('timesheet:list')
     
     if request.method == 'POST':
@@ -1055,9 +1098,12 @@ def bulk_edit_view(request):
         ids = [int(id) for id in request.GET.get('employee_ids').split(',') if id]
         
         # Включаем мастера в выборку
-        employees = Employee.objects.filter(
-            Q(id__in=ids) & (Q(master=request.user) | Q(user=request.user))
-        )
+        if request.user.is_master:
+            employees = Employee.objects.filter(
+                Q(id__in=ids) & (Q(master=request.user) | Q(user=request.user))
+            )
+        else:
+            employees = Employee.objects.filter(id__in=ids)
         
         employee_info = [
             {'id': emp.id, 'name': emp.full_name, 'employee_id': emp.employee_id}
@@ -1129,11 +1175,16 @@ class TimesheetCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     success_url = reverse_lazy('timesheet:list')
     
     def test_func(self):
-        # Только мастера могут создавать табели
-        return self.request.user.is_master
+        # Мастер, плановый отдел и администратор могут создавать табели
+        return (
+            self.request.user.is_master or
+            self.request.user.is_planner or
+            self.request.user.is_administrator
+        )
     
     def form_valid(self, form):
-        form.instance.master = self.request.user
+        if self.request.user.is_master:
+            form.instance.master = self.request.user
         messages.success(self.request, 'Табель успешно создан')
         return super().form_valid(form)
     
@@ -1574,12 +1625,17 @@ def fill_range(request):
                 Q(end_date__isnull=True) | Q(end_date__gte=day),
                 start_date__lte=day
             ).exists()
-            if request.user.is_master and (legacy_ok or has_assignment):
+            can_edit_day = (
+                request.user.is_planner or
+                request.user.is_administrator or
+                (request.user.is_master and (legacy_ok or has_assignment))
+            )
+            if can_edit_day:
                 ts, created = TimesheetModel.objects.get_or_create(
                     date=day,
                     employee=emp,
                     defaults={
-                        'master': request.user,
+                        'master': request.user if request.user.is_master else emp.master,
                         'value': value,
                         'status': 'draft'
                     }
@@ -1587,7 +1643,7 @@ def fill_range(request):
                 if not created:
                     if ts.can_edit:
                         ts.value = value
-                        if ts.master is None:
+                        if ts.master is None and request.user.is_master:
                             ts.master = request.user
                         ts.save()
                 filled += 1
@@ -1640,11 +1696,19 @@ def restore_range(request):
                 Q(end_date__isnull=True) | Q(end_date__gte=day),
                 start_date__lte=day
             ).exists()
-            if request.user.is_master and (legacy_ok or has_assignment):
+            can_restore_day = (
+                request.user.is_planner or
+                request.user.is_administrator or
+                (request.user.is_master and (legacy_ok or has_assignment))
+            )
+            if can_restore_day:
                 ts = TimesheetModel.objects.filter(date=day, employee=emp).first()
-                if ts and ts.master == request.user and ts.can_edit:
-                    ts.delete()
-                    restored += 1
+                if ts and ts.can_edit:
+                    if request.user.is_master and ts.master != request.user:
+                        pass
+                    else:
+                        ts.delete()
+                        restored += 1
             day += timedelta(days=1)
         return JsonResponse({'success': True, 'restored': restored})
     except Employee.DoesNotExist:
@@ -1816,7 +1880,7 @@ def submit_month(request):
                                 schedule = 'ic'
                         if schedule == 'foundry':
                             anchor = get_foundry_anchor_for(row_user, emp)
-                            value = get_foundry_day_value(d, anchor)
+                            value = get_foundry_day_value(d, anchor, get_holiday_override(d))
                         elif schedule == 'ic':
                             anchor = get_ic_anchor_for(row_user, emp)
                             override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
@@ -1834,7 +1898,7 @@ def submit_month(request):
                             value = get_ic_day_value(d, anchor, holiday_value, force_always_8, allowed_weekdays, hours_per_day=hours_per_day, weekdays_always_8=(override == 'weekdays'), dm_weekdays=dm_weekdays, invert_week=invert_week, hour_delta=hour_delta)
                     elif timesheet_type == 'main' and getattr(request.user, 'is_foundry_master', False):
                         anchor = get_foundry_anchor_for(request.user, emp)
-                        value = get_foundry_day_value(d, anchor)
+                        value = get_foundry_day_value(d, anchor, get_holiday_override(d))
                     elif timesheet_type == 'main' and getattr(request.user, 'is_ic_master', False):
                         anchor = get_ic_anchor_for(request.user, emp)
                         override = getattr(emp, 'ic_schedule_override', 'inherit') or 'inherit'
